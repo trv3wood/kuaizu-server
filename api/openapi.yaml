@@ -1,21 +1,1228 @@
-openapi: "3.0.0"
+openapi: "3.0.3"
 info:
-  version: 1.0.0
-  title: Kuaizu Server API
+  title: 快组校园 API v2
+  description: |
+    快组校园 RESTful API v2 - 大学生组队与人才匹配平台
+
+    ## 核心规约
+    - URL路径：全小写，单词间用中划线分隔，只使用名词复数
+    - JSON字段：严格使用小驼峰(camelCase)
+    - 鉴权方式：Header携带 `Authorization: Bearer {token}`
+  version: 2.0.0
+  contact:
+    name: 快组校园团队
+
 servers:
-  - url: http://localhost:8080
+  - url: https://api.zhaoxiaokai.xyz/api/v2
+    description: 生产环境
+  - url: http://localhost:8080/api/v2
+    description: 本地开发
+
+tags:
+  - name: Auth
+    description: 认证相关接口
+  - name: Users
+    description: 用户管理接口
+  - name: Projects
+    description: 项目大厅接口
+  - name: ProjectApplications
+    description: 项目申请管理接口
+  - name: TalentProfiles
+    description: 人才库接口
+  - name: OliveBranches
+    description: 橄榄枝邀请接口
+  - name: Orders
+    description: 订单与支付接口
+  - name: Dictionaries
+    description: 基础数据字典接口
+  - name: Commons
+    description: 通用接口
+
+security:
+  - bearerAuth: []
+
 paths:
-  /hello:
-    get:
-      summary: Get Hello World
-      operationId: getHello
+  # ==================== 认证模块 ====================
+  /auth/login/wechat:
+    post:
+      tags: [Auth]
+      summary: 微信一键登录/注册
+      description: 后端自动判断是注册还是登录，返回Token
+      operationId: loginWithWechat
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  description: 微信登录临时凭证code
+                  example: "0a1b2c3d4e5f"
       responses:
-        '200':
-          description: A successful response
+        "200":
+          description: 登录成功
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/LoginResponse"
+
+  # ==================== 用户模块 ====================
+  /users/me:
+    get:
+      tags: [Users]
+      summary: 获取当前用户信息
+      operationId: getCurrentUser
+      responses:
+        "200":
+          description: 成功获取用户信息
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/UserVO"
+    put:
+      tags: [Users]
+      summary: 更新个人资料
+      operationId: updateCurrentUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserDTO"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/UserVO"
+
+  /users/me/certification:
+    post:
+      tags: [Users]
+      summary: 提交学生认证
+      operationId: submitCertification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [studentImgUrl]
+              properties:
+                studentImgUrl:
+                  type: string
+                  description: 学生证照片URL
+                  example: "https://cdn.example.com/student/123.jpg"
+      responses:
+        "200":
+          description: 提交成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseResponse"
+
+  /users/me/olive-branches:
+    get:
+      tags: [OliveBranches]
+      summary: 查看我收到的橄榄枝邀请
+      description: 人才视角查看收到的邀请
+      operationId: getMyReceivedOliveBranches
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/OliveBranchStatus"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/OliveBranchPageResponse"
+
+  # ==================== 项目大厅模块 ====================
+  /projects:
+    get:
+      tags: [Projects]
+      summary: 项目列表/搜索
+      operationId: listProjects
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - name: keyword
+          in: query
+          description: 关键词搜索
+          schema:
+            type: string
+        - name: schoolId
+          in: query
+          description: 学校ID筛选
+          schema:
+            type: integer
+        - name: status
+          in: query
+          description: 项目状态筛选
+          schema:
+            $ref: "#/components/schemas/ProjectStatus"
+        - name: direction
+          in: query
+          description: 项目方向筛选
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ProjectPageResponse"
+    post:
+      tags: [Projects]
+      summary: 发布新项目
+      description: 创建后状态默认为"待审核"
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectDTO"
+      responses:
+        "200":
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ProjectVO"
+
+  /projects/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: 项目ID
+    get:
+      tags: [Projects]
+      summary: 获取项目详情
+      description: 返回包含浏览量、队长信息的数据
+      operationId: getProject
+      security: []
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ProjectDetailVO"
+    put:
+      tags: [Projects]
+      summary: 修改项目信息
+      description: 仅队长可操作
+      operationId: updateProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProjectDTO"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ProjectVO"
+    delete:
+      tags: [Projects]
+      summary: 删除/下架项目
+      description: 逻辑删除
+      operationId: deleteProject
+      responses:
+        "200":
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseResponse"
+
+  /projects/{id}/applications:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: 项目ID
+    get:
+      tags: [ProjectApplications]
+      summary: 查看某项目的申请列表
+      description: 仅队长可见
+      operationId: listProjectApplications
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/ApplicationStatus"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ApplicationPageResponse"
+    post:
+      tags: [ProjectApplications]
+      summary: 申请加入项目
+      description: 触发订阅消息逻辑
+      operationId: applyToProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: 自我介绍/申请理由
+                  example: "我有2年的Java开发经验..."
+                contact:
+                  type: string
+                  description: 联系方式
+                  example: "微信: example123"
+      responses:
+        "200":
+          description: 申请成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ProjectApplicationVO"
+
+  /project-applications/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: 申请ID
+    patch:
+      tags: [ProjectApplications]
+      summary: 审核申请
+      description: 队长审核用户的加入申请
+      operationId: reviewApplication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: "#/components/schemas/ApplicationStatus"
+                rejectReason:
+                  type: string
+                  description: 拒绝原因(拒绝时填写)
+      responses:
+        "200":
+          description: 操作成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseResponse"
+
+  # ==================== 人才库模块 ====================
+  /talent-profiles:
+    get:
+      tags: [TalentProfiles]
+      summary: 搜索人才库
+      operationId: listTalentProfiles
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - name: majorId
+          in: query
+          description: 专业ID筛选
+          schema:
+            type: integer
+        - name: keyword
+          in: query
+          description: 关键词搜索
+          schema:
+            type: string
+        - name: schoolId
+          in: query
+          description: 学校ID筛选
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/TalentProfilePageResponse"
+    post:
+      tags: [TalentProfiles]
+      summary: 发布/修改我的人才卡片
+      description: 只有发布了才能被搜到
+      operationId: upsertTalentProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertTalentProfileDTO"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/TalentProfileVO"
+
+  /talent-profiles/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: 人才档案ID
+    get:
+      tags: [TalentProfiles]
+      summary: 查看人才详情
+      description: 需数据脱敏，除非已建立联系
+      operationId: getTalentProfile
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/TalentProfileDetailVO"
+
+  # ==================== 橄榄枝模块 ====================
+  /olive-branches:
+    post:
+      tags: [OliveBranches]
+      summary: 发送橄榄枝(邀请)
+      description: |
+        后端逻辑：检查余额 -> 扣除次数 -> 发送通知
+        余额不足返回错误码4002
+      operationId: sendOliveBranch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendOliveBranchDTO"
+      responses:
+        "200":
+          description: 发送成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/OliveBranchVO"
+
+  /olive-branches/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: 橄榄枝ID
+    patch:
+      tags: [OliveBranches]
+      summary: 处理邀请(接受/拒绝)
+      operationId: handleOliveBranch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [ACCEPT, REJECT]
+                  description: 操作类型
+      responses:
+        "200":
+          description: 操作成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseResponse"
+
+  # ==================== 订单与支付模块 ====================
+  /orders:
+    post:
+      tags: [Orders]
+      summary: 创建订单
+      operationId: createOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderDTO"
+      responses:
+        "200":
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/OrderVO"
+
+  /orders/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: 订单ID
+    get:
+      tags: [Orders]
+      summary: 查询订单状态
+      description: 轮询查单使用
+      operationId: getOrder
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/OrderVO"
+
+  /orders/{id}/pay:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: 订单ID
+    post:
+      tags: [Orders]
+      summary: 发起微信支付
+      description: 返回微信小程序requestPayment所需的参数
+      operationId: initiatePayment
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/WechatPaymentParams"
+
+  # ==================== 基础数据模块 ====================
+  /dictionaries/schools:
+    get:
+      tags: [Dictionaries]
+      summary: 获取学校列表
+      operationId: listSchools
+      security: []
+      parameters:
+        - name: keyword
+          in: query
+          description: 关键词搜索
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/SchoolVO"
+
+  /dictionaries/majors:
+    get:
+      tags: [Dictionaries]
+      summary: 获取专业/大类列表
+      description: 返回树形结构或列表
+      operationId: listMajors
+      security: []
+      parameters:
+        - name: classId
+          in: query
+          description: 专业大类ID筛选
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/MajorClassVO"
+
+  # ==================== 通用模块 ====================
+  /commons/uploads:
+    post:
+      tags: [Commons]
+      summary: 文件上传通用接口
+      description: 统一上传图片，返回URL
+      operationId: uploadFile
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: 上传的文件
+                type:
+                  type: string
+                  enum: [avatar, student_cert, project]
+                  description: 文件类型
+      responses:
+        "200":
+          description: 上传成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          url:
+                            type: string
+                            description: 文件访问URL
+                            example: "https://cdn.example.com/uploads/123.jpg"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Token认证
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: 页码(从1开始)
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+    SizeParam:
+      name: size
+      in: query
+      description: 每页条数
+      schema:
+        type: integer
+        default: 10
+        minimum: 1
+        maximum: 100
+
+  schemas:
+    # ==================== 通用响应 ====================
+    BaseResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+          description: 业务状态码，200成功，其他为错误码
+          example: 200
+        message:
+          type: string
+          description: 提示信息
+          example: "操作成功"
+
+    PageInfo:
+      type: object
+      properties:
+        page:
+          type: integer
+          description: 当前页码
+        size:
+          type: integer
+          description: 每页条数
+        total:
+          type: integer
+          format: int64
+          description: 总记录数
+        totalPages:
+          type: integer
+          description: 总页数
+
+    # ==================== 枚举类型 ====================
+    ProjectStatus:
+      type: string
+      enum: [PENDING, ACTIVE, REJECTED, CLOSED]
+      description: |
+        项目状态:
+        - PENDING: 待审核
+        - ACTIVE: 进行中/已上架
+        - REJECTED: 已驳回
+        - CLOSED: 已关闭
+
+    ApplicationStatus:
+      type: string
+      enum: [PENDING, APPROVED, REJECTED]
+      description: |
+        申请状态:
+        - PENDING: 待审核
+        - APPROVED: 已通过
+        - REJECTED: 已拒绝
+
+    OliveBranchStatus:
+      type: string
+      enum: [PENDING, ACCEPTED, REJECTED]
+      description: |
+        橄榄枝状态:
+        - PENDING: 待处理
+        - ACCEPTED: 已接受
+        - REJECTED: 已拒绝
+
+    TalentStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE]
+      description: |
+        人才档案状态:
+        - ACTIVE: 上架
+        - INACTIVE: 下架
+
+    OrderType:
+      type: string
+      enum: [OLIVE_PACK_10, OLIVE_PACK_50, PROMOTION]
+      description: |
+        订单类型:
+        - OLIVE_PACK_10: 橄榄枝10次包
+        - OLIVE_PACK_50: 橄榄枝50次包
+        - PROMOTION: 项目推广
+
+    OrderStatus:
+      type: string
+      enum: [PENDING, PAID, CANCELLED, REFUNDED]
+      description: |
+        订单状态:
+        - PENDING: 待支付
+        - PAID: 已支付
+        - CANCELLED: 已取消
+        - REFUNDED: 已退款
+
+    AuthStatus:
+      type: string
+      enum: [UNVERIFIED, PENDING, VERIFIED, FAILED]
+      description: |
+        认证状态:
+        - UNVERIFIED: 未认证
+        - PENDING: 审核中
+        - VERIFIED: 已认证
+        - FAILED: 认证失败
+
+    # ==================== 认证相关 ====================
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT Token
+        expiresIn:
+          type: integer
+          description: Token过期时间(秒)
+        isNewUser:
+          type: boolean
+          description: 是否为新注册用户
+        user:
+          $ref: "#/components/schemas/UserVO"
+
+    # ==================== 用户相关 ====================
+    UserVO:
+      type: object
+      properties:
+        id:
+          type: integer
+        nickname:
+          type: string
+        avatarUrl:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        school:
+          $ref: "#/components/schemas/SchoolVO"
+        major:
+          $ref: "#/components/schemas/MajorVO"
+        grade:
+          type: integer
+        oliveBranchCount:
+          type: integer
+          description: 剩余橄榄枝数量
+        authStatus:
+          $ref: "#/components/schemas/AuthStatus"
+        createdAt:
+          type: string
+          format: date-time
+
+    UpdateUserDTO:
+      type: object
+      properties:
+        nickname:
+          type: string
+          maxLength: 50
+        avatarUrl:
+          type: string
+        phone:
+          type: string
+          pattern: '^1[3-9]\d{9}$'
+        email:
+          type: string
+          format: email
+        schoolId:
+          type: integer
+        majorId:
+          type: integer
+        grade:
+          type: integer
+
+    # ==================== 项目相关 ====================
+    ProjectVO:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        schoolId:
+          type: integer
+        schoolName:
+          type: string
+        direction:
+          type: integer
+        memberCount:
+          type: integer
+        educationReq:
+          type: integer
+        isCrossSchool:
+          type: boolean
+        status:
+          $ref: "#/components/schemas/ProjectStatus"
+        createdAt:
+          type: string
+          format: date-time
+
+    ProjectDetailVO:
+      allOf:
+        - $ref: "#/components/schemas/ProjectVO"
+        - type: object
+          properties:
+            creator:
+              $ref: "#/components/schemas/UserVO"
+            viewCount:
+              type: integer
+              description: 浏览量
+            applicationCount:
+              type: integer
+              description: 申请数量
+
+    CreateProjectDTO:
+      type: object
+      required: [name, description, memberCount]
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        schoolId:
+          type: integer
+        direction:
+          type: integer
+        memberCount:
+          type: integer
+          minimum: 1
+        educationReq:
+          type: integer
+        isCrossSchool:
+          type: boolean
+          default: false
+
+    UpdateProjectDTO:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        direction:
+          type: integer
+        memberCount:
+          type: integer
+          minimum: 1
+        educationReq:
+          type: integer
+        isCrossSchool:
+          type: boolean
+
+    ProjectPageResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectVO"
+        pageInfo:
+          $ref: "#/components/schemas/PageInfo"
+
+    # ==================== 项目申请相关 ====================
+    ProjectApplicationVO:
+      type: object
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        projectName:
+          type: string
+        applicant:
+          $ref: "#/components/schemas/UserVO"
+        reason:
+          type: string
+        contact:
+          type: string
+        status:
+          $ref: "#/components/schemas/ApplicationStatus"
+        appliedAt:
+          type: string
+          format: date-time
+
+    ApplicationPageResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectApplicationVO"
+        pageInfo:
+          $ref: "#/components/schemas/PageInfo"
+
+    # ==================== 人才档案相关 ====================
+    TalentProfileVO:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        nickname:
+          type: string
+        avatarUrl:
+          type: string
+        schoolName:
+          type: string
+        majorName:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        intro:
+          type: string
+        mbti:
+          type: string
+        status:
+          $ref: "#/components/schemas/TalentStatus"
+
+    TalentProfileDetailVO:
+      allOf:
+        - $ref: "#/components/schemas/TalentProfileVO"
+        - type: object
+          properties:
+            selfEvaluation:
+              type: string
+            projectExperience:
+              type: string
+            contact:
+              type: string
+              description: 联系方式(已建立联系时返回)
+
+    UpsertTalentProfileDTO:
+      type: object
+      properties:
+        skills:
+          type: array
+          items:
+            type: string
+          description: 技能标签列表
+        intro:
+          type: string
+          description: 简介
+        selfEvaluation:
+          type: string
+          description: 自我评价
+        projectExperience:
+          type: string
+          description: 项目经历
+        mbti:
+          type: string
+          maxLength: 10
+        status:
+          $ref: "#/components/schemas/TalentStatus"
+
+    TalentProfilePageResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/components/schemas/TalentProfileVO"
+        pageInfo:
+          $ref: "#/components/schemas/PageInfo"
+
+    # ==================== 橄榄枝相关 ====================
+    OliveBranchVO:
+      type: object
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        projectName:
+          type: string
+        talent:
+          $ref: "#/components/schemas/TalentProfileVO"
+        sender:
+          $ref: "#/components/schemas/UserVO"
+        message:
+          type: string
+        status:
+          $ref: "#/components/schemas/OliveBranchStatus"
+        sentAt:
+          type: string
+          format: date-time
+
+    SendOliveBranchDTO:
+      type: object
+      required: [talentId, projectId]
+      properties:
+        talentId:
+          type: integer
+          description: 人才档案ID
+        projectId:
+          type: integer
+          description: 项目ID
+        message:
+          type: string
+          description: 邀请留言
+
+    OliveBranchPageResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/components/schemas/OliveBranchVO"
+        pageInfo:
+          $ref: "#/components/schemas/PageInfo"
+
+    # ==================== 订单相关 ====================
+    OrderVO:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          $ref: "#/components/schemas/OrderType"
+        amount:
+          type: number
+          format: double
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        tradeNo:
+          type: string
+          description: 微信支付单号
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateOrderDTO:
+      type: object
+      required: [type, amount]
+      properties:
+        type:
+          $ref: "#/components/schemas/OrderType"
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+
+    WechatPaymentParams:
+      type: object
+      description: 微信小程序requestPayment所需参数
+      properties:
+        timeStamp:
+          type: string
+        nonceStr:
+          type: string
+        package:
+          type: string
+        signType:
+          type: string
+        paySign:
+          type: string
+
+    # ==================== 字典数据相关 ====================
+    SchoolVO:
+      type: object
+      properties:
+        id:
+          type: integer
+        schoolName:
+          type: string
+        schoolCode:
+          type: string
+
+    MajorVO:
+      type: object
+      properties:
+        id:
+          type: integer
+        majorName:
+          type: string
+        classId:
+          type: integer
+
+    MajorClassVO:
+      type: object
+      properties:
+        id:
+          type: integer
+        className:
+          type: string
+        majors:
+          type: array
+          items:
+            $ref: "#/components/schemas/MajorVO"
