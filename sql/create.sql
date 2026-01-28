@@ -48,6 +48,8 @@ CREATE TABLE "user" (
     major_id INTEGER REFERENCES major(id) ON DELETE SET NULL,
     grade INTEGER,
     olive_branch_count INTEGER DEFAULT 0,
+    free_quota_date DATE,
+    today_used_free INTEGER DEFAULT 0,
     student_img_url TEXT,
     auth_status INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -105,7 +107,9 @@ CREATE TABLE project_application (
     project_id INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
     status INTEGER DEFAULT 0,
+    review_comment TEXT,
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(project_id, user_id)
 );
@@ -124,12 +128,23 @@ CREATE TABLE olive_branch (
 
 -- ================= 增值服务 =================
 
+-- 商品表
+CREATE TABLE product (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL,
+    available_amount INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 订单表
 CREATE TABLE "order" (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
     amount DECIMAL(10, 2) NOT NULL,
-    type VARCHAR(50) NOT NULL,
+    product_id INTEGER NOT NULL REFERENCES product(id) ON DELETE RESTRICT,
     status INTEGER DEFAULT 0,
     trade_no VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -168,6 +183,7 @@ CREATE INDEX idx_olive_status ON olive_branch(status);
 
 -- 订单表索引
 CREATE INDEX idx_order_user ON "order"(user_id);
+CREATE INDEX idx_order_product ON "order"(product_id);
 CREATE INDEX idx_order_trade_no ON "order"(trade_no);
 CREATE INDEX idx_order_status ON "order"(status);
 
@@ -199,6 +215,8 @@ COMMENT ON COLUMN "user".school_id IS '学校ID';
 COMMENT ON COLUMN "user".major_id IS '专业ID';
 COMMENT ON COLUMN "user".grade IS '年级字典值';
 COMMENT ON COLUMN "user".olive_branch_count IS '剩余橄榄枝数量';
+COMMENT ON COLUMN "user".free_quota_date IS '上次使用免费橄榄枝的日期';
+COMMENT ON COLUMN "user".today_used_free IS '今天消耗免费橄榄枝的额度';
 COMMENT ON COLUMN "user".student_img_url IS '学生证照片';
 COMMENT ON COLUMN "user".auth_status IS '认证状态:0-未认证,1-审核中,2-已认证,3-认证失败';
 
@@ -234,6 +252,8 @@ COMMENT ON TABLE project_application IS '项目申请表';
 COMMENT ON COLUMN project_application.project_id IS '项目ID';
 COMMENT ON COLUMN project_application.user_id IS '申请人';
 COMMENT ON COLUMN project_application.status IS '状态:0-待审核,1-已通过,2-已拒绝';
+COMMENT ON COLUMN project_application.review_comment IS '审核意见';
+COMMENT ON COLUMN project_application.reviewed_at IS '审核时间';
 
 -- olive_branch表注释
 COMMENT ON TABLE olive_branch IS '橄榄枝邀请表';
@@ -242,10 +262,17 @@ COMMENT ON COLUMN olive_branch.talent_id IS '接收人(人才ID)';
 COMMENT ON COLUMN olive_branch.message IS '邀请留言';
 COMMENT ON COLUMN olive_branch.status IS '状态:0-待处理,1-已接受,2-已拒绝';
 
+-- product表注释
+COMMENT ON TABLE product IS '商品表';
+COMMENT ON COLUMN product.name IS '商品名称';
+COMMENT ON COLUMN product.description IS '商品描述';
+COMMENT ON COLUMN product.price IS '商品价格';
+COMMENT ON COLUMN product.available_amount IS '可用数量';
+
 -- order表注释
 COMMENT ON TABLE "order" IS '订单表';
 COMMENT ON COLUMN "order".user_id IS '用户ID';
 COMMENT ON COLUMN "order".amount IS '金额';
-COMMENT ON COLUMN "order".type IS '类型:olive_branch-购买橄榄枝,email_promotion-邮件推广';
+COMMENT ON COLUMN "order".product_id IS '商品ID';
 COMMENT ON COLUMN "order".status IS '支付状态:0-待支付,1-已支付,2-已取消,3-已退款';
 COMMENT ON COLUMN "order".trade_no IS '微信支付单号';

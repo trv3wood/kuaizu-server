@@ -17,7 +17,7 @@ DECLARE
     temp_project_id INTEGER;
 BEGIN
     -- 1. 清理旧数据 (可选，按需开启)
-    TRUNCATE TABLE project_application, olive_branch, "order", project, talent_profile, resume, "user", major, major_class, school CASCADE;
+    TRUNCATE TABLE project_application, olive_branch, "order", project, talent_profile, resume, "user", major, major_class, school, product CASCADE;
 
     -- 2. 插入学校
     IF NOT EXISTS (SELECT 1 FROM school LIMIT 1) THEN
@@ -45,7 +45,16 @@ BEGIN
     END IF;
     SELECT array_agg(id) INTO major_id_list FROM major;
 
-    -- 4. 插入用户
+    -- 4. 插入商品
+    IF NOT EXISTS (SELECT 1 FROM product LIMIT 1) THEN
+        INSERT INTO product (name, description, price, available_amount) VALUES
+        ('橄榄枝礼包-10个', '购买10个橄榄枝，用于邀请人才加入项目', 9.90, 10),
+        ('橄榄枝礼包-30个', '购买30个橄榄枝，用于邀请人才加入项目', 24.90, 30),
+        ('橄榄枝礼包-50个', '购买50个橄榄枝，用于邀请人才加入项目', 39.90, 50),
+        ('邮件推广服务', '通过邮件向目标人才推广项目', 19.90, 1);
+    END IF;
+
+    -- 5. 插入用户
     FOR i IN 1..num_users LOOP
         INSERT INTO "user" (
             openid, nickname, phone, email, 
@@ -84,7 +93,7 @@ BEGIN
         END IF;
     END LOOP;
 
-    -- 5. 插入项目
+    -- 6. 插入项目
     FOR i IN 1..num_projects LOOP
         temp_user_id := user_id_list[floor(random() * array_length(user_id_list, 1) + 1)];
         INSERT INTO project (
@@ -105,7 +114,7 @@ BEGIN
         project_id_list := array_append(project_id_list, temp_project_id);
     END LOOP;
 
-    -- 6. 插入一些申请 (Project Application)
+    -- 7. 插入一些申请 (Project Application)
     FOR i IN 1..(num_projects * 2) LOOP
         temp_project_id := project_id_list[floor(random() * array_length(project_id_list, 1) + 1)];
         temp_user_id := user_id_list[floor(random() * array_length(user_id_list, 1) + 1)];
@@ -118,7 +127,7 @@ BEGIN
         END IF;
     END LOOP;
 
-    -- 7. 插入一些橄榄枝 (Olive Branch)
+    -- 8. 插入一些橄榄枝 (Olive Branch)
     IF array_length(talent_id_list, 1) > 0 THEN
         FOR i IN 1..(num_projects) LOOP
             temp_project_id := project_id_list[floor(random() * array_length(project_id_list, 1) + 1)];
@@ -132,6 +141,25 @@ BEGIN
             END IF;
         END LOOP;
     END IF;
+
+    -- 9. 插入一些订单 (Order)
+    DECLARE
+        product_id_list INTEGER[];
+        temp_product_id INTEGER;
+    BEGIN
+        SELECT array_agg(id) INTO product_id_list FROM product;
+
+        FOR i IN 1..(num_users / 5) LOOP
+            temp_user_id := user_id_list[floor(random() * array_length(user_id_list, 1) + 1)];
+            temp_product_id := product_id_list[floor(random() * array_length(product_id_list, 1) + 1)];
+
+            INSERT INTO "order" (user_id, amount, product_id, status, trade_no)
+            SELECT temp_user_id, price, temp_product_id,
+                   floor(random() * 4)::integer,
+                   'WX' || floor(random() * 1000000000000000)::text
+            FROM product WHERE id = temp_product_id;
+        END LOOP;
+    END;
 
     RAISE NOTICE 'Seed completed: % users, % projects created.', num_users, num_projects;
 END;

@@ -29,8 +29,12 @@ erDiagram
         int major_id FK
         int grade "年级字典值"
         int olive_branch_count "剩余橄榄枝数量"
+        date free_quota_date "上次使用免费橄榄枝的日期"
+        int today_used_free "今天消耗免费橄榄枝的额度"
         string student_img_url "学生证照片"
         int auth_status "认证状态"
+        timestamp created_at
+        timestamp updated_at
     }
 
     RESUME {
@@ -74,7 +78,9 @@ erDiagram
         int project_id FK
         int user_id FK "申请人"
         int status "状态(待审/通过/拒绝)"
+        string review_comment
         datetime applied_at
+        datetime reviewed_at
     }
 
     %% 流程二：队长向人才抛出橄榄枝
@@ -92,9 +98,17 @@ erDiagram
         int id PK
         int user_id FK
         decimal amount "金额"
-        string type "类型(购买橄榄枝/邮件推广)"
+        int product_id "商品Id"
         int status "支付状态"
         string trade_no "微信支付单号"
+    }
+    
+    PRODUCT {
+        int id PK
+        string name
+        string description
+        decimal price
+        int available_amount
     }
 
     %% ================= 关系定义 =================
@@ -115,4 +129,5 @@ erDiagram
 
     PROJECT ||--o{ OLIVE_BRANCH : "发出邀请"
     TALENT_PROFILE ||--o{ OLIVE_BRANCH : "收到邀请"
+    PRODUCT ||--o{ ORDER : "订购"
 ```
