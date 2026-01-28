@@ -35,7 +35,10 @@ func (s *Server) ListProjects(ctx echo.Context, params api.ListProjectsParams) e
 		status := models.ProjectStatusFromEnum(*params.Status)
 		listParams.Status = &status
 	}
-	listParams.Direction = params.Direction
+	if params.Direction != nil {
+		direction := models.EnumToProjectDirection(*params.Direction)
+		listParams.Direction = &direction
+	}
 
 	// Query
 	projects, total, err := s.repo.Project.List(ctx.Request().Context(), listParams)
@@ -86,11 +89,15 @@ func (s *Server) CreateProject(ctx echo.Context) error {
 		Name:          req.Name,
 		Description:   &req.Description,
 		SchoolID:      req.SchoolId,
-		Direction:     req.Direction,
 		MemberCount:   &req.MemberCount,
 		EducationReq:  req.EducationReq,
 		IsCrossSchool: false,
 		Status:        0, // PENDING
+	}
+
+	if req.Direction != nil {
+		direction := models.EnumToProjectDirection(*req.Direction)
+		project.Direction = &direction
 	}
 
 	if req.IsCrossSchool != nil {
@@ -153,7 +160,8 @@ func (s *Server) UpdateProject(ctx echo.Context, id int) error {
 		project.Description = req.Description
 	}
 	if req.Direction != nil {
-		project.Direction = req.Direction
+		direction := models.EnumToProjectDirection(*req.Direction)
+		project.Direction = &direction
 	}
 	if req.MemberCount != nil {
 		project.MemberCount = req.MemberCount

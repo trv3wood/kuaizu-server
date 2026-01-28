@@ -196,7 +196,7 @@ paths:
           in: query
           description: 项目方向筛选
           schema:
-            type: integer
+            $ref: "#/components/schemas/Direction"
       responses:
         "200":
           description: 成功
@@ -839,6 +839,15 @@ components:
         - VERIFIED: 已认证
         - FAILED: 认证失败
 
+    Direction:
+      type: string
+      enum: [AWARD, APPLICATION, STUDY]
+      description: |
+        偏向：
+        - AWARD: 获奖
+        - APPLICATION: 落地
+        - STUDY: 学习
+
     # ==================== 认证相关 ====================
     LoginResponse:
       type: object
@@ -920,7 +929,7 @@ components:
         schoolName:
           type: string
         direction:
-          type: integer
+          $ref: "#/components/schemas/Direction"
         memberCount:
           type: integer
         educationReq:
@@ -959,7 +968,7 @@ components:
         schoolId:
           type: integer
         direction:
-          type: integer
+          $ref: "#/components/schemas/Direction"
         memberCount:
           type: integer
           minimum: 1
@@ -978,7 +987,7 @@ components:
         description:
           type: string
         direction:
-          type: integer
+          $ref: "#/components/schemas/Direction"
         memberCount:
           type: integer
           minimum: 1

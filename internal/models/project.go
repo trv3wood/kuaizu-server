@@ -58,9 +58,35 @@ func ProjectStatusFromEnum(status api.ProjectStatus) int {
 	}
 }
 
+func ProjectDirectionToEnum(direction int) api.Direction {
+	switch direction {
+	case 1:
+		return api.APPLICATION // 1-落地
+	case 2:
+		return api.AWARD // 2-比赛
+	case 3:
+		return api.STUDY // 3-学习
+	default:
+		return api.STUDY
+	}
+}
+func EnumToProjectDirection(direction api.Direction) int {
+	switch direction {
+	case api.APPLICATION:
+		return 1
+	case api.AWARD:
+		return 2
+	case api.STUDY:
+		return 3
+	default:
+		return 3
+	}
+}
+
 // ToVO converts Project to API ProjectVO
 func (p *Project) ToVO() *api.ProjectVO {
 	status := ProjectStatusToEnum(p.Status)
+	direction := ProjectDirectionToEnum(*p.Direction)
 
 	return &api.ProjectVO{
 		Id:            &p.ID,
@@ -68,7 +94,7 @@ func (p *Project) ToVO() *api.ProjectVO {
 		Description:   p.Description,
 		SchoolId:      p.SchoolID,
 		SchoolName:    p.SchoolName,
-		Direction:     p.Direction,
+		Direction:     &direction,
 		MemberCount:   p.MemberCount,
 		EducationReq:  p.EducationReq,
 		IsCrossSchool: &p.IsCrossSchool,
@@ -80,6 +106,7 @@ func (p *Project) ToVO() *api.ProjectVO {
 // ToDetailVO converts Project to API ProjectDetailVO
 func (p *Project) ToDetailVO() *api.ProjectDetailVO {
 	status := ProjectStatusToEnum(p.Status)
+	direction := ProjectDirectionToEnum(*p.Direction)
 
 	vo := &api.ProjectDetailVO{
 		Id:            &p.ID,
@@ -87,7 +114,7 @@ func (p *Project) ToDetailVO() *api.ProjectDetailVO {
 		Description:   p.Description,
 		SchoolId:      p.SchoolID,
 		SchoolName:    p.SchoolName,
-		Direction:     p.Direction,
+		Direction:     &direction,
 		MemberCount:   p.MemberCount,
 		EducationReq:  p.EducationReq,
 		IsCrossSchool: &p.IsCrossSchool,
