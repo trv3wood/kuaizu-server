@@ -5,13 +5,6 @@ import (
 	"github.com/trv3wood/kuaizu-server/api"
 )
 
-// ========== Auth Module (Not Implemented) ==========
-
-// LoginWithWechat handles POST /auth/login/wechat
-func (s *Server) LoginWithWechat(ctx echo.Context) error {
-	return NotImplemented(ctx)
-}
-
 // ========== Commons Module (Not Implemented) ==========
 
 // UploadFile handles POST /commons/uploads
