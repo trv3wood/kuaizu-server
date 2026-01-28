@@ -31,6 +31,8 @@ tags:
     description: 人才库接口
   - name: OliveBranches
     description: 橄榄枝邀请接口
+  - name: Products
+    description: 商品管理接口
   - name: Orders
     description: 订单与支付接口
   - name: Dictionaries
@@ -383,9 +385,9 @@ paths:
               properties:
                 status:
                   $ref: "#/components/schemas/ApplicationStatus"
-                rejectReason:
+                reviewComment:
                   type: string
-                  description: 拒绝原因(拒绝时填写)
+                  description: 审核意见(通过或拒绝时填写)
       responses:
         "200":
           description: 操作成功
@@ -539,6 +541,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BaseResponse"
+
+  # ==================== 商品模块 ====================
+  /products:
+    get:
+      tags: [Products]
+      summary: 获取商品列表
+      description: 获取所有可购买的商品
+      operationId: listProducts
+      security: []
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ProductVO"
 
   # ==================== 订单与支付模块 ====================
   /orders:
@@ -810,15 +835,6 @@ components:
         - ACTIVE: 上架
         - INACTIVE: 下架
 
-    OrderType:
-      type: string
-      enum: [OLIVE_PACK_10, OLIVE_PACK_50, PROMOTION]
-      description: |
-        订单类型:
-        - OLIVE_PACK_10: 橄榄枝10次包
-        - OLIVE_PACK_50: 橄榄枝50次包
-        - PROMOTION: 项目推广
-
     OrderStatus:
       type: string
       enum: [PENDING, PAID, CANCELLED, REFUNDED]
@@ -887,6 +903,13 @@ components:
         oliveBranchCount:
           type: integer
           description: 剩余橄榄枝数量
+        freeQuotaDate:
+          type: string
+          format: date
+          description: 上次使用免费橄榄枝的日期
+        todayUsedFree:
+          type: integer
+          description: 今天消耗免费橄榄枝的额度
         authStatus:
           $ref: "#/components/schemas/AuthStatus"
         createdAt:
@@ -1024,9 +1047,16 @@ components:
           type: string
         status:
           $ref: "#/components/schemas/ApplicationStatus"
+        reviewComment:
+          type: string
+          description: 审核意见
         appliedAt:
           type: string
           format: date-time
+        reviewedAt:
+          type: string
+          format: date-time
+          description: 审核时间
 
     ApplicationPageResponse:
       type: object
@@ -1157,14 +1187,38 @@ components:
         pageInfo:
           $ref: "#/components/schemas/PageInfo"
 
+    # ==================== 商品相关 ====================
+    ProductVO:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          description: 商品名称
+        description:
+          type: string
+          description: 商品描述
+        price:
+          type: number
+          format: double
+          description: 商品价格
+        availableAmount:
+          type: integer
+          description: 可用数量
+
     # ==================== 订单相关 ====================
     OrderVO:
       type: object
       properties:
         id:
           type: integer
-        type:
-          $ref: "#/components/schemas/OrderType"
+        productId:
+          type: integer
+          description: 商品ID
+        productName:
+          type: string
+          description: 商品名称
         amount:
           type: number
           format: double
@@ -1179,14 +1233,11 @@ components:
 
     CreateOrderDTO:
       type: object
-      required: [type, amount]
+      required: [productId]
       properties:
-        type:
-          $ref: "#/components/schemas/OrderType"
-        amount:
-          type: number
-          format: double
-          minimum: 0.01
+        productId:
+          type: integer
+          description: 商品ID
 
     WechatPaymentParams:
       type: object

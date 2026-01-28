@@ -22,9 +22,10 @@ func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 // GetByID retrieves a user by ID with joined school and major info
 func (r *UserRepository) GetByID(ctx context.Context, id int) (*models.User, error) {
 	query := `
-		SELECT 
+		SELECT
 			u.id, u.openid, u.nickname, u.phone, u.email,
 			u.school_id, u.major_id, u.grade, u.olive_branch_count,
+			u.free_quota_date, u.today_used_free,
 			u.student_img_url, u.auth_status, u.created_at, u.updated_at,
 			s.school_name, s.school_code,
 			m.major_name, m.class_id
@@ -38,6 +39,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id int) (*models.User, err
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&user.ID, &user.OpenID, &user.Nickname, &user.Phone, &user.Email,
 		&user.SchoolID, &user.MajorID, &user.Grade, &user.OliveBranchCount,
+		&user.FreeQuotaDate, &user.TodayUsedFree,
 		&user.StudentImgURL, &user.AuthStatus, &user.CreatedAt, &user.UpdatedAt,
 		&user.SchoolName, &user.SchoolCode,
 		&user.MajorName, &user.ClassID,
@@ -55,9 +57,10 @@ func (r *UserRepository) GetByID(ctx context.Context, id int) (*models.User, err
 // GetByOpenID retrieves a user by WeChat OpenID
 func (r *UserRepository) GetByOpenID(ctx context.Context, openid string) (*models.User, error) {
 	query := `
-		SELECT 
+		SELECT
 			u.id, u.openid, u.nickname, u.phone, u.email,
 			u.school_id, u.major_id, u.grade, u.olive_branch_count,
+			u.free_quota_date, u.today_used_free,
 			u.student_img_url, u.auth_status, u.created_at, u.updated_at,
 			s.school_name, s.school_code,
 			m.major_name, m.class_id
@@ -71,6 +74,7 @@ func (r *UserRepository) GetByOpenID(ctx context.Context, openid string) (*model
 	err := r.pool.QueryRow(ctx, query, openid).Scan(
 		&user.ID, &user.OpenID, &user.Nickname, &user.Phone, &user.Email,
 		&user.SchoolID, &user.MajorID, &user.Grade, &user.OliveBranchCount,
+		&user.FreeQuotaDate, &user.TodayUsedFree,
 		&user.StudentImgURL, &user.AuthStatus, &user.CreatedAt, &user.UpdatedAt,
 		&user.SchoolName, &user.SchoolCode,
 		&user.MajorName, &user.ClassID,
@@ -88,16 +92,18 @@ func (r *UserRepository) GetByOpenID(ctx context.Context, openid string) (*model
 // Create creates a new user and returns the created user
 func (r *UserRepository) Create(ctx context.Context, openid string) (*models.User, error) {
 	query := `
-		INSERT INTO "user" (openid, olive_branch_count, auth_status)
-		VALUES ($1, 0, 0)
+		INSERT INTO "user" (openid, olive_branch_count, today_used_free, auth_status)
+		VALUES ($1, 0, 0, 0)
 		RETURNING id, openid, nickname, phone, email, school_id, major_id, grade,
-			olive_branch_count, student_img_url, auth_status, created_at, updated_at
+			olive_branch_count, free_quota_date, today_used_free,
+			student_img_url, auth_status, created_at, updated_at
 	`
 
 	var user models.User
 	err := r.pool.QueryRow(ctx, query, openid).Scan(
 		&user.ID, &user.OpenID, &user.Nickname, &user.Phone, &user.Email,
 		&user.SchoolID, &user.MajorID, &user.Grade, &user.OliveBranchCount,
+		&user.FreeQuotaDate, &user.TodayUsedFree,
 		&user.StudentImgURL, &user.AuthStatus, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {

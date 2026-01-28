@@ -8,6 +8,7 @@ import (
 type Repository struct {
 	User    *UserRepository
 	Project *ProjectRepository
+	Product *ProductRepository
 }
 
 // New creates a new Repository with all sub-repositories
@@ -15,5 +16,6 @@ func New(pool *pgxpool.Pool) *Repository {
 	return &Repository{
 		User:    NewUserRepository(pool),
 		Project: NewProjectRepository(pool),
+		Product: NewProductRepository(pool),
 	}
 }

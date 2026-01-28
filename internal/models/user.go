@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/trv3wood/kuaizu-server/api"
 )
 
@@ -17,6 +18,8 @@ type User struct {
 	MajorID          *int
 	Grade            *int
 	OliveBranchCount int
+	FreeQuotaDate    *time.Time
+	TodayUsedFree    int
 	StudentImgURL    *string
 	AuthStatus       int // 0-未认证, 1-审核中, 2-已认证, 3-认证失败
 	CreatedAt        time.Time
@@ -56,8 +59,15 @@ func (u *User) ToVO() *api.UserVO {
 		Email:            u.Email,
 		Grade:            u.Grade,
 		OliveBranchCount: &u.OliveBranchCount,
+		TodayUsedFree:    &u.TodayUsedFree,
 		AuthStatus:       &authStatus,
 		CreatedAt:        &u.CreatedAt,
+	}
+
+	// Add FreeQuotaDate if available
+	if u.FreeQuotaDate != nil {
+		date := openapi_types.Date{Time: *u.FreeQuotaDate}
+		vo.FreeQuotaDate = &date
 	}
 
 	// Populate school if available
