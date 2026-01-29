@@ -1,0 +1,47 @@
+version: 2
+project_name: kuaizu-server
+
+before:
+  hooks:
+    - go mod tidy
+    - make generate  # 依然需要在构建前生成代码
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    main: ./cmd/server
+    binary: kuaizu-server
+    # 注入版本信息到代码中
+    ldflags:
+      - -s -w 
+      - -X main.version={{.Version}} 
+      - -X main.commit={{.Commit}} 
+      - -X main.date={{.Date}}
+
+archives:
+  - format: tar.gz
+    # windows 下自动改用 zip
+    format_overrides:
+      - goos: windows
+        format: zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{.Arch}}"
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
