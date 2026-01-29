@@ -32,11 +32,11 @@ func (s *Server) ListProjects(ctx echo.Context, params api.ListProjectsParams) e
 	listParams.SchoolID = params.SchoolId
 
 	if params.Status != nil {
-		status := models.ProjectStatusFromEnum(*params.Status)
+		status := int(*params.Status)
 		listParams.Status = &status
 	}
 	if params.Direction != nil {
-		direction := models.EnumToProjectDirection(*params.Direction)
+		direction := int(*params.Direction)
 		listParams.Direction = &direction
 	}
 
@@ -85,23 +85,19 @@ func (s *Server) CreateProject(ctx echo.Context) error {
 
 	// Create project
 	project := &models.Project{
-		CreatorID:     userID,
-		Name:          req.Name,
-		Description:   &req.Description,
-		SchoolID:      req.SchoolId,
-		MemberCount:   &req.MemberCount,
-		EducationReq:  req.EducationReq,
-		IsCrossSchool: false,
-		Status:        0, // PENDING
+		CreatorID:       userID,
+		Name:            req.Name,
+		Description:     &req.Description,
+		SchoolID:        req.SchoolId,
+		MemberCount:     &req.MemberCount,
+		Status:          0, // 待审核
+		PromotionStatus: 0, // 无推广
+		ViewCount:       0,
 	}
 
 	if req.Direction != nil {
-		direction := models.EnumToProjectDirection(*req.Direction)
+		direction := int(*req.Direction)
 		project.Direction = &direction
-	}
-
-	if req.IsCrossSchool != nil {
-		project.IsCrossSchool = *req.IsCrossSchool
 	}
 
 	if err := s.repo.Project.Create(ctx.Request().Context(), project); err != nil {
@@ -120,6 +116,11 @@ func (s *Server) GetProject(ctx echo.Context, id int) error {
 	if project == nil {
 		return NotFound(ctx, "项目不存在")
 	}
+
+	// Increment view count (fire and forget)
+	go func() {
+		_ = s.repo.Project.IncrementViewCount(ctx.Request().Context(), id)
+	}()
 
 	return Success(ctx, project.ToDetailVO())
 }
@@ -160,17 +161,11 @@ func (s *Server) UpdateProject(ctx echo.Context, id int) error {
 		project.Description = req.Description
 	}
 	if req.Direction != nil {
-		direction := models.EnumToProjectDirection(*req.Direction)
+		direction := int(*req.Direction)
 		project.Direction = &direction
 	}
 	if req.MemberCount != nil {
 		project.MemberCount = req.MemberCount
-	}
-	if req.EducationReq != nil {
-		project.EducationReq = req.EducationReq
-	}
-	if req.IsCrossSchool != nil {
-		project.IsCrossSchool = *req.IsCrossSchool
 	}
 
 	if err := s.repo.Project.Update(ctx.Request().Context(), project); err != nil {

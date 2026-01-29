@@ -24,6 +24,5 @@ func (p *Product) ToVO() *api.ProductVO {
 		Name:            &p.Name,
 		Description:     p.Description,
 		Price:           &p.Price,
-		AvailableAmount: &p.AvailableAmount,
 	}
 }

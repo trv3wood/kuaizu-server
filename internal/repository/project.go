@@ -76,8 +76,9 @@ func (r *ProjectRepository) List(ctx context.Context, params ListParams) ([]mode
 	query := fmt.Sprintf(`
 		SELECT 
 			p.id, p.creator_id, p.name, p.description, p.school_id,
-			p.direction, p.member_count, p.education_req, p.is_cross_school,
-			p.status, p.created_at, p.updated_at,
+			p.direction, p.member_count, p.status,
+			p.promotion_status, p.promotion_expire_time, p.view_count,
+			p.created_at, p.updated_at,
 			s.school_name
 		FROM project p
 		LEFT JOIN school s ON p.school_id = s.id
@@ -98,8 +99,9 @@ func (r *ProjectRepository) List(ctx context.Context, params ListParams) ([]mode
 		var p models.Project
 		err := rows.Scan(
 			&p.ID, &p.CreatorID, &p.Name, &p.Description, &p.SchoolID,
-			&p.Direction, &p.MemberCount, &p.EducationReq, &p.IsCrossSchool,
-			&p.Status, &p.CreatedAt, &p.UpdatedAt,
+			&p.Direction, &p.MemberCount, &p.Status,
+			&p.PromotionStatus, &p.PromotionExpireTime, &p.ViewCount,
+			&p.CreatedAt, &p.UpdatedAt,
 			&p.SchoolName,
 		)
 		if err != nil {
@@ -116,12 +118,14 @@ func (r *ProjectRepository) GetByID(ctx context.Context, id int) (*models.Projec
 	query := `
 		SELECT 
 			p.id, p.creator_id, p.name, p.description, p.school_id,
-			p.direction, p.member_count, p.education_req, p.is_cross_school,
-			p.status, p.created_at, p.updated_at,
+			p.direction, p.member_count, p.status,
+			p.promotion_status, p.promotion_expire_time, p.view_count,
+			p.created_at, p.updated_at,
 			s.school_name,
 			u.id, u.openid, u.nickname, u.phone, u.email,
 			u.school_id, u.major_id, u.grade, u.olive_branch_count,
-			u.student_img_url, u.auth_status, u.created_at, u.updated_at
+			u.free_branch_used_today, u.last_active_date,
+			u.auth_status, u.auth_img_url, u.created_at
 		FROM project p
 		LEFT JOIN school s ON p.school_id = s.id
 		LEFT JOIN "user" u ON p.creator_id = u.id
@@ -132,12 +136,14 @@ func (r *ProjectRepository) GetByID(ctx context.Context, id int) (*models.Projec
 	var creator models.User
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&p.ID, &p.CreatorID, &p.Name, &p.Description, &p.SchoolID,
-		&p.Direction, &p.MemberCount, &p.EducationReq, &p.IsCrossSchool,
-		&p.Status, &p.CreatedAt, &p.UpdatedAt,
+		&p.Direction, &p.MemberCount, &p.Status,
+		&p.PromotionStatus, &p.PromotionExpireTime, &p.ViewCount,
+		&p.CreatedAt, &p.UpdatedAt,
 		&p.SchoolName,
 		&creator.ID, &creator.OpenID, &creator.Nickname, &creator.Phone, &creator.Email,
 		&creator.SchoolID, &creator.MajorID, &creator.Grade, &creator.OliveBranchCount,
-		&creator.StudentImgURL, &creator.AuthStatus, &creator.CreatedAt, &creator.UpdatedAt,
+		&creator.FreeBranchUsedToday, &creator.LastActiveDate,
+		&creator.AuthStatus, &creator.AuthImgUrl, &creator.CreatedAt,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -155,14 +161,14 @@ func (r *ProjectRepository) Create(ctx context.Context, p *models.Project) error
 	query := `
 		INSERT INTO project (
 			creator_id, name, description, school_id, direction,
-			member_count, education_req, is_cross_school, status
+			member_count, status, promotion_status, view_count
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, created_at, updated_at
 	`
 
 	err := r.pool.QueryRow(ctx, query,
 		p.CreatorID, p.Name, p.Description, p.SchoolID, p.Direction,
-		p.MemberCount, p.EducationReq, p.IsCrossSchool, p.Status,
+		p.MemberCount, p.Status, p.PromotionStatus, p.ViewCount,
 	).Scan(&p.ID, &p.CreatedAt, &p.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("create project: %w", err)
@@ -179,15 +185,12 @@ func (r *ProjectRepository) Update(ctx context.Context, p *models.Project) error
 			description = $3,
 			direction = $4,
 			member_count = $5,
-			education_req = $6,
-			is_cross_school = $7,
 			updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
 	`
 
 	result, err := r.pool.Exec(ctx, query,
-		p.ID, p.Name, p.Description, p.Direction,
-		p.MemberCount, p.EducationReq, p.IsCrossSchool,
+		p.ID, p.Name, p.Description, p.Direction, p.MemberCount,
 	)
 	if err != nil {
 		return fmt.Errorf("update project: %w", err)
@@ -225,4 +228,14 @@ func (r *ProjectRepository) IsOwner(ctx context.Context, projectID, userID int) 
 		return false, fmt.Errorf("check project owner: %w", err)
 	}
 	return exists, nil
+}
+
+// IncrementViewCount increments the view count of a project
+func (r *ProjectRepository) IncrementViewCount(ctx context.Context, id int) error {
+	query := `UPDATE project SET view_count = view_count + 1 WHERE id = $1`
+	_, err := r.pool.Exec(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("increment view count: %w", err)
+	}
+	return nil
 }

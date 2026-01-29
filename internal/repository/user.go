@@ -25,8 +25,8 @@ func (r *UserRepository) GetByID(ctx context.Context, id int) (*models.User, err
 		SELECT
 			u.id, u.openid, u.nickname, u.phone, u.email,
 			u.school_id, u.major_id, u.grade, u.olive_branch_count,
-			u.free_quota_date, u.today_used_free,
-			u.student_img_url, u.auth_status, u.created_at, u.updated_at,
+			u.free_branch_used_today, u.last_active_date,
+			u.auth_status, u.auth_img_url, u.created_at,
 			s.school_name, s.school_code,
 			m.major_name, m.class_id
 		FROM "user" u
@@ -39,8 +39,8 @@ func (r *UserRepository) GetByID(ctx context.Context, id int) (*models.User, err
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&user.ID, &user.OpenID, &user.Nickname, &user.Phone, &user.Email,
 		&user.SchoolID, &user.MajorID, &user.Grade, &user.OliveBranchCount,
-		&user.FreeQuotaDate, &user.TodayUsedFree,
-		&user.StudentImgURL, &user.AuthStatus, &user.CreatedAt, &user.UpdatedAt,
+		&user.FreeBranchUsedToday, &user.LastActiveDate,
+		&user.AuthStatus, &user.AuthImgUrl, &user.CreatedAt,
 		&user.SchoolName, &user.SchoolCode,
 		&user.MajorName, &user.ClassID,
 	)
@@ -60,8 +60,8 @@ func (r *UserRepository) GetByOpenID(ctx context.Context, openid string) (*model
 		SELECT
 			u.id, u.openid, u.nickname, u.phone, u.email,
 			u.school_id, u.major_id, u.grade, u.olive_branch_count,
-			u.free_quota_date, u.today_used_free,
-			u.student_img_url, u.auth_status, u.created_at, u.updated_at,
+			u.free_branch_used_today, u.last_active_date,
+			u.auth_status, u.auth_img_url, u.created_at,
 			s.school_name, s.school_code,
 			m.major_name, m.class_id
 		FROM "user" u
@@ -74,8 +74,8 @@ func (r *UserRepository) GetByOpenID(ctx context.Context, openid string) (*model
 	err := r.pool.QueryRow(ctx, query, openid).Scan(
 		&user.ID, &user.OpenID, &user.Nickname, &user.Phone, &user.Email,
 		&user.SchoolID, &user.MajorID, &user.Grade, &user.OliveBranchCount,
-		&user.FreeQuotaDate, &user.TodayUsedFree,
-		&user.StudentImgURL, &user.AuthStatus, &user.CreatedAt, &user.UpdatedAt,
+		&user.FreeBranchUsedToday, &user.LastActiveDate,
+		&user.AuthStatus, &user.AuthImgUrl, &user.CreatedAt,
 		&user.SchoolName, &user.SchoolCode,
 		&user.MajorName, &user.ClassID,
 	)
@@ -92,19 +92,19 @@ func (r *UserRepository) GetByOpenID(ctx context.Context, openid string) (*model
 // Create creates a new user and returns the created user
 func (r *UserRepository) Create(ctx context.Context, openid string) (*models.User, error) {
 	query := `
-		INSERT INTO "user" (openid, olive_branch_count, today_used_free, auth_status)
+		INSERT INTO "user" (openid, olive_branch_count, free_branch_used_today, auth_status)
 		VALUES ($1, 0, 0, 0)
 		RETURNING id, openid, nickname, phone, email, school_id, major_id, grade,
-			olive_branch_count, free_quota_date, today_used_free,
-			student_img_url, auth_status, created_at, updated_at
+			olive_branch_count, free_branch_used_today, last_active_date,
+			auth_status, auth_img_url, created_at
 	`
 
 	var user models.User
 	err := r.pool.QueryRow(ctx, query, openid).Scan(
 		&user.ID, &user.OpenID, &user.Nickname, &user.Phone, &user.Email,
 		&user.SchoolID, &user.MajorID, &user.Grade, &user.OliveBranchCount,
-		&user.FreeQuotaDate, &user.TodayUsedFree,
-		&user.StudentImgURL, &user.AuthStatus, &user.CreatedAt, &user.UpdatedAt,
+		&user.FreeBranchUsedToday, &user.LastActiveDate,
+		&user.AuthStatus, &user.AuthImgUrl, &user.CreatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
@@ -123,9 +123,8 @@ func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 			school_id = $5,
 			major_id = $6,
 			grade = $7,
-			student_img_url = $8,
-			auth_status = $9,
-			updated_at = CURRENT_TIMESTAMP
+			auth_img_url = $8,
+			auth_status = $9
 		WHERE id = $1
 	`
 
@@ -137,7 +136,7 @@ func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 		user.SchoolID,
 		user.MajorID,
 		user.Grade,
-		user.StudentImgURL,
+		user.AuthImgUrl,
 		user.AuthStatus,
 	)
 	if err != nil {
