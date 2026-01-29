@@ -129,9 +129,9 @@ paths:
           application/json:
             schema:
               type: object
-              required: [studentImgUrl]
+              required: [authImgUrl]
               properties:
-                studentImgUrl:
+                authImgUrl:
                   type: string
                   description: 学生证照片URL
                   example: "https://cdn.example.com/student/123.jpg"
@@ -341,7 +341,7 @@ paths:
             schema:
               type: object
               properties:
-                reason:
+                applyReason:
                   type: string
                   description: 自我介绍/申请理由
                   example: "我有2年的Java开发经验..."
@@ -385,9 +385,9 @@ paths:
               properties:
                 status:
                   $ref: "#/components/schemas/ApplicationStatus"
-                reviewComment:
+                replyMsg:
                   type: string
-                  description: 审核意见(通过或拒绝时填写)
+                  description: 队长回复(通过或拒绝时填写)
       responses:
         "200":
           description: 操作成功
@@ -800,69 +800,69 @@ components:
 
     # ==================== 枚举类型 ====================
     ProjectStatus:
-      type: string
-      enum: [PENDING, ACTIVE, REJECTED, CLOSED]
+      type: integer
+      enum: [0, 1, 2, 3]
       description: |
         项目状态:
-        - PENDING: 待审核
-        - ACTIVE: 进行中/已上架
-        - REJECTED: 已驳回
-        - CLOSED: 已关闭
+        - 0: 待审核
+        - 1: 已通过/进行中
+        - 2: 已驳回
+        - 3: 已关闭
 
     ApplicationStatus:
-      type: string
-      enum: [PENDING, APPROVED, REJECTED]
+      type: integer
+      enum: [0, 1, 2]
       description: |
         申请状态:
-        - PENDING: 待审核
-        - APPROVED: 已通过
-        - REJECTED: 已拒绝
+        - 0: 待审核
+        - 1: 已通过
+        - 2: 已拒绝
 
     OliveBranchStatus:
-      type: string
-      enum: [PENDING, ACCEPTED, REJECTED]
+      type: integer
+      enum: [0, 1, 2, 3]
       description: |
         橄榄枝状态:
-        - PENDING: 待处理
-        - ACCEPTED: 已接受
-        - REJECTED: 已拒绝
+        - 0: 待处理
+        - 1: 已接受
+        - 2: 已拒绝
+        - 3: 已忽略
 
     TalentStatus:
-      type: string
-      enum: [ACTIVE, INACTIVE]
+      type: integer
+      enum: [0, 1]
       description: |
         人才档案状态:
-        - ACTIVE: 上架
-        - INACTIVE: 下架
+        - 0: 下架
+        - 1: 上架
 
     OrderStatus:
-      type: string
-      enum: [PENDING, PAID, CANCELLED, REFUNDED]
+      type: integer
+      enum: [0, 1, 2, 3]
       description: |
         订单状态:
-        - PENDING: 待支付
-        - PAID: 已支付
-        - CANCELLED: 已取消
-        - REFUNDED: 已退款
+        - 0: 待支付
+        - 1: 已支付
+        - 2: 已取消
+        - 3: 已退款
 
     AuthStatus:
-      type: string
-      enum: [UNVERIFIED, PENDING, VERIFIED, FAILED]
+      type: integer
+      enum: [0, 1, 2]
       description: |
         认证状态:
-        - UNVERIFIED: 未认证
-        - PENDING: 审核中
-        - VERIFIED: 已认证
-        - FAILED: 认证失败
+        - 0: 未认证
+        - 1: 已认证
+        - 2: 认证失败
 
     Direction:
-      type: string
-      enum: [AWARD, APPLICATION, STUDY]
+      type: integer
+      enum: [1, 2, 3]
       description: |
-        偏向：
-        - AWARD: 获奖
-        - APPLICATION: 落地
-        - STUDY: 学习
+        项目方向:
+        - 1: 落地
+        - 2: 比赛
+        - 3: 学习
 
     # ==================== 认证相关 ====================
     LoginResponse:
@@ -902,16 +902,19 @@ components:
           type: integer
         oliveBranchCount:
           type: integer
-          description: 剩余橄榄枝数量
-        freeQuotaDate:
+          description: 付费橄榄枝余额
+        freeBranchUsedToday:
+          type: integer
+          description: 今日已用免费次数(每日重置)
+        lastActiveDate:
           type: string
           format: date
-          description: 上次使用免费橄榄枝的日期
-        todayUsedFree:
-          type: integer
-          description: 今天消耗免费橄榄枝的额度
+          description: 最后活跃日期(用于重置免费次数)
         authStatus:
           $ref: "#/components/schemas/AuthStatus"
+        authImgUrl:
+          type: string
+          description: 学生证认证图
         createdAt:
           type: string
           format: date-time
@@ -955,12 +958,18 @@ components:
           $ref: "#/components/schemas/Direction"
         memberCount:
           type: integer
-        educationReq:
-          type: integer
-        isCrossSchool:
-          type: boolean
         status:
           $ref: "#/components/schemas/ProjectStatus"
+        promotionStatus:
+          type: integer
+          description: 推广状态:0-无,1-推广中,2-已结束
+        promotionExpireTime:
+          type: string
+          format: date-time
+          description: 推广结束时间
+        viewCount:
+          type: integer
+          description: 浏览量
         createdAt:
           type: string
           format: date-time
@@ -995,11 +1004,6 @@ components:
         memberCount:
           type: integer
           minimum: 1
-        educationReq:
-          type: integer
-        isCrossSchool:
-          type: boolean
-          default: false
 
     UpdateProjectDTO:
       type: object
@@ -1014,10 +1018,6 @@ components:
         memberCount:
           type: integer
           minimum: 1
-        educationReq:
-          type: integer
-        isCrossSchool:
-          type: boolean
 
     ProjectPageResponse:
       type: object
@@ -1041,22 +1041,19 @@ components:
           type: string
         applicant:
           $ref: "#/components/schemas/UserVO"
-        reason:
+        applyReason:
           type: string
+          description: 申请理由/留言
         contact:
           type: string
         status:
           $ref: "#/components/schemas/ApplicationStatus"
-        reviewComment:
+        replyMsg:
           type: string
-          description: 审核意见
+          description: 队长回复
         appliedAt:
           type: string
           format: date-time
-        reviewedAt:
-          type: string
-          format: date-time
-          description: 审核时间
 
     ApplicationPageResponse:
       type: object
@@ -1094,6 +1091,9 @@ components:
           type: string
         status:
           $ref: "#/components/schemas/TalentStatus"
+        isPublicContact:
+          type: boolean
+          description: 是否公开联系方式
 
     TalentProfileDetailVO:
       allOf:
@@ -1130,6 +1130,9 @@ components:
           maxLength: 10
         status:
           $ref: "#/components/schemas/TalentStatus"
+        isPublicContact:
+          type: boolean
+          description: 是否公开联系方式
 
     TalentProfilePageResponse:
       type: object
@@ -1147,32 +1150,56 @@ components:
       properties:
         id:
           type: integer
-        projectId:
+        senderId:
           type: integer
+          description: 发起人ID
+        receiverId:
+          type: integer
+          description: 接收人ID
+        relatedProjectId:
+          type: integer
+          description: 关联项目ID(若是项目邀请)
         projectName:
           type: string
-        talent:
-          $ref: "#/components/schemas/TalentProfileVO"
+          description: 项目名称
+        type:
+          type: integer
+          description: 类型:1-人才互联,2-项目邀请
+        costType:
+          type: integer
+          description: 消耗类型:1-免费额度,2-付费额度
+        hasSmsNotify:
+          type: boolean
+          description: 是否购买短信通知
         sender:
+          $ref: "#/components/schemas/UserVO"
+        receiver:
           $ref: "#/components/schemas/UserVO"
         message:
           type: string
         status:
           $ref: "#/components/schemas/OliveBranchStatus"
-        sentAt:
+        createdAt:
           type: string
           format: date-time
 
     SendOliveBranchDTO:
       type: object
-      required: [talentId, projectId]
+      required: [receiverId, type]
       properties:
-        talentId:
+        receiverId:
           type: integer
-          description: 人才档案ID
-        projectId:
+          description: 接收人ID
+        relatedProjectId:
           type: integer
-          description: 项目ID
+          description: 关联项目ID(若是项目邀请)
+        type:
+          type: integer
+          description: 类型:1-人才互联,2-项目邀请
+        hasSmsNotify:
+          type: boolean
+          description: 是否购买短信通知
+          default: false
         message:
           type: string
           description: 邀请留言
@@ -1196,6 +1223,9 @@ components:
         name:
           type: string
           description: 商品名称
+        type:
+          type: integer
+          description: 类型:1-虚拟币,2-服务权益
         description:
           type: string
           description: 商品描述
@@ -1203,9 +1233,9 @@ components:
           type: number
           format: double
           description: 商品价格
-        availableAmount:
-          type: integer
-          description: 可用数量
+        configJson:
+          type: string
+          description: 配置参数(如增加多少个橄榄枝)
 
     # ==================== 订单相关 ====================
     OrderVO:
@@ -1219,14 +1249,19 @@ components:
         productName:
           type: string
           description: 商品名称
-        amount:
+        actualPaid:
           type: number
           format: double
+          description: 实付金额
         status:
           $ref: "#/components/schemas/OrderStatus"
-        tradeNo:
+        wxPayNo:
           type: string
           description: 微信支付单号
+        payTime:
+          type: string
+          format: date-time
+          description: 支付时间
         createdAt:
           type: string
           format: date-time
