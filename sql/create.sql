@@ -96,6 +96,7 @@ CREATE TABLE project_application (
     project_id INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
     apply_reason TEXT,
+    contact TEXT,
     status INTEGER DEFAULT 0,
     reply_msg TEXT,
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -203,10 +203,119 @@ func (s *Server) DeleteProject(ctx echo.Context, id int) error {
 
 // ListProjectApplications handles GET /projects/{id}/applications
 func (s *Server) ListProjectApplications(ctx echo.Context, id int, params api.ListProjectApplicationsParams) error {
-	return NotImplemented(ctx)
+	userID := GetUserID(ctx)
+
+	// Check ownership - only project creator can view applications
+	isOwner, err := s.repo.Project.IsOwner(ctx.Request().Context(), id, userID)
+	if err != nil {
+		return InternalError(ctx, "检查权限失败")
+	}
+	if !isOwner {
+		return Forbidden(ctx, "只有队长可以查看申请列表")
+	}
+
+	// Build list params
+	listParams := repository.ApplicationListParams{
+		ProjectID: id,
+		Page:      1,
+		Size:      10,
+	}
+
+	if params.Page != nil {
+		listParams.Page = *params.Page
+	}
+	if params.Size != nil {
+		listParams.Size = *params.Size
+	}
+	if listParams.Page < 1 {
+		listParams.Page = 1
+	}
+	if listParams.Size < 1 || listParams.Size > 100 {
+		listParams.Size = 10
+	}
+
+	if params.Status != nil {
+		status := int(*params.Status)
+		listParams.Status = &status
+	}
+
+	// Query applications
+	applications, total, err := s.repo.Application.List(ctx.Request().Context(), listParams)
+	if err != nil {
+		return InternalError(ctx, "获取申请列表失败")
+	}
+
+	// Convert to VOs
+	list := make([]api.ProjectApplicationVO, len(applications))
+	for i, app := range applications {
+		list[i] = *app.ToVO()
+	}
+
+	// Build pagination info
+	totalPages := int((total + int64(listParams.Size) - 1) / int64(listParams.Size))
+	pageInfo := api.PageInfo{
+		Page:       &listParams.Page,
+		Size:       &listParams.Size,
+		Total:      &total,
+		TotalPages: &totalPages,
+	}
+
+	return Success(ctx, api.ApplicationPageResponse{
+		List:     &list,
+		PageInfo: &pageInfo,
+	})
 }
 
 // ApplyToProject handles POST /projects/{id}/applications
 func (s *Server) ApplyToProject(ctx echo.Context, id int) error {
-	return NotImplemented(ctx)
+	userID := GetUserID(ctx)
+
+	// Check if project exists
+	project, err := s.repo.Project.GetByID(ctx.Request().Context(), id)
+	if err != nil {
+		return InternalError(ctx, "获取项目信息失败")
+	}
+	if project == nil {
+		return NotFound(ctx, "项目不存在")
+	}
+
+	// Check if user is the project creator
+	if project.CreatorID == userID {
+		return BadRequest(ctx, "不能申请加入自己的项目")
+	}
+
+	// Check if project is open for applications (status = 1)
+	if project.Status != 1 {
+		return BadRequest(ctx, "该项目当前不接受申请")
+	}
+
+	// Check for duplicate application
+	exists, err := s.repo.Application.CheckDuplicate(ctx.Request().Context(), id, userID)
+	if err != nil {
+		return InternalError(ctx, "检查申请状态失败")
+	}
+	if exists {
+		return BadRequest(ctx, "您已申请过该项目")
+	}
+
+	// Bind request
+	var req api.ApplyToProjectJSONBody
+	if err := ctx.Bind(&req); err != nil {
+		return BadRequest(ctx, "请求参数错误")
+	}
+
+	// Create application
+	application := &models.ProjectApplication{
+		ProjectID:   id,
+		UserID:      userID,
+		ApplyReason: req.ApplyReason,
+		Contact:     req.Contact,
+		Status:      0, // 待审核
+	}
+
+	if err := s.repo.Application.Create(ctx.Request().Context(), application); err != nil {
+		return InternalError(ctx, "提交申请失败")
+	}
+
+	return Success(ctx, application.ToVO())
 }
