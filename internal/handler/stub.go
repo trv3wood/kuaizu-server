@@ -24,18 +24,6 @@ func (s *Server) ListSchools(ctx echo.Context, params api.ListSchoolsParams) err
 	return NotImplemented(ctx)
 }
 
-// ========== Olive Branches Module (Not Implemented) ==========
-
-// SendOliveBranch handles POST /olive-branches
-func (s *Server) SendOliveBranch(ctx echo.Context) error {
-	return NotImplemented(ctx)
-}
-
-// HandleOliveBranch handles PATCH /olive-branches/{id}
-func (s *Server) HandleOliveBranch(ctx echo.Context, id int) error {
-	return NotImplemented(ctx)
-}
-
 // ========== Orders Module (Not Implemented) ==========
 
 // CreateOrder handles POST /orders

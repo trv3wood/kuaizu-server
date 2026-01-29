@@ -108,8 +108,3 @@ func (s *Server) SubmitCertification(ctx echo.Context) error {
 
 	return SuccessMessage(ctx, "认证申请已提交，请等待审核")
 }
-
-// GetMyReceivedOliveBranches handles GET /users/me/olive-branches
-func (s *Server) GetMyReceivedOliveBranches(ctx echo.Context, params api.GetMyReceivedOliveBranchesParams) error {
-	return NotImplemented(ctx)
-}

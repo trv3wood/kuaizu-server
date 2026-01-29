@@ -145,3 +145,26 @@ func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 
 	return nil
 }
+
+// UpdateQuota updates user's olive branch quota fields
+func (r *UserRepository) UpdateQuota(ctx context.Context, user *models.User) error {
+	query := `
+		UPDATE "user" SET
+			olive_branch_count = $2,
+			free_branch_used_today = $3,
+			last_active_date = $4
+		WHERE id = $1
+	`
+
+	_, err := r.pool.Exec(ctx, query,
+		user.ID,
+		user.OliveBranchCount,
+		user.FreeBranchUsedToday,
+		user.LastActiveDate,
+	)
+	if err != nil {
+		return fmt.Errorf("update user quota: %w", err)
+	}
+
+	return nil
+}

@@ -22,7 +22,7 @@ func NewProductRepository(pool *pgxpool.Pool) *ProductRepository {
 // GetAll retrieves all products
 func (r *ProductRepository) GetAll(ctx context.Context) ([]*models.Product, error) {
 	query := `
-		SELECT id, name, description, price, available_amount, created_at, updated_at
+		SELECT id, name, type, description, price, config_json, created_at, updated_at
 		FROM product
 		ORDER BY id ASC
 	`
@@ -39,9 +39,10 @@ func (r *ProductRepository) GetAll(ctx context.Context) ([]*models.Product, erro
 		err := rows.Scan(
 			&product.ID,
 			&product.Name,
+			&product.Type,
 			&product.Description,
 			&product.Price,
-			&product.AvailableAmount,
+			&product.ConfigJson,
 			&product.CreatedAt,
 			&product.UpdatedAt,
 		)
@@ -61,7 +62,7 @@ func (r *ProductRepository) GetAll(ctx context.Context) ([]*models.Product, erro
 // GetByID retrieves a product by ID
 func (r *ProductRepository) GetByID(ctx context.Context, id int) (*models.Product, error) {
 	query := `
-		SELECT id, name, description, price, available_amount, created_at, updated_at
+		SELECT id, name, type, description, price, config_json, created_at, updated_at
 		FROM product
 		WHERE id = $1
 	`
@@ -70,9 +71,10 @@ func (r *ProductRepository) GetByID(ctx context.Context, id int) (*models.Produc
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&product.ID,
 		&product.Name,
+		&product.Type,
 		&product.Description,
 		&product.Price,
-		&product.AvailableAmount,
+		&product.ConfigJson,
 		&product.CreatedAt,
 		&product.UpdatedAt,
 	)
