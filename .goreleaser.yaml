@@ -3,8 +3,8 @@ project_name: kuaizu-server
 
 before:
   hooks:
+    - make generate
     - go mod tidy
-    - make generate  # 依然需要在构建前生成代码
 
 builds:
   - env:
@@ -18,26 +18,26 @@ builds:
       - arm64
     main: ./cmd/server
     binary: kuaizu-server
-    # 注入版本信息到代码中
     ldflags:
-      - -s -w 
-      - -X main.version={{.Version}} 
-      - -X main.commit={{.Commit}} 
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
       - -X main.date={{.Date}}
 
+# 修复弃用警告：archives 格式现在使用 formats 列表
 archives:
-  - format: tar.gz
-    # windows 下自动改用 zip
+  - formats: [ "tar.gz" ]
+    # Windows 特殊处理
     format_overrides:
       - goos: windows
-        format: zip
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{.Arch}}"
+        formats: [ "zip" ]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
 checksum:
   name_template: 'checksums.txt'
 
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 
 changelog:
   sort: asc
