@@ -28,3 +28,4 @@ go.work
 # Project specific
 bin/
 api/api.gen.go
+dist/
