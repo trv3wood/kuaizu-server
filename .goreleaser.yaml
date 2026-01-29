@@ -1,0 +1,47 @@
+version: 2
+project_name: kuaizu-server
+
+before:
+  hooks:
+    - make generate
+    - go mod tidy
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    main: ./cmd/server
+    binary: kuaizu-server
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+# 修复弃用警告：archives 格式现在使用 formats 列表
+archives:
+  - formats: [ "tar.gz" ]
+    # Windows 特殊处理
+    format_overrides:
+      - goos: windows
+        formats: [ "zip" ]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'

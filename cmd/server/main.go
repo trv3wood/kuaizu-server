@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"fmt"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -14,7 +15,14 @@ import (
 	"github.com/trv3wood/kuaizu-server/internal/repository"
 )
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
+	fmt.Printf("Starting Kuaizu Server %s (Commit: %s, Built at: %s)\n", version, commit, date)
 	// Load environment variables
 	if err := godotenv.Load(); err != nil {
 		log.Printf("Warning: .env file not found, using environment variables\n")
