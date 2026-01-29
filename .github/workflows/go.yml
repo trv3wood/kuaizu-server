@@ -10,16 +10,46 @@ on:
     branches: [ "main" ]
 
 jobs:
-
-  build:
+  lint:
+    name: Linting
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.24'
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
 
-    - name: Build
-      run: go build -v ./...
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Code Generation
+        run: make generate
+
+      - name: Build
+        run: make build
+
+      - name: Run Tests
+        run: go test -v ./... -race -coverprofile=coverage.txt
+
+      - name: Check Tidy
+        run: |
+          make tidy
+          git diff --exit-code
