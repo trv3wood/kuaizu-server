@@ -683,6 +683,16 @@ paths:
           description: 专业大类ID筛选
           schema:
             type: integer
+        - name: majorKeyword
+          in: query
+          description: 专业关键词筛选
+          schema:
+            type: string
+        - name: classKeyword
+          in: query
+          description: 专业大类关键词筛选
+          schema:
+            type: string
       responses:
         "200":
           description: 成功

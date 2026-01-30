@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
-	"fmt"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"

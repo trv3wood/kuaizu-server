@@ -23,5 +23,16 @@ func (s *Server) ListSchools(ctx echo.Context, params api.ListSchoolsParams) err
 
 // ListMajors handles GET /dictionaries/majors
 func (s *Server) ListMajors(ctx echo.Context, params api.ListMajorsParams) error {
-	return NotImplemented(ctx)
+	classes, err := s.repo.Major.ListWithMajors(ctx.Request().Context(), params)
+	if err != nil {
+		return InternalError(ctx, "获取专业列表失败")
+	}
+
+	// Convert to VOs
+	var classVOs []api.MajorClassVO
+	for _, mc := range classes {
+		classVOs = append(classVOs, *mc.ToVO())
+	}
+
+	return Success(ctx, classVOs)
 }

@@ -12,6 +12,7 @@ type Repository struct {
 	Application *ApplicationRepository
 	OliveBranch *OliveBranchRepository
 	School      *SchoolRepository
+	Major       *MajorRepository
 }
 
 // New creates a new Repository with all sub-repositories
@@ -23,5 +24,6 @@ func New(pool *pgxpool.Pool) *Repository {
 		Application: NewApplicationRepository(pool),
 		OliveBranch: NewOliveBranchRepository(pool),
 		School:      NewSchoolRepository(pool),
+		Major:       NewMajorRepository(pool),
 	}
 }

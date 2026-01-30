@@ -13,7 +13,7 @@ type ProjectApplication struct {
 	UserID      int
 	ApplyReason *string
 	Contact     *string
-	Status      int       // 0-待审核, 1-已通过, 2-已拒绝
+	Status      int // 0-待审核, 1-已通过, 2-已拒绝
 	ReplyMsg    *string
 	AppliedAt   time.Time
 	UpdatedAt   time.Time
