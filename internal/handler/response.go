@@ -50,6 +50,14 @@ func BadRequest(ctx echo.Context, message string) error {
 	})
 }
 
+// InvalidParams returns a 400 bad request error with error details
+func InvalidParams(ctx echo.Context, err error) error {
+	return ctx.JSON(http.StatusBadRequest, Response{
+		Code:    400,
+		Message: "Invalid parameters: " + err.Error(),
+	})
+}
+
 // Unauthorized returns a 401 unauthorized error
 func Unauthorized(ctx echo.Context, message string) error {
 	return ctx.JSON(http.StatusUnauthorized, Response{

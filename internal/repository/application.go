@@ -157,3 +157,20 @@ func (r *ApplicationRepository) CheckDuplicate(ctx context.Context, projectID, u
 	}
 	return exists, nil
 }
+
+// UpdateStatus updates the status and reply message of an application
+func (r *ApplicationRepository) UpdateStatus(ctx context.Context, id int, status int, replyMsg *string) error {
+	query := `UPDATE project_application SET status = ?, reply_msg = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+
+	result, err := r.db.ExecContext(ctx, query, status, replyMsg, id)
+	if err != nil {
+		return fmt.Errorf("update application status: %w", err)
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("application not found")
+	}
+
+	return nil
+}

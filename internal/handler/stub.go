@@ -29,13 +29,6 @@ func (s *Server) InitiatePayment(ctx echo.Context, id int) error {
 	return NotImplemented(ctx)
 }
 
-// ========== Project Applications Module (Not Implemented) ==========
-
-// ReviewApplication handles PATCH /project-applications/{id}
-func (s *Server) ReviewApplication(ctx echo.Context, id int) error {
-	return NotImplemented(ctx)
-}
-
 // ========== Talent Profiles Module (Not Implemented) ==========
 
 // ListTalentProfiles handles GET /talent-profiles
