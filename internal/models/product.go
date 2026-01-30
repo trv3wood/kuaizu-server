@@ -8,14 +8,14 @@ import (
 
 // Product represents a product in the database
 type Product struct {
-	ID          int
-	Name        string
-	Type        int // 类型: 1-虚拟币, 2-服务权益
-	Description *string
-	Price       float64
-	ConfigJson  *string // 配置参数(JSON格式)
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID          int       `db:"id"`
+	Name        string    `db:"name"`
+	Type        int       `db:"type"` // 类型: 1-虚拟币, 2-服务权益
+	Description *string   `db:"description"`
+	Price       float64   `db:"price"`
+	ConfigJson  *string   `db:"config_json"` // 配置参数(JSON格式)
+	CreatedAt   time.Time `db:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at"`
 }
 
 // ToVO converts Product to API ProductVO

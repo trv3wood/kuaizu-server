@@ -5,30 +5,26 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 )
 
-// New creates a new PostgreSQL connection pool
-func New(ctx context.Context) (*pgxpool.Pool, error) {
-	connStr := os.Getenv("DATABASE_URL")
-	if connStr == "" {
+// New creates a new MySQL database connection
+func New(ctx context.Context) (*sqlx.DB, error) {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
 		return nil, fmt.Errorf("DATABASE_URL environment variable is not set")
 	}
 
-	config, err := pgxpool.ParseConfig(connStr)
+	db, err := sqlx.ConnectContext(ctx, "mysql", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse config: %w", err)
-	}
-
-	pool, err := pgxpool.NewWithConfig(ctx, config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create pool: %w", err)
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	// Test connection
-	if err := pool.Ping(ctx); err != nil {
+	if err := db.PingContext(ctx); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	return pool, nil
+	return db, nil
 }

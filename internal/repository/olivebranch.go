@@ -2,21 +2,21 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jmoiron/sqlx"
 	"github.com/trv3wood/kuaizu-server/internal/models"
 )
 
 // OliveBranchRepository handles olive branch database operations
 type OliveBranchRepository struct {
-	pool *pgxpool.Pool
+	db *sqlx.DB
 }
 
 // NewOliveBranchRepository creates a new OliveBranchRepository
-func NewOliveBranchRepository(pool *pgxpool.Pool) *OliveBranchRepository {
-	return &OliveBranchRepository{pool: pool}
+func NewOliveBranchRepository(db *sqlx.DB) *OliveBranchRepository {
+	return &OliveBranchRepository{db: db}
 }
 
 // OliveBranchListParams contains parameters for listing olive branches
@@ -31,21 +31,20 @@ type OliveBranchListParams struct {
 func (r *OliveBranchRepository) ListByReceiverID(ctx context.Context, params OliveBranchListParams) ([]models.OliveBranch, int64, error) {
 	// Count total
 	countArgs := []interface{}{params.ReceiverID}
-	countQuery := `SELECT COUNT(*) FROM olive_branch_record WHERE receiver_id = $1`
+	countQuery := `SELECT COUNT(*) FROM olive_branch_record WHERE receiver_id = ?`
 	if params.Status != nil {
-		countQuery += ` AND status = $2`
+		countQuery += ` AND status = ?`
 		countArgs = append(countArgs, *params.Status)
 	}
 
 	var total int64
-	if err := r.pool.QueryRow(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+	if err := r.db.QueryRowxContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count olive branches: %w", err)
 	}
 
 	// Query with pagination
 	offset := (params.Page - 1) * params.Size
 	args := []interface{}{params.ReceiverID}
-	argIndex := 2
 
 	query := `
 		SELECT 
@@ -56,18 +55,17 @@ func (r *OliveBranchRepository) ListByReceiverID(ctx context.Context, params Oli
 			s.id, s.nickname, s.phone, s.email, s.auth_status
 		FROM olive_branch_record ob
 		LEFT JOIN project p ON ob.related_project_id = p.id
-		LEFT JOIN "user" s ON ob.sender_id = s.id
-		WHERE ob.receiver_id = $1
+		LEFT JOIN ` + "`user`" + ` s ON ob.sender_id = s.id
+		WHERE ob.receiver_id = ?
 	`
 	if params.Status != nil {
-		query += fmt.Sprintf(` AND ob.status = $%d`, argIndex)
+		query += ` AND ob.status = ?`
 		args = append(args, *params.Status)
-		argIndex++
 	}
-	query += fmt.Sprintf(` ORDER BY ob.created_at DESC LIMIT $%d OFFSET $%d`, argIndex, argIndex+1)
+	query += ` ORDER BY ob.created_at DESC LIMIT ? OFFSET ?`
 	args = append(args, params.Size, offset)
 
-	rows, err := r.pool.Query(ctx, query, args...)
+	rows, err := r.db.QueryxContext(ctx, query, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("query olive branches: %w", err)
 	}
@@ -105,18 +103,18 @@ func (r *OliveBranchRepository) GetByID(ctx context.Context, id int) (*models.Ol
 			p.name AS project_name
 		FROM olive_branch_record ob
 		LEFT JOIN project p ON ob.related_project_id = p.id
-		WHERE ob.id = $1
+		WHERE ob.id = ?
 	`
 
 	var ob models.OliveBranch
-	err := r.pool.QueryRow(ctx, query, id).Scan(
+	err := r.db.QueryRowxContext(ctx, query, id).Scan(
 		&ob.ID, &ob.SenderID, &ob.ReceiverID, &ob.RelatedProjectID,
 		&ob.Type, &ob.CostType, &ob.HasSmsNotify, &ob.Message, &ob.Status,
 		&ob.CreatedAt, &ob.UpdatedAt,
 		&ob.ProjectName,
 	)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("query olive branch by id: %w", err)
@@ -131,31 +129,37 @@ func (r *OliveBranchRepository) Create(ctx context.Context, ob *models.OliveBran
 		INSERT INTO olive_branch_record (
 			sender_id, receiver_id, related_project_id,
 			type, cost_type, has_sms_notify, message, status
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		RETURNING id, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
-	err := r.pool.QueryRow(ctx, query,
+	result, err := r.db.ExecContext(ctx, query,
 		ob.SenderID, ob.ReceiverID, ob.RelatedProjectID,
 		ob.Type, ob.CostType, ob.HasSmsNotify, ob.Message, ob.Status,
-	).Scan(&ob.ID, &ob.CreatedAt, &ob.UpdatedAt)
+	)
 	if err != nil {
 		return fmt.Errorf("create olive branch: %w", err)
 	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("get last insert id: %w", err)
+	}
+	ob.ID = int(id)
 
 	return nil
 }
 
 // UpdateStatus updates the status of an olive branch
 func (r *OliveBranchRepository) UpdateStatus(ctx context.Context, id int, status int) error {
-	query := `UPDATE olive_branch_record SET status = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1`
+	query := `UPDATE olive_branch_record SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
 
-	result, err := r.pool.Exec(ctx, query, id, status)
+	result, err := r.db.ExecContext(ctx, query, status, id)
 	if err != nil {
 		return fmt.Errorf("update olive branch status: %w", err)
 	}
 
-	if result.RowsAffected() == 0 {
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
 		return fmt.Errorf("olive branch not found")
 	}
 

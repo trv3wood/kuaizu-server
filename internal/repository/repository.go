@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jmoiron/sqlx"
 )
 
 // Repository aggregates all sub-repositories
@@ -16,14 +16,14 @@ type Repository struct {
 }
 
 // New creates a new Repository with all sub-repositories
-func New(pool *pgxpool.Pool) *Repository {
+func New(db *sqlx.DB) *Repository {
 	return &Repository{
-		User:        NewUserRepository(pool),
-		Project:     NewProjectRepository(pool),
-		Product:     NewProductRepository(pool),
-		Application: NewApplicationRepository(pool),
-		OliveBranch: NewOliveBranchRepository(pool),
-		School:      NewSchoolRepository(pool),
-		Major:       NewMajorRepository(pool),
+		User:        NewUserRepository(db),
+		Project:     NewProjectRepository(db),
+		Product:     NewProductRepository(db),
+		Application: NewApplicationRepository(db),
+		OliveBranch: NewOliveBranchRepository(db),
+		School:      NewSchoolRepository(db),
+		Major:       NewMajorRepository(db),
 	}
 }

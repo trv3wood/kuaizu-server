@@ -4,18 +4,18 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jmoiron/sqlx"
 	"github.com/trv3wood/kuaizu-server/internal/models"
 )
 
 // SchoolRepository handles school database operations
 type SchoolRepository struct {
-	pool *pgxpool.Pool
+	db *sqlx.DB
 }
 
 // NewSchoolRepository creates a new SchoolRepository
-func NewSchoolRepository(pool *pgxpool.Pool) *SchoolRepository {
-	return &SchoolRepository{pool: pool}
+func NewSchoolRepository(db *sqlx.DB) *SchoolRepository {
+	return &SchoolRepository{db: db}
 }
 
 // List retrieves schools with optional keyword search
@@ -27,37 +27,17 @@ func (r *SchoolRepository) List(ctx context.Context, keyword *string) ([]*models
 	args := []interface{}{}
 
 	if keyword != nil && *keyword != "" {
-		query += ` WHERE school_name ILIKE $1 OR school_code ILIKE $1`
+		query += ` WHERE school_name LIKE ? OR school_code LIKE ?`
 		searchPattern := "%" + *keyword + "%"
-		args = append(args, searchPattern)
+		args = append(args, searchPattern, searchPattern)
 	}
 
 	query += ` ORDER BY school_name ASC`
 
-	rows, err := r.pool.Query(ctx, query, args...)
+	var schools []*models.School
+	err := r.db.SelectContext(ctx, &schools, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query schools: %w", err)
-	}
-	defer rows.Close()
-
-	var schools []*models.School
-	for rows.Next() {
-		var school models.School
-		err := rows.Scan(
-			&school.ID,
-			&school.SchoolName,
-			&school.SchoolCode,
-			&school.CreatedAt,
-			&school.UpdatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("scan school: %w", err)
-		}
-		schools = append(schools, &school)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate schools: %w", err)
 	}
 
 	return schools, nil

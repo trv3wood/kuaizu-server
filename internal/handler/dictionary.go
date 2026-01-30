@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"log"
+
 	"github.com/labstack/echo/v4"
 	"github.com/trv3wood/kuaizu-server/api"
 )
@@ -9,6 +11,7 @@ import (
 func (s *Server) ListSchools(ctx echo.Context, params api.ListSchoolsParams) error {
 	schools, err := s.repo.School.List(ctx.Request().Context(), params.Keyword)
 	if err != nil {
+		log.Printf("ListSchools error: %v", err)
 		return InternalError(ctx, "获取学校列表失败")
 	}
 
@@ -25,6 +28,7 @@ func (s *Server) ListSchools(ctx echo.Context, params api.ListSchoolsParams) err
 func (s *Server) ListMajors(ctx echo.Context, params api.ListMajorsParams) error {
 	classes, err := s.repo.Major.ListWithMajors(ctx.Request().Context(), params)
 	if err != nil {
+		log.Printf("ListMajors error: %v", err)
 		return InternalError(ctx, "获取专业列表失败")
 	}
 

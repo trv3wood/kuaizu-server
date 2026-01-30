@@ -2,21 +2,21 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jmoiron/sqlx"
 	"github.com/trv3wood/kuaizu-server/internal/models"
 )
 
 // ProductRepository handles product database operations
 type ProductRepository struct {
-	pool *pgxpool.Pool
+	db *sqlx.DB
 }
 
 // NewProductRepository creates a new ProductRepository
-func NewProductRepository(pool *pgxpool.Pool) *ProductRepository {
-	return &ProductRepository{pool: pool}
+func NewProductRepository(db *sqlx.DB) *ProductRepository {
+	return &ProductRepository{db: db}
 }
 
 // GetAll retrieves all products
@@ -27,33 +27,10 @@ func (r *ProductRepository) GetAll(ctx context.Context) ([]*models.Product, erro
 		ORDER BY id ASC
 	`
 
-	rows, err := r.pool.Query(ctx, query)
+	var products []*models.Product
+	err := r.db.SelectContext(ctx, &products, query)
 	if err != nil {
 		return nil, fmt.Errorf("query products: %w", err)
-	}
-	defer rows.Close()
-
-	var products []*models.Product
-	for rows.Next() {
-		var product models.Product
-		err := rows.Scan(
-			&product.ID,
-			&product.Name,
-			&product.Type,
-			&product.Description,
-			&product.Price,
-			&product.ConfigJson,
-			&product.CreatedAt,
-			&product.UpdatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("scan product: %w", err)
-		}
-		products = append(products, &product)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate products: %w", err)
 	}
 
 	return products, nil
@@ -64,11 +41,11 @@ func (r *ProductRepository) GetByID(ctx context.Context, id int) (*models.Produc
 	query := `
 		SELECT id, name, type, description, price, config_json, created_at, updated_at
 		FROM product
-		WHERE id = $1
+		WHERE id = ?
 	`
 
 	var product models.Product
-	err := r.pool.QueryRow(ctx, query, id).Scan(
+	err := r.db.QueryRowxContext(ctx, query, id).Scan(
 		&product.ID,
 		&product.Name,
 		&product.Type,
@@ -79,7 +56,7 @@ func (r *ProductRepository) GetByID(ctx context.Context, id int) (*models.Produc
 		&product.UpdatedAt,
 	)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("query product by id: %w", err)

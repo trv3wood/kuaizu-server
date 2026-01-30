@@ -8,11 +8,11 @@ import (
 
 // School represents a school in the database
 type School struct {
-	ID         int
-	SchoolName string
-	SchoolCode *string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ID         int       `db:"id"`
+	SchoolName string    `db:"school_name"`
+	SchoolCode *string   `db:"school_code"`
+	CreatedAt  time.Time `db:"created_at"`
+	UpdatedAt  time.Time `db:"updated_at"`
 }
 
 // ToVO converts School to API SchoolVO

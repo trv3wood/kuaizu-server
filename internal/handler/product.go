@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"log"
+
 	"github.com/labstack/echo/v4"
 	"github.com/trv3wood/kuaizu-server/api"
 )
@@ -9,6 +11,7 @@ import (
 func (s *Server) ListProducts(ctx echo.Context) error {
 	products, err := s.repo.Product.GetAll(ctx.Request().Context())
 	if err != nil {
+		log.Printf("ListProducts error: %v", err)
 		return InternalError(ctx, "获取商品列表失败")
 	}
 

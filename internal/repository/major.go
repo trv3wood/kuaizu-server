@@ -5,28 +5,28 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jmoiron/sqlx"
 	"github.com/trv3wood/kuaizu-server/api"
 	"github.com/trv3wood/kuaizu-server/internal/models"
 )
 
 // MajorRepository handles major database operations
 type MajorRepository struct {
-	pool *pgxpool.Pool
+	db *sqlx.DB
 }
 
 // NewMajorRepository creates a new MajorRepository
-func NewMajorRepository(pool *pgxpool.Pool) *MajorRepository {
-	return &MajorRepository{pool: pool}
+func NewMajorRepository(db *sqlx.DB) *MajorRepository {
+	return &MajorRepository{db: db}
 }
 
 func (r *MajorRepository) List(ctx context.Context, params *api.ListMajorsParams) ([]models.Major, error) {
 	query := `
 		SELECT id, major_name, class_id
 		FROM major
-		WHERE class_id = $1
+		WHERE class_id = ?
 	`
-	rows, err := r.pool.Query(ctx, query, params.ClassId)
+	rows, err := r.db.QueryxContext(ctx, query, params.ClassId)
 	if err != nil {
 		return nil, fmt.Errorf("query majors: %w", err)
 	}
@@ -48,18 +48,15 @@ func (r *MajorRepository) ListWithMajors(ctx context.Context, params api.ListMaj
 	// 1. Query classes
 	var conditions []string
 	var args []interface{}
-	argIndex := 1
 
 	if params.ClassId != nil {
-		conditions = append(conditions, fmt.Sprintf("id = $%d", argIndex))
+		conditions = append(conditions, "id = ?")
 		args = append(args, *params.ClassId)
-		argIndex++
 	}
 
 	if params.ClassKeyword != nil && *params.ClassKeyword != "" {
-		conditions = append(conditions, fmt.Sprintf("class_name ILIKE $%d", argIndex))
+		conditions = append(conditions, "class_name LIKE ?")
 		args = append(args, "%"+*params.ClassKeyword+"%")
-		argIndex++
 	}
 
 	classQuery := "SELECT id, class_name FROM major_class"
@@ -68,7 +65,7 @@ func (r *MajorRepository) ListWithMajors(ctx context.Context, params api.ListMaj
 	}
 	classQuery += " ORDER BY id"
 
-	rows, err := r.pool.Query(ctx, classQuery, args...)
+	rows, err := r.db.QueryxContext(ctx, classQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query major classes: %w", err)
 	}
@@ -95,24 +92,24 @@ func (r *MajorRepository) ListWithMajors(ctx context.Context, params api.ListMaj
 		classIDs[i] = c.Id
 	}
 
-	majorConditions := []string{"class_id = ANY($1)"}
+	// Use sqlx.In to expand the slice to placeholders
+	majorQuery := `SELECT id, major_name, class_id FROM major WHERE class_id IN (?)`
 	majorArgs := []interface{}{classIDs}
-	mArgIndex := 2
 
 	if params.MajorKeyword != nil && *params.MajorKeyword != "" {
-		majorConditions = append(majorConditions, fmt.Sprintf("major_name ILIKE $%d", mArgIndex))
+		majorQuery = `SELECT id, major_name, class_id FROM major WHERE class_id IN (?) AND major_name LIKE ?`
 		majorArgs = append(majorArgs, "%"+*params.MajorKeyword+"%")
-		mArgIndex++
 	}
 
-	majorQuery := fmt.Sprintf(`
-		SELECT id, major_name, class_id 
-		FROM major 
-		WHERE %s
-		ORDER BY class_id, id
-	`, strings.Join(majorConditions, " AND "))
+	// Expand IN clause
+	majorQuery, majorArgs, err = sqlx.In(majorQuery, majorArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("expand IN clause: %w", err)
+	}
+	majorQuery = r.db.Rebind(majorQuery)
+	majorQuery += " ORDER BY class_id, id"
 
-	mRows, err := r.pool.Query(ctx, majorQuery, majorArgs...)
+	mRows, err := r.db.QueryxContext(ctx, majorQuery, majorArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("query majors: %w", err)
 	}

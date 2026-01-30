@@ -2,22 +2,22 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jmoiron/sqlx"
 	"github.com/trv3wood/kuaizu-server/internal/models"
 )
 
 // ApplicationRepository handles project application database operations
 type ApplicationRepository struct {
-	pool *pgxpool.Pool
+	db *sqlx.DB
 }
 
 // NewApplicationRepository creates a new ApplicationRepository
-func NewApplicationRepository(pool *pgxpool.Pool) *ApplicationRepository {
-	return &ApplicationRepository{pool: pool}
+func NewApplicationRepository(db *sqlx.DB) *ApplicationRepository {
+	return &ApplicationRepository{db: db}
 }
 
 // ApplicationListParams contains parameters for listing applications
@@ -31,14 +31,12 @@ type ApplicationListParams struct {
 // List retrieves paginated applications for a project with applicant info
 func (r *ApplicationRepository) List(ctx context.Context, params ApplicationListParams) ([]models.ProjectApplication, int64, error) {
 	// Build WHERE clause
-	conditions := []string{"pa.project_id = $1"}
+	conditions := []string{"pa.project_id = ?"}
 	args := []interface{}{params.ProjectID}
-	argIndex := 2
 
 	if params.Status != nil {
-		conditions = append(conditions, fmt.Sprintf("pa.status = $%d", argIndex))
+		conditions = append(conditions, "pa.status = ?")
 		args = append(args, *params.Status)
-		argIndex++
 	}
 
 	whereClause := strings.Join(conditions, " AND ")
@@ -46,7 +44,7 @@ func (r *ApplicationRepository) List(ctx context.Context, params ApplicationList
 	// Count total
 	countQuery := fmt.Sprintf(`SELECT COUNT(*) FROM project_application pa WHERE %s`, whereClause)
 	var total int64
-	err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total)
+	err := r.db.QueryRowxContext(ctx, countQuery, args...).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("count applications: %w", err)
 	}
@@ -64,14 +62,14 @@ func (r *ApplicationRepository) List(ctx context.Context, params ApplicationList
 			u.auth_status, u.auth_img_url, u.created_at
 		FROM project_application pa
 		LEFT JOIN project p ON pa.project_id = p.id
-		LEFT JOIN "user" u ON pa.user_id = u.id
+		LEFT JOIN `+"`user`"+` u ON pa.user_id = u.id
 		WHERE %s
 		ORDER BY pa.applied_at DESC
-		LIMIT $%d OFFSET $%d
-	`, whereClause, argIndex, argIndex+1)
+		LIMIT ? OFFSET ?
+	`, whereClause)
 	args = append(args, params.Size, offset)
 
-	rows, err := r.pool.Query(ctx, query, args...)
+	rows, err := r.db.QueryxContext(ctx, query, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("query applications: %w", err)
 	}
@@ -105,16 +103,21 @@ func (r *ApplicationRepository) Create(ctx context.Context, app *models.ProjectA
 	query := `
 		INSERT INTO project_application (
 			project_id, user_id, apply_reason, contact, status
-		) VALUES ($1, $2, $3, $4, $5)
-		RETURNING id, applied_at, updated_at
+		) VALUES (?, ?, ?, ?, ?)
 	`
 
-	err := r.pool.QueryRow(ctx, query,
+	result, err := r.db.ExecContext(ctx, query,
 		app.ProjectID, app.UserID, app.ApplyReason, app.Contact, app.Status,
-	).Scan(&app.ID, &app.AppliedAt, &app.UpdatedAt)
+	)
 	if err != nil {
 		return fmt.Errorf("create application: %w", err)
 	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("get last insert id: %w", err)
+	}
+	app.ID = int(id)
 
 	return nil
 }
@@ -126,16 +129,16 @@ func (r *ApplicationRepository) GetByID(ctx context.Context, id int) (*models.Pr
 			pa.id, pa.project_id, pa.user_id, pa.apply_reason, pa.contact,
 			pa.status, pa.reply_msg, pa.applied_at, pa.updated_at
 		FROM project_application pa
-		WHERE pa.id = $1
+		WHERE pa.id = ?
 	`
 
 	var app models.ProjectApplication
-	err := r.pool.QueryRow(ctx, query, id).Scan(
+	err := r.db.QueryRowxContext(ctx, query, id).Scan(
 		&app.ID, &app.ProjectID, &app.UserID, &app.ApplyReason, &app.Contact,
 		&app.Status, &app.ReplyMsg, &app.AppliedAt, &app.UpdatedAt,
 	)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("query application by id: %w", err)
@@ -146,9 +149,9 @@ func (r *ApplicationRepository) GetByID(ctx context.Context, id int) (*models.Pr
 
 // CheckDuplicate checks if a user has already applied to a project
 func (r *ApplicationRepository) CheckDuplicate(ctx context.Context, projectID, userID int) (bool, error) {
-	query := `SELECT EXISTS(SELECT 1 FROM project_application WHERE project_id = $1 AND user_id = $2)`
+	query := `SELECT EXISTS(SELECT 1 FROM project_application WHERE project_id = ? AND user_id = ?)`
 	var exists bool
-	err := r.pool.QueryRow(ctx, query, projectID, userID).Scan(&exists)
+	err := r.db.QueryRowxContext(ctx, query, projectID, userID).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("check duplicate application: %w", err)
 	}
