@@ -38,7 +38,7 @@ func (r *OrderRepository) ListByUserID(ctx context.Context, params OrderListPara
 	}
 
 	// Count total
-	countQuery := fmt.Sprintf(`SELECT COUNT(*) FROM "order" o %s`, where)
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM `order` o %s", where)
 	var total int64
 	err := r.db.QueryRowxContext(ctx, countQuery, args...).Scan(&total)
 	if err != nil {
@@ -48,11 +48,11 @@ func (r *OrderRepository) ListByUserID(ctx context.Context, params OrderListPara
 	// Query with pagination
 	offset := (params.Page - 1) * params.Size
 	query := fmt.Sprintf(`
-		SELECT 
-			o.id, o.user_id, o.product_id, o.actual_paid, o.status, 
+		SELECT
+			o.id, o.user_id, o.product_id, o.actual_paid, o.status,
 			o.wx_pay_no, o.pay_time, o.created_at, o.updated_at,
 			p.name as product_name
-		FROM "order" o
+		FROM `+"`order`"+` o
 		LEFT JOIN product p ON o.product_id = p.id
 		%s
 		ORDER BY o.created_at DESC
