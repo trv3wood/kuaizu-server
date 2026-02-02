@@ -616,6 +616,39 @@ paths:
                       data:
                         $ref: "#/components/schemas/OrderVO"
 
+  /orders/me:
+    get:
+      tags: [Orders]
+      summary: 我的订单列表
+      operationId: listMyOrders
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - name: status
+          in: query
+          description: 订单状态筛选
+          schema:
+            $ref: "#/components/schemas/OrderStatus"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/OrderVO"
+                          pageInfo:
+                            $ref: "#/components/schemas/PageInfo"
+
   /orders/{id}/pay:
     parameters:
       - name: id
@@ -848,13 +881,12 @@ components:
 
     OrderStatus:
       type: integer
-      enum: [0, 1, 2, 3]
+      enum: [0, 1, 2]
       description: |
         订单状态:
         - 0: 待支付
         - 1: 已支付
-        - 2: 已取消
-        - 3: 已退款
+        - 2: 已退款
 
     AuthStatus:
       type: integer
