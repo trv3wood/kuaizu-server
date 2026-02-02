@@ -14,6 +14,7 @@ type Repository struct {
 	School        *SchoolRepository
 	Major         *MajorRepository
 	TalentProfile *TalentProfileRepository
+	Order         *OrderRepository
 }
 
 // New creates a new Repository with all sub-repositories
@@ -27,5 +28,6 @@ func New(db *sqlx.DB) *Repository {
 		School:        NewSchoolRepository(db),
 		Major:         NewMajorRepository(db),
 		TalentProfile: NewTalentProfileRepository(db),
+		Order:         NewOrderRepository(db),
 	}
 }

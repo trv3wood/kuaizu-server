@@ -14,23 +14,6 @@ func (s *Server) UploadFile(ctx echo.Context) error {
 	return NotImplemented(ctx)
 }
 
-// ========== Orders Module (Not Implemented) ==========
-
-// CreateOrder handles POST /orders
-func (s *Server) CreateOrder(ctx echo.Context) error {
-	return NotImplemented(ctx)
-}
-
-// GetOrder handles GET /orders/{id}
-func (s *Server) GetOrder(ctx echo.Context, id int) error {
-	return NotImplemented(ctx)
-}
-
-// InitiatePayment handles POST /orders/{id}/pay
-func (s *Server) InitiatePayment(ctx echo.Context, id int) error {
-	return NotImplemented(ctx)
-}
-
 // Helper function to check if JSON Body parsing failed
 func (s *Server) reviewApplicationHelper(ctx echo.Context, id int) error {
 	// 1. Get current user
