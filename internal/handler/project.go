@@ -109,6 +109,62 @@ func (s *Server) CreateProject(ctx echo.Context) error {
 	return Success(ctx, project.ToVO())
 }
 
+// ListMyProjects handles GET /projects/my
+func (s *Server) ListMyProjects(ctx echo.Context, params api.ListMyProjectsParams) error {
+	userID := GetUserID(ctx)
+
+	// Build list params
+	listParams := repository.ListParams{
+		Page:      1,
+		Size:      10,
+		CreatorID: &userID, // Filter by current user
+	}
+
+	if params.Page != nil {
+		listParams.Page = *params.Page
+	}
+	if params.Size != nil {
+		listParams.Size = *params.Size
+	}
+	if listParams.Page < 1 {
+		listParams.Page = 1
+	}
+	if listParams.Size < 1 || listParams.Size > 100 {
+		listParams.Size = 10
+	}
+
+	if params.Status != nil {
+		status := int(*params.Status)
+		listParams.Status = &status
+	}
+
+	// Query
+	projects, total, err := s.repo.Project.List(ctx.Request().Context(), listParams)
+	if err != nil {
+		return InternalError(ctx, "获取我的项目列表失败")
+	}
+
+	// Convert to VOs
+	list := make([]api.ProjectVO, len(projects))
+	for i, p := range projects {
+		list[i] = *p.ToVO()
+	}
+
+	// Build pagination info
+	totalPages := int((total + int64(listParams.Size) - 1) / int64(listParams.Size))
+	pageInfo := api.PageInfo{
+		Page:       &listParams.Page,
+		Size:       &listParams.Size,
+		Total:      &total,
+		TotalPages: &totalPages,
+	}
+
+	return Success(ctx, api.ProjectPageResponse{
+		List:     &list,
+		PageInfo: &pageInfo,
+	})
+}
+
 // GetProject handles GET /projects/{id}
 func (s *Server) GetProject(ctx echo.Context, id int) error {
 	project, err := s.repo.Project.GetByID(ctx.Request().Context(), id)

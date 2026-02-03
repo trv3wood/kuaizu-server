@@ -1,0 +1,64 @@
+package middleware
+
+import (
+	"strings"
+
+	"github.com/labstack/echo/v4"
+	"github.com/trv3wood/kuaizu-server/internal/auth"
+)
+
+// JWTConfig holds JWT middleware configuration
+type JWTConfig struct {
+	JWTConfig *auth.Config
+	Skipper   func(c echo.Context) bool
+}
+
+// DefaultJWTConfig returns default configuration
+func DefaultJWTConfig() *JWTConfig {
+	return &JWTConfig{
+		JWTConfig: auth.DefaultConfig(),
+		Skipper:   nil,
+	}
+}
+
+// JWTAuth returns a JWT authentication middleware
+func JWTAuth(config *JWTConfig) echo.MiddlewareFunc {
+	if config == nil {
+		config = DefaultJWTConfig()
+	}
+
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Skip authentication if skipper returns true
+			if config.Skipper != nil && config.Skipper(c) {
+				return next(c)
+			}
+
+			// Extract token from Authorization header
+			authHeader := c.Request().Header.Get("Authorization")
+			if authHeader == "" {
+				return echo.NewHTTPError(401, "missing authorization header")
+			}
+
+			// Check Bearer scheme
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				return echo.NewHTTPError(401, "invalid authorization header format")
+			}
+
+			tokenString := parts[1]
+
+			// Parse and validate token
+			claims, err := auth.ParseToken(config.JWTConfig, tokenString)
+			if err != nil {
+				return echo.NewHTTPError(401, "invalid or expired token")
+			}
+
+			// Set user info in context
+			c.Set("userID", claims.UserID)
+			c.Set("openID", claims.OpenID)
+
+			return next(c)
+		}
+	}
+}

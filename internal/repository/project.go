@@ -28,6 +28,7 @@ type ListParams struct {
 	SchoolID  *int
 	Status    *int
 	Direction *int
+	CreatorID *int
 }
 
 // List retrieves paginated projects with optional filters
@@ -54,6 +55,11 @@ func (r *ProjectRepository) List(ctx context.Context, params ListParams) ([]mode
 	if params.Direction != nil {
 		conditions = append(conditions, "p.direction = ?")
 		args = append(args, *params.Direction)
+	}
+
+	if params.CreatorID != nil {
+		conditions = append(conditions, "p.creator_id = ?")
+		args = append(args, *params.CreatorID)
 	}
 
 	whereClause := strings.Join(conditions, " AND ")

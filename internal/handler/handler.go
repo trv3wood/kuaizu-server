@@ -19,11 +19,20 @@ func NewServer(repo *repository.Repository) *Server {
 }
 
 // GetUserID extracts user ID from context (set by auth middleware)
-// For prototype, returns a mock user ID if not authenticated
 func GetUserID(ctx interface{ Get(string) interface{} }) int {
-	if userID, ok := ctx.Get("userID").(int); ok {
-		return userID
+	userID, ok := ctx.Get("userID").(int)
+	if !ok {
+		// This should never happen if JWT middleware is properly configured
+		panic("userID not found in context - auth middleware not applied?")
 	}
-	// Prototype: return mock user ID 1 for testing
-	return 1
+	return userID
+}
+
+// GetOpenID extracts OpenID from context (set by auth middleware)
+func GetOpenID(ctx interface{ Get(string) interface{} }) string {
+	openID, ok := ctx.Get("openID").(string)
+	if !ok {
+		return ""
+	}
+	return openID
 }
