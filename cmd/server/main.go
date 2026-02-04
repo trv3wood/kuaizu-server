@@ -34,6 +34,9 @@ func main() {
 	e := echo.New()
 	e.HideBanner = true
 
+	// Enable method override (X-HTTP-Method-Override header)
+	e.Pre(echomiddleware.MethodOverride())
+
 	// Custom colored logger using RequestLoggerWithConfig
 	e.Use(echomiddleware.RequestLoggerWithConfig(echomiddleware.RequestLoggerConfig{
 		LogStatus:   true,
