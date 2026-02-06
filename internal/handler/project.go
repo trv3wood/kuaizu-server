@@ -87,14 +87,17 @@ func (s *Server) CreateProject(ctx echo.Context) error {
 
 	// Create project
 	project := &models.Project{
-		CreatorID:       userID,
-		Name:            req.Name,
-		Description:     &req.Description,
-		SchoolID:        req.SchoolId,
-		MemberCount:     &req.MemberCount,
-		Status:          0, // 待审核
-		PromotionStatus: 0, // 无推广
-		ViewCount:       0,
+		CreatorID:            userID,
+		Name:                 req.Name,
+		Description:          &req.Description,
+		SchoolID:             req.SchoolId,
+		MemberCount:          &req.MemberCount,
+		Status:               0, // 待审核
+		PromotionStatus:      0, // 无推广
+		ViewCount:            0,
+		IsCrossSchool:        req.IsCrossSchool,
+		EducationRequirement: req.EducationRequirement,
+		SkillRequirement:     req.SkillRequirement,
 	}
 
 	if req.Direction != nil {
@@ -224,6 +227,15 @@ func (s *Server) UpdateProject(ctx echo.Context, id int) error {
 	}
 	if req.MemberCount != nil {
 		project.MemberCount = req.MemberCount
+	}
+	if req.IsCrossSchool != nil {
+		project.IsCrossSchool = req.IsCrossSchool
+	}
+	if req.EducationRequirement != nil {
+		project.EducationRequirement = req.EducationRequirement
+	}
+	if req.SkillRequirement != nil {
+		project.SkillRequirement = req.SkillRequirement
 	}
 
 	if err := s.repo.Project.Update(ctx.Request().Context(), project); err != nil {

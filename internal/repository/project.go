@@ -164,13 +164,15 @@ func (r *ProjectRepository) Create(ctx context.Context, p *models.Project) error
 	query := `
 		INSERT INTO project (
 			creator_id, name, description, school_id, direction,
-			member_count, status, promotion_status, view_count
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+			member_count, status, promotion_status, view_count,
+			is_cross_school, education_requirement, skill_requirement
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	result, err := r.db.ExecContext(ctx, query,
 		p.CreatorID, p.Name, p.Description, p.SchoolID, p.Direction,
 		p.MemberCount, p.Status, p.PromotionStatus, p.ViewCount,
+		p.IsCrossSchool, p.EducationRequirement, p.SkillRequirement,
 	)
 	if err != nil {
 		return fmt.Errorf("create project: %w", err)
@@ -193,12 +195,17 @@ func (r *ProjectRepository) Update(ctx context.Context, p *models.Project) error
 			description = ?,
 			direction = ?,
 			member_count = ?,
+			is_cross_school = ?,
+			education_requirement = ?,
+			skill_requirement = ?,
 			updated_at = CURRENT_TIMESTAMP
 		WHERE id = ?
 	`
 
 	result, err := r.db.ExecContext(ctx, query,
-		p.Name, p.Description, p.Direction, p.MemberCount, p.ID,
+		p.Name, p.Description, p.Direction, p.MemberCount,
+		p.IsCrossSchool, p.EducationRequirement, p.SkillRequirement,
+		p.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("update project: %w", err)
