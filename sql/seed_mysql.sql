@@ -122,7 +122,8 @@ BEGIN
         INSERT INTO project (
             creator_id, name, description, 
             school_id, direction, member_count, 
-            status, promotion_status, view_count
+            status, promotion_status, view_count,
+            is_cross_school, education_requirement, skill_requirement
         ) VALUES (
             temp_user_id,
             CONCAT('项目-', i, ': ', ELT(FLOOR(RAND() * 6) + 1, '校园社交App', '智能垃圾分类系统', '算法竞赛集训', '考研资料分享平台', '二次元社区', 'AI学习助手')),
@@ -132,7 +133,10 @@ BEGIN
             FLOOR(RAND() * 5 + 2),
             ELT(FLOOR(RAND() * 3) + 1, 0, 1, 2),
             0,
-            FLOOR(RAND() * 200)
+            FLOOR(RAND() * 200),
+            FLOOR(RAND() + 1),
+            FLOOR(RAND() + 1),
+            '技能要求'
         );
         SET i = i + 1;
     END WHILE;

@@ -1,5 +1,5 @@
 -- ===============================================
--- 快组测试数据填充脚本 (PostgreSQL)
+-- 快组测试数据填充脚本 (PostgreSQL) (Deprecated)
 -- ===============================================
 
 CREATE OR REPLACE FUNCTION seed_test_data(num_users INTEGER DEFAULT 100, num_projects INTEGER DEFAULT 20)

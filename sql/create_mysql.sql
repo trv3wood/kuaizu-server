@@ -91,6 +91,9 @@ CREATE TABLE `project` (
     `view_count` INT DEFAULT 0 COMMENT '浏览量',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `is_cross_school` TINYINT DEFAULT 1 COMMENT "是否跨校: 1-可以,2-不可以",
+    `education_requirement` TINYINT DEFAULT 1 COMMENT "学历要求1-大专2-本科",
+    `skill_requirement` TEXT COMMENT "技能要求",
     CONSTRAINT `fk_project_creator` FOREIGN KEY (`creator_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_project_school` FOREIGN KEY (`school_id`) REFERENCES `school` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='项目表';

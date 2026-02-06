@@ -61,6 +61,9 @@ erDiagram
         timestamp promotion_expire_time "推广结束时间"
         int view_count "浏览量"
         timestamp created_at
+        tinyint is_cross_school "是否跨校：1-可以，2-不可以"
+        tinyint education_requirement "学历要求1-大专2-本科"
+        text skill_requirement "技能要求"
     }
 
     %% 项目申请记录 (用户 -> 项目)

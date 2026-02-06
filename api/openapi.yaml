@@ -1063,7 +1063,16 @@ components:
             applicationCount:
               type: integer
               description: 申请数量
-
+            isCrossSchool:
+              type: integer
+              description: |
+                是否跨校: 1-可以,2-不可以
+            educationRequirement:
+              type: integer
+              description: 学历要求1-大专2-本科
+            skillRequirement:
+              type: string
+              description: 技能要求
     CreateProjectDTO:
       type: object
       required: [name, description, memberCount]

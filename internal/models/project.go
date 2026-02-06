@@ -8,19 +8,22 @@ import (
 
 // Project represents a project in the database
 type Project struct {
-	ID                  int
-	CreatorID           int
-	Name                string
-	Description         *string
-	SchoolID            *int
-	Direction           *int
-	MemberCount         *int
-	Status              int        // 0-待审核, 1-已通过, 2-已驳回, 3-已关闭
-	PromotionStatus     int        // 0-无, 1-推广中, 2-已结束
-	PromotionExpireTime *time.Time // 推广结束时间
-	ViewCount           int        // 浏览量
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
+	ID                   int
+	CreatorID            int
+	Name                 string
+	Description          *string
+	SchoolID             *int
+	Direction            *int
+	MemberCount          *int
+	Status               int        // 0-待审核, 1-已通过, 2-已驳回, 3-已关闭
+	PromotionStatus      int        // 0-无, 1-推广中, 2-已结束
+	PromotionExpireTime  *time.Time // 推广结束时间
+	ViewCount            int        // 浏览量
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
+	IsCrossSchool        *int
+	EducationRequirement *int
+	SkillRequirement     *string
 
 	// Joined fields
 	SchoolName *string
@@ -62,16 +65,19 @@ func (p *Project) ToDetailVO() *api.ProjectDetailVO {
 	direction := api.Direction(*p.Direction)
 
 	vo := &api.ProjectDetailVO{
-		Id:              &p.ID,
-		Name:            &p.Name,
-		Description:     p.Description,
-		SchoolId:        p.SchoolID,
-		SchoolName:      p.SchoolName,
-		MemberCount:     p.MemberCount,
-		Status:          &status,
-		PromotionStatus: &p.PromotionStatus,
-		ViewCount:       &p.ViewCount,
-		CreatedAt:       &p.CreatedAt,
+		Id:                   &p.ID,
+		Name:                 &p.Name,
+		Description:          p.Description,
+		SchoolId:             p.SchoolID,
+		SchoolName:           p.SchoolName,
+		MemberCount:          p.MemberCount,
+		Status:               &status,
+		PromotionStatus:      &p.PromotionStatus,
+		ViewCount:            &p.ViewCount,
+		CreatedAt:            &p.CreatedAt,
+		IsCrossSchool:        p.IsCrossSchool,
+		EducationRequirement: p.EducationRequirement,
+		SkillRequirement:     p.SkillRequirement,
 	}
 
 	if p.Direction != nil {
