@@ -29,3 +29,7 @@ go.work
 bin/
 api/api.gen.go
 dist/
+
+# Certificate
+*.pem
+*.p12

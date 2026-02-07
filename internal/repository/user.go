@@ -164,3 +164,35 @@ func (r *UserRepository) UpdateQuota(ctx context.Context, user *models.User) err
 
 	return nil
 }
+
+// AddOliveBranchCount atomically adds count to user's olive_branch_count
+func (r *UserRepository) AddOliveBranchCount(ctx context.Context, userID int, count int) error {
+	query := `
+		UPDATE ` + "`user`" + ` SET
+			olive_branch_count = olive_branch_count + ?
+		WHERE id = ?
+	`
+
+	_, err := r.db.ExecContext(ctx, query, count, userID)
+	if err != nil {
+		return fmt.Errorf("add olive branch count: %w", err)
+	}
+
+	return nil
+}
+
+// AddOliveBranchCountTx atomically adds count to user's olive_branch_count within a transaction
+func (r *UserRepository) AddOliveBranchCountTx(ctx context.Context, tx *sqlx.Tx, userID int, count int) error {
+	query := `
+		UPDATE ` + "`user`" + ` SET
+			olive_branch_count = olive_branch_count + ?
+		WHERE id = ?
+	`
+
+	_, err := tx.ExecContext(ctx, query, count, userID)
+	if err != nil {
+		return fmt.Errorf("add olive branch count: %w", err)
+	}
+
+	return nil
+}

@@ -6,6 +6,7 @@ import (
 
 // Repository aggregates all sub-repositories
 type Repository struct {
+	db            *sqlx.DB
 	User          *UserRepository
 	Project       *ProjectRepository
 	Product       *ProductRepository
@@ -17,9 +18,15 @@ type Repository struct {
 	Order         *OrderRepository
 }
 
+// DB returns the underlying database connection for transaction support
+func (r *Repository) DB() *sqlx.DB {
+	return r.db
+}
+
 // New creates a new Repository with all sub-repositories
 func New(db *sqlx.DB) *Repository {
 	return &Repository{
+		db:            db,
 		User:          NewUserRepository(db),
 		Project:       NewProjectRepository(db),
 		Product:       NewProductRepository(db),

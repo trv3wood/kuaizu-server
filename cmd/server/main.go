@@ -173,6 +173,9 @@ func main() {
 
 	api.RegisterHandlers(apiGroup, server)
 
+	// WeChat Pay callback (no auth required)
+	e.POST("/api/v2/payment/wechat/notify", server.WechatPayCallback)
+
 	// Health check endpoint
 	e.GET("/health", func(c echo.Context) error {
 		return c.JSON(200, map[string]string{"status": "ok"})

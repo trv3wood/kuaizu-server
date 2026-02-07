@@ -27,8 +27,8 @@ type Client struct {
 // NewClient creates a new WeChat client from environment variables
 func NewClient() *Client {
 	return &Client{
-		appID:     os.Getenv("WX_APPID"),
-		appSecret: os.Getenv("WX_SECRET"),
+		appID:     os.Getenv("WECHAT_APPID"),
+		appSecret: os.Getenv("WECHAT_SECRET"),
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
@@ -50,7 +50,7 @@ func NewClientWithConfig(appID, appSecret string) *Client {
 // https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-login/code2Session.html
 func (c *Client) Code2Session(code string) (*Code2SessionResponse, error) {
 	if c.appID == "" || c.appSecret == "" {
-		return nil, fmt.Errorf("WX_APPID or WX_SECRET not configured")
+		return nil, fmt.Errorf("WECHAT_APPID or WECHAT_SECRET not configured")
 	}
 
 	url := fmt.Sprintf(

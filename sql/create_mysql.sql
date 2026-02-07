@@ -141,7 +141,7 @@ CREATE TABLE `product` (
     `type` INT NOT NULL COMMENT '类型:1-虚拟币,2-服务权益',
     `description` TEXT COMMENT '商品描述',
     `price` DECIMAL(10, 2) NOT NULL COMMENT '商品价格',
-    `config_json` TEXT COMMENT '配置参数(如增加多少个橄榄枝)',
+    `config_json` TEXT COMMENT '配置参数(如增加多少个橄榄枝)', -- 保留字段，暂时不用
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品表';
@@ -150,16 +150,26 @@ CREATE TABLE `product` (
 CREATE TABLE `order` (
     `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
     `user_id` INT NOT NULL COMMENT '用户ID',
-    `product_id` INT NOT NULL COMMENT '商品ID',
     `actual_paid` DECIMAL(10, 2) NOT NULL COMMENT '实付金额',
     `status` INT DEFAULT 0 COMMENT '支付状态:0-待支付,1-已支付,2-已取消,3-已退款',
-    `wx_pay_no` VARCHAR(100) COMMENT '微信支付单号',
+    `wx_pay_no` VARCHAR(100) COMMENT '微信支付订单号',
     `pay_time` TIMESTAMP NULL COMMENT '支付时间',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     CONSTRAINT `fk_order_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_order_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`) ON DELETE RESTRICT
+    CONSTRAINT `unq_order_wx_pay_no` UNIQUE (`wx_pay_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单表';
+
+-- 订单详情表
+CREATE TABLE `order_item` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
+    `order_id` INT NOT NULL COMMENT '订单ID',
+    `product_id` INT NOT NULL COMMENT '商品ID',
+    `price` DECIMAL(10, 2) NOT NULL COMMENT '下单时的单价快照',
+    `quantity` INT NOT NULL COMMENT '数量',
+    CONSTRAINT `fk_order_item_order` FOREIGN KEY (`order_id`) REFERENCES `order` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_order_item_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单详情表';
 
 -- 意见反馈表
 CREATE TABLE `feedback` (
@@ -212,7 +222,6 @@ CREATE INDEX idx_olive_project ON `olive_branch_record`(`related_project_id`);
 CREATE INDEX idx_olive_status ON `olive_branch_record`(`status`);
 
 CREATE INDEX idx_order_user ON `order`(`user_id`);
-CREATE INDEX idx_order_product ON `order`(`product_id`);
 CREATE INDEX idx_order_wx_pay_no ON `order`(`wx_pay_no`);
 CREATE INDEX idx_order_status ON `order`(`status`);
 

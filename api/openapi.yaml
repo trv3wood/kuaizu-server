@@ -17,6 +17,8 @@ servers:
     description: 本地开发
   - url: https://api.zhaoxiaokai.xyz/api/v2
     description: 生产环境
+  - url: https://dev-pay.darker233.top/api/v2
+    description: 开发环境
 
 tags:
   - name: Auth
@@ -610,7 +612,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateOrderDTO"
+              type: array
+              items:
+                $ref: "#/components/schemas/CreateOrderDTO"
       responses:
         "200":
           description: 创建成功
@@ -915,12 +919,13 @@ components:
 
     OrderStatus:
       type: integer
-      enum: [0, 1, 2]
+      enum: [0, 1, 2, 3]
       description: |
         订单状态:
         - 0: 待支付
         - 1: 已支付
-        - 2: 已退款
+        - 2: 已取消
+        - 3: 已退款
 
     AuthStatus:
       type: integer
@@ -1373,11 +1378,15 @@ components:
 
     CreateOrderDTO:
       type: object
-      required: [productId]
+      required: [productId, quantity]
       properties:
         productId:
           type: integer
           description: 商品ID
+        quantity:
+          type: integer
+          description: 购买数量
+          default: 1
 
     WechatPaymentParams:
       type: object

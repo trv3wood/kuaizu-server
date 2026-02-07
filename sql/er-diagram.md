@@ -105,11 +105,19 @@ erDiagram
     ORDER {
         int id PK
         int user_id FK
-        int product_id FK
         decimal actual_paid "实付金额"
         int status "状态(0未付 1已付 2退款)"
         string wx_pay_no "微信支付单号"
         timestamp pay_time
+    }
+    
+    %% 订单详情
+    ORDER_ITEM {
+        int id PK
+        int order_id FK
+        int product_id FK
+        decimal price "下单时的单价快照"
+        int quantity "数量"
     }
 
     %% 意见反馈 (管理员：表单反馈管理)
