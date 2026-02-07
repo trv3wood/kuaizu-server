@@ -23,3 +23,17 @@ func (s *Server) ListProducts(ctx echo.Context) error {
 
 	return Success(ctx, productVOs)
 }
+
+// GetProductDetail handles GET /products/{id}
+func (s *Server) GetProductDetail(ctx echo.Context, id int) error {
+	product, err := s.repo.Product.GetByID(ctx.Request().Context(), id)
+	if err != nil {
+		log.Printf("GetProductDetail error: %v", err)
+		return InternalError(ctx, "获取商品详情失败")
+	}
+	if product == nil {
+		return NotFound(ctx, "商品不存在")
+	}
+
+	return Success(ctx, product.ToVO())
+}

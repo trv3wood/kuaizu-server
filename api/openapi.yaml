@@ -601,6 +601,32 @@ paths:
                         items:
                           $ref: "#/components/schemas/ProductVO"
 
+  /products/{id}:
+    get:
+      tags: [Products]
+      summary: 获取商品详情
+      operationId: getProductDetail
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 商品ID
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ProductVO"
+
   # ==================== 订单与支付模块 ====================
   /orders:
     post:
