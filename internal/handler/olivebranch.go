@@ -219,3 +219,55 @@ func (s *Server) HandleOliveBranch(ctx echo.Context, id int) error {
 	ob.Status = newStatus
 	return Success(ctx, ob.ToVO())
 }
+
+// GetMySentOliveBranches handles GET /users/me/sent-olive-branches
+func (s *Server) GetMySentOliveBranches(ctx echo.Context, params api.GetMySentOliveBranchesParams) error {
+	userID := GetUserID(ctx)
+
+	listParams := repository.OliveBranchListParams{
+		SenderID: userID,
+		Page:     1,
+		Size:     10,
+	}
+
+	if params.Page != nil {
+		listParams.Page = *params.Page
+	}
+	if params.Size != nil {
+		listParams.Size = *params.Size
+	}
+	if listParams.Page < 1 {
+		listParams.Page = 1
+	}
+	if listParams.Size < 1 || listParams.Size > 100 {
+		listParams.Size = 10
+	}
+
+	if params.Status != nil {
+		status := int(*params.Status)
+		listParams.Status = &status
+	}
+
+	records, total, err := s.repo.OliveBranch.ListBySenderID(ctx.Request().Context(), listParams)
+	if err != nil {
+		return InternalError(ctx, "获取橄榄枝列表失败")
+	}
+
+	list := make([]api.OliveBranchVO, len(records))
+	for i, ob := range records {
+		list[i] = *ob.ToVO()
+	}
+
+	totalPages := int((total + int64(listParams.Size) - 1) / int64(listParams.Size))
+	pageInfo := api.PageInfo{
+		Page:       &listParams.Page,
+		Size:       &listParams.Size,
+		Total:      &total,
+		TotalPages: &totalPages,
+	}
+
+	return Success(ctx, api.OliveBranchPageResponse{
+		List:     &list,
+		PageInfo: &pageInfo,
+	})
+}

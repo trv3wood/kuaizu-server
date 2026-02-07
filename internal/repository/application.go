@@ -22,21 +22,32 @@ func NewApplicationRepository(db *sqlx.DB) *ApplicationRepository {
 
 // ApplicationListParams contains parameters for listing applications
 type ApplicationListParams struct {
+	UserID    *int // applicant id
 	Page      int
 	Size      int
-	ProjectID int
+	ProjectID *int
 	Status    *int
 }
 
 // List retrieves paginated applications for a project with applicant info
 func (r *ApplicationRepository) List(ctx context.Context, params ApplicationListParams) ([]models.ProjectApplication, int64, error) {
 	// Build WHERE clause
-	conditions := []string{"pa.project_id = ?"}
-	args := []interface{}{params.ProjectID}
+	conditions := []string{}
+	args := []interface{}{}
+
+	if params.ProjectID != nil {
+		conditions = append(conditions, "pa.project_id = ?")
+		args = append(args, *params.ProjectID)
+	}
 
 	if params.Status != nil {
 		conditions = append(conditions, "pa.status = ?")
 		args = append(args, *params.Status)
+	}
+
+	if params.UserID != nil {
+		conditions = append(conditions, "pa.user_id = ?")
+		args = append(args, *params.UserID)
 	}
 
 	whereClause := strings.Join(conditions, " AND ")

@@ -286,9 +286,64 @@ func (s *Server) ListProjectApplications(ctx echo.Context, id int, params api.Li
 
 	// Build list params
 	listParams := repository.ApplicationListParams{
-		ProjectID: id,
+		ProjectID: &id,
 		Page:      1,
 		Size:      10,
+	}
+
+	if params.Page != nil {
+		listParams.Page = *params.Page
+	}
+	if params.Size != nil {
+		listParams.Size = *params.Size
+	}
+	if listParams.Page < 1 {
+		listParams.Page = 1
+	}
+	if listParams.Size < 1 || listParams.Size > 100 {
+		listParams.Size = 10
+	}
+
+	if params.Status != nil {
+		status := int(*params.Status)
+		listParams.Status = &status
+	}
+
+	// Query applications
+	applications, total, err := s.repo.Application.List(ctx.Request().Context(), listParams)
+	if err != nil {
+		return InternalError(ctx, "获取申请列表失败")
+	}
+
+	// Convert to VOs
+	list := make([]api.ProjectApplicationVO, len(applications))
+	for i, app := range applications {
+		list[i] = *app.ToVO()
+	}
+
+	// Build pagination info
+	totalPages := int((total + int64(listParams.Size) - 1) / int64(listParams.Size))
+	pageInfo := api.PageInfo{
+		Page:       &listParams.Page,
+		Size:       &listParams.Size,
+		Total:      &total,
+		TotalPages: &totalPages,
+	}
+
+	return Success(ctx, api.ApplicationPageResponse{
+		List:     &list,
+		PageInfo: &pageInfo,
+	})
+}
+
+func (s *Server) ListMyApplications(ctx echo.Context, params api.ListMyApplicationsParams) error {
+	userID := GetUserID(ctx)
+
+	// Build list params
+	listParams := repository.ApplicationListParams{
+		UserID: &userID,
+		Page:   1,
+		Size:   10,
 	}
 
 	if params.Page != nil {

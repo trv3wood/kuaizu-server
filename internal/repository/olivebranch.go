@@ -21,6 +21,7 @@ func NewOliveBranchRepository(db *sqlx.DB) *OliveBranchRepository {
 
 // OliveBranchListParams contains parameters for listing olive branches
 type OliveBranchListParams struct {
+	SenderID   int
 	ReceiverID int
 	Page       int
 	Size       int
@@ -164,4 +165,70 @@ func (r *OliveBranchRepository) UpdateStatus(ctx context.Context, id int, status
 	}
 
 	return nil
+}
+
+// ListBySenderID retrieves paginated olive branches sent by a user
+func (r *OliveBranchRepository) ListBySenderID(ctx context.Context, params OliveBranchListParams) ([]models.OliveBranch, int64, error) {
+	// Count total
+	countArgs := []interface{}{params.SenderID}
+	countQuery := `SELECT COUNT(*) FROM olive_branch_record WHERE sender_id = ?`
+	if params.Status != nil {
+		countQuery += ` AND status = ?`
+		countArgs = append(countArgs, *params.Status)
+	}
+
+	var total int64
+	if err := r.db.QueryRowxContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count olive branches: %w", err)
+	}
+
+	// Query with pagination
+	offset := (params.Page - 1) * params.Size
+	args := []interface{}{params.SenderID}
+
+	query := `
+		SELECT 
+			ob.id, ob.sender_id, ob.receiver_id, ob.related_project_id,
+			ob.type, ob.cost_type, ob.has_sms_notify, ob.message, ob.status,
+			ob.created_at, ob.updated_at,
+			p.name AS project_name,
+			r.id, r.nickname, r.phone, r.email, r.auth_status
+		FROM olive_branch_record ob
+		LEFT JOIN project p ON ob.related_project_id = p.id
+		LEFT JOIN ` + "`user`" + ` r ON ob.receiver_id = r.id
+		WHERE ob.sender_id = ?
+	`
+	if params.Status != nil {
+		query += ` AND ob.status = ?`
+		args = append(args, *params.Status)
+	}
+	query += ` ORDER BY ob.created_at DESC LIMIT ? OFFSET ?`
+	args = append(args, params.Size, offset)
+
+	rows, err := r.db.QueryxContext(ctx, query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("query olive branches: %w", err)
+	}
+	defer rows.Close()
+
+	var records []models.OliveBranch
+	for rows.Next() {
+		var ob models.OliveBranch
+		var receiver models.User
+
+		err := rows.Scan(
+			&ob.ID, &ob.SenderID, &ob.ReceiverID, &ob.RelatedProjectID,
+			&ob.Type, &ob.CostType, &ob.HasSmsNotify, &ob.Message, &ob.Status,
+			&ob.CreatedAt, &ob.UpdatedAt,
+			&ob.ProjectName,
+			&receiver.ID, &receiver.Nickname, &receiver.Phone, &receiver.Email, &receiver.AuthStatus,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("scan olive branch: %w", err)
+		}
+		ob.Receiver = &receiver
+		records = append(records, ob)
+	}
+
+	return records, total, nil
 }

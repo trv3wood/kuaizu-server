@@ -170,6 +170,31 @@ paths:
                     properties:
                       data:
                         $ref: "#/components/schemas/OliveBranchPageResponse"
+  /users/me/sent-olive-branches:
+    get:
+      tags: [OliveBranches]
+      summary: 查看我发出的橄榄枝邀请
+      description: 企业视角查看发出的邀请
+      operationId: getMySentOliveBranches
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/OliveBranchStatus"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/OliveBranchPageResponse"
 
   # ==================== 项目大厅模块 ====================
   /projects:
@@ -431,6 +456,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BaseResponse"
+                
+  /project-applications/my:
+    get:
+      tags: [ProjectApplications]
+      summary: 获取我的申请
+      operationId: listMyApplications
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/ApplicationStatus"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ApplicationPageResponse"
 
   # ==================== 人才库模块 ====================
   /talent-profiles:
