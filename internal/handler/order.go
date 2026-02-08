@@ -190,7 +190,7 @@ func (s *Server) InitiatePayment(ctx echo.Context, id int) error {
 	}
 
 	// Build description from order items
-	description := "快组商品购买"
+	description := "快组校园商品购买"
 	if len(order.Items) > 0 && order.Items[0].ProductName != nil {
 		description = *order.Items[0].ProductName
 	}

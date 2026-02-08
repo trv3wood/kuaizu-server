@@ -32,14 +32,14 @@ func NewTemplateRenderer(baseURL string) *TemplateRenderer {
 // RenderProjectPromotion 渲染项目推广邮件
 func (r *TemplateRenderer) RenderProjectPromotion(project *models.Project, nickname *string, unsubscribeToken string) (string, string, error) {
 	// 邮件主题
-	subject := fmt.Sprintf("【快组】有一个项目可能适合你：%s", project.Name)
+	subject := fmt.Sprintf("【快组校园】有一个项目可能适合你：%s", project.Name)
 
 	// 准备数据
 	data := ProjectPromotionData{
 		Nickname:       "同学",
 		ProjectName:    project.Name,
-		ProjectURL:     fmt.Sprintf("%s/project/%d", r.baseURL, project.ID),
-		UnsubscribeURL: fmt.Sprintf("%s/api/email/unsubscribe?token=%s", r.baseURL, unsubscribeToken),
+		ProjectURL:     fmt.Sprintf("%s/projects/%d", r.baseURL, project.ID),
+		UnsubscribeURL: fmt.Sprintf("%s/email/unsubscribe?token=%s", r.baseURL, unsubscribeToken),
 	}
 
 	if nickname != nil && *nickname != "" {
@@ -202,7 +202,7 @@ const projectPromotionTemplate = `<!DOCTYPE html>
         </div>
         
         <div class="footer">
-            <p>此邮件由快组平台发送</p>
+            <p>此邮件由快组校园平台发送</p>
             <p>如不想收到此类邮件，请 <a href="{{.UnsubscribeURL}}">点击退订</a></p>
         </div>
     </div>

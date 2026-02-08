@@ -71,7 +71,7 @@ func NewSMTPClientFromEnv() (*SMTPClient, error) {
 
 	fromName := os.Getenv("SMTP_FROM_NAME")
 	if fromName == "" {
-		fromName = "快组团队"
+		fromName = "快组校园团队"
 	}
 
 	return &SMTPClient{
