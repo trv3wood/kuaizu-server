@@ -109,6 +109,11 @@ func (c *SMTPClient) Send(to, subject, htmlBody string) error {
 		return c.sendWithTLS(addr, to, message)
 	}
 
+	// 使用Plain SMTP (端口80或25，用于Aliyun DirectMail)
+	if c.port == 80 || c.port == 25 {
+		return c.sendWithPlainSMTP(addr, to, message)
+	}
+
 	// 使用STARTTLS (端口587)
 	return c.sendWithSTARTTLS(addr, to, message)
 }
@@ -161,6 +166,83 @@ func (c *SMTPClient) sendWithTLS(addr, to, message string) error {
 	}
 
 	return client.Quit()
+}
+
+// sendWithPlainSMTP 使用Plain SMTP发送邮件 (端口80或25，用于Aliyun DirectMail)
+func (c *SMTPClient) sendWithPlainSMTP(addr, to, message string) error {
+	client, err := smtp.Dial(addr)
+	if err != nil {
+		return fmt.Errorf("dial: %w", err)
+	}
+	defer client.Close()
+
+	// 对于端口80，Aliyun DirectMail要求使用LOGIN认证方式
+	// smtp.PlainAuth 默认拒绝在非加密连接上发送凭据
+	// 我们需要使用自定义的认证方式或者跳过这个检查
+	if c.port == 80 {
+		// 使用PLAIN认证，但允许非加密连接
+		if err := client.Auth(&plainAuthAllowUnencrypted{
+			identity: "",
+			username: c.user,
+			password: c.password,
+			host:     c.host,
+		}); err != nil {
+			return fmt.Errorf("smtp auth: %w", err)
+		}
+	} else {
+		// 端口25使用标准PlainAuth
+		auth := smtp.PlainAuth("", c.user, c.password, c.host)
+		if err := client.Auth(auth); err != nil {
+			return fmt.Errorf("smtp auth: %w", err)
+		}
+	}
+
+	// 发送邮件
+	if err := client.Mail(c.user); err != nil {
+		return fmt.Errorf("smtp mail: %w", err)
+	}
+	if err := client.Rcpt(to); err != nil {
+		return fmt.Errorf("smtp rcpt: %w", err)
+	}
+
+	w, err := client.Data()
+	if err != nil {
+		return fmt.Errorf("smtp data: %w", err)
+	}
+
+	_, err = w.Write([]byte(message))
+	if err != nil {
+		return fmt.Errorf("write message: %w", err)
+	}
+
+	err = w.Close()
+	if err != nil {
+		return fmt.Errorf("close writer: %w", err)
+	}
+
+	return client.Quit()
+}
+
+// plainAuthAllowUnencrypted 允许在非加密连接上使用PLAIN认证
+// 用于Aliyun DirectMail的端口80
+type plainAuthAllowUnencrypted struct {
+	identity string
+	username string
+	password string
+	host     string
+}
+
+func (a *plainAuthAllowUnencrypted) Start(server *smtp.ServerInfo) (string, []byte, error) {
+	// 允许非TLS连接
+	resp := []byte("\x00" + a.username + "\x00" + a.password)
+	return "PLAIN", resp, nil
+}
+
+func (a *plainAuthAllowUnencrypted) Next(fromServer []byte, more bool) ([]byte, error) {
+	if more {
+		return nil, fmt.Errorf("unexpected server challenge")
+	}
+	return nil, nil
 }
 
 // sendWithSTARTTLS 使用STARTTLS发送邮件 (端口587)

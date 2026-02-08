@@ -173,7 +173,7 @@ func unsubscribeErrorHTML(message string) string {
     <style>
         body {
             font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%);
             min-height: 100vh;
             margin: 0;
             display: flex;

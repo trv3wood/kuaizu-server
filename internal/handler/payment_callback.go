@@ -146,6 +146,7 @@ func (s *Server) distributeBenefits(ctx echo.Context, tx *sqlx.Tx, order *models
 				return err
 			}
 		case 2:
+			// 权益需要凭订单和参数手动兑换
 		default:
 			ctx.Logger().Error("Unknown product type: ", product.Type)
 		}

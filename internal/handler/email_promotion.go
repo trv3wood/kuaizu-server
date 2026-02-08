@@ -21,30 +21,67 @@ func (s *Server) TriggerEmailPromotion(ctx echo.Context) error {
 		return BadRequest(ctx, "请求参数错误")
 	}
 
+	if err := s.validatePromotionRequest(&body); err != nil {
+		return err
+	}
+
+	order, err := s.validateOrderOwnership(ctx, body.OrderId, userID)
+	if err != nil {
+		return err
+	}
+
+	if err := s.validateProjectOwnership(ctx, body.ProjectId, userID); err != nil {
+		return err
+	}
+
+	if err := s.checkPromotionDuplication(ctx, body.OrderId); err != nil {
+		return err
+	}
+
+	maxRecipients, err := s.calculateMaxRecipients(ctx, order)
+	if err != nil {
+		return err
+	}
+
+	promotion, err := s.createPromotionRecord(ctx, body.OrderId, body.ProjectId, userID, maxRecipients)
+	if err != nil {
+		return err
+	}
+
+	s.startAsyncEmailSending(promotion)
+
+	return s.buildPromotionResponse(ctx, promotion, maxRecipients)
+}
+
+func (s *Server) validatePromotionRequest(body *api.TriggerEmailPromotionJSONRequestBody) error {
 	if body.OrderId <= 0 {
-		return BadRequest(ctx, "订单ID无效")
+		return BadRequest(nil, "订单ID无效")
 	}
 	if body.ProjectId <= 0 {
-		return BadRequest(ctx, "项目ID无效")
+		return BadRequest(nil, "项目ID无效")
 	}
+	return nil
+}
 
-	// 验证订单归属和状态
-	order, err := s.repo.Order.GetByID(ctx.Request().Context(), body.OrderId)
+func (s *Server) validateOrderOwnership(ctx echo.Context, orderID, userID int) (*models.Order, error) {
+	order, err := s.repo.Order.GetByID(ctx.Request().Context(), orderID)
 	if err != nil {
-		return InternalError(ctx, "获取订单失败")
+		return nil, InternalError(ctx, "获取订单失败")
 	}
 	if order == nil {
-		return NotFound(ctx, "订单不存在")
+		return nil, NotFound(ctx, "订单不存在")
 	}
 	if order.UserID != userID {
-		return Forbidden(ctx, "无权操作此订单")
+		return nil, Forbidden(ctx, "无权操作此订单")
 	}
 	if order.Status != 1 {
-		return BadRequest(ctx, "订单未支付或状态异常")
+		return nil, BadRequest(ctx, "订单未支付或状态异常")
 	}
+	return order, nil
+}
 
-	// 验证项目归属
-	project, err := s.repo.Project.GetByID(ctx.Request().Context(), body.ProjectId)
+func (s *Server) validateProjectOwnership(ctx echo.Context, projectID, userID int) error {
+	project, err := s.repo.Project.GetByID(ctx.Request().Context(), projectID)
 	if err != nil {
 		return InternalError(ctx, "获取项目失败")
 	}
@@ -54,17 +91,21 @@ func (s *Server) TriggerEmailPromotion(ctx echo.Context) error {
 	if project.CreatorID != userID {
 		return Forbidden(ctx, "只能推广自己创建的项目")
 	}
+	return nil
+}
 
-	// 检查是否已经为此订单创建过推广
-	existingPromotion, err := s.repo.EmailPromotion.GetByOrderID(ctx.Request().Context(), body.OrderId)
+func (s *Server) checkPromotionDuplication(ctx echo.Context, orderID int) error {
+	existingPromotion, err := s.repo.EmailPromotion.GetByOrderID(ctx.Request().Context(), orderID)
 	if err != nil {
 		return InternalError(ctx, "检查推广记录失败")
 	}
 	if existingPromotion != nil {
 		return BadRequest(ctx, "此订单已触发过推广")
 	}
+	return nil
+}
 
-	// 获取订单中的推广商品数量作为最大发送人数
+func (s *Server) calculateMaxRecipients(ctx echo.Context, order *models.Order) (int, error) {
 	var maxRecipients int
 	for _, item := range order.Items {
 		product, err := s.repo.Product.GetByID(ctx.Request().Context(), item.ProductID)
@@ -77,13 +118,15 @@ func (s *Server) TriggerEmailPromotion(ctx echo.Context) error {
 	}
 
 	if maxRecipients <= 0 {
-		return BadRequest(ctx, "订单中没有邮件推广商品")
+		return 0, BadRequest(ctx, "订单中没有邮件推广商品")
 	}
+	return maxRecipients, nil
+}
 
-	// 创建推广记录
+func (s *Server) createPromotionRecord(ctx echo.Context, orderID, projectID, userID, maxRecipients int) (*models.EmailPromotion, error) {
 	promotion := &models.EmailPromotion{
-		OrderID:       body.OrderId,
-		ProjectID:     body.ProjectId,
+		OrderID:       orderID,
+		ProjectID:     projectID,
 		CreatorID:     userID,
 		MaxRecipients: maxRecipients,
 		Status:        models.EmailPromotionStatusPending,
@@ -91,10 +134,12 @@ func (s *Server) TriggerEmailPromotion(ctx echo.Context) error {
 
 	if err := s.repo.EmailPromotion.Create(ctx.Request().Context(), promotion); err != nil {
 		ctx.Logger().Error("Failed to create email promotion: ", err)
-		return InternalError(ctx, "创建推广记录失败")
+		return nil, InternalError(ctx, "创建推广记录失败")
 	}
+	return promotion, nil
+}
 
-	// 尝试创建邮件服务并异步发送
+func (s *Server) startAsyncEmailSending(promotion *models.EmailPromotion) {
 	go func() {
 		emailService, err := email.NewServiceFromEnv(
 			s.repo.User,
@@ -102,7 +147,6 @@ func (s *Server) TriggerEmailPromotion(ctx echo.Context) error {
 			s.repo.EmailPromotion,
 		)
 		if err != nil {
-			// 邮件服务未配置，记录错误但不影响推广记录创建
 			errMsg := "邮件服务未配置: " + err.Error()
 			promotion.Status = models.EmailPromotionStatusFailed
 			promotion.ErrorMessage = &errMsg
@@ -112,7 +156,9 @@ func (s *Server) TriggerEmailPromotion(ctx echo.Context) error {
 
 		emailService.SendPromotionEmails(context.Background(), promotion)
 	}()
+}
 
+func (s *Server) buildPromotionResponse(ctx echo.Context, promotion *models.EmailPromotion, maxRecipients int) error {
 	status := "pending"
 	message := "推广任务已创建，正在发送中"
 
