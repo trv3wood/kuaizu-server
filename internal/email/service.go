@@ -53,7 +53,7 @@ func NewServiceFromEnv(
 
 	baseURL := os.Getenv("BASE_URL")
 	if baseURL == "" {
-		baseURL = "https://kuaizu.com"
+		baseURL = "https://kuaizu.xyz"
 	}
 
 	return NewService(client, baseURL, userRepo, projectRepo, promotionRepo), nil

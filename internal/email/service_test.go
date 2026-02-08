@@ -48,7 +48,7 @@ func TestBatchEmailSending_Success(t *testing.T) {
 	// 创建邮件服务
 	service := &Service{
 		client:           client,
-		templateRenderer: NewTemplateRenderer("https://kuaizu.com"),
+		templateRenderer: NewTemplateRenderer("https://kuaizu.xyz"),
 	}
 
 	// 模拟批量发送逻辑（第4步）
@@ -127,7 +127,7 @@ func TestBatchEmailSending_RateLimiting(t *testing.T) {
 
 	service := &Service{
 		client:           client,
-		templateRenderer: NewTemplateRenderer("https://kuaizu.com"),
+		templateRenderer: NewTemplateRenderer("https://kuaizu.xyz"),
 	}
 
 	// 模拟批量发送逻辑，测量时间
@@ -254,7 +254,7 @@ func TestBatchEmailSending_LargeRecipientList(t *testing.T) {
 
 	service := &Service{
 		client:           client,
-		templateRenderer: NewTemplateRenderer("https://kuaizu.com"),
+		templateRenderer: NewTemplateRenderer("https://kuaizu.xyz"),
 	}
 
 	// 模拟批量发送逻辑（使用较长的延迟以避免触发限制）

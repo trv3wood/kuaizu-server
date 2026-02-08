@@ -259,7 +259,7 @@ func (s *Server) ListMyEmailPromotions(ctx echo.Context) error {
 func getBaseURL() string {
 	baseURL := os.Getenv("BASE_URL")
 	if baseURL == "" {
-		baseURL = "https://kuaizu.com"
+		baseURL = "https://kuaizu.xyz"
 	}
 	return baseURL
 }

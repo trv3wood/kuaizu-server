@@ -14,6 +14,7 @@ require (
 	github.com/oapi-codegen/oapi-codegen/v2 v2.5.1
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/wechatpay-apiv3/wechatpay-go v0.2.21
+	github.com/wneessen/go-mail v0.7.2
 )
 
 require (
