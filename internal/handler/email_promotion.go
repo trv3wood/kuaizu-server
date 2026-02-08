@@ -5,15 +5,10 @@ import (
 	"os"
 
 	"github.com/labstack/echo/v4"
+	"github.com/trv3wood/kuaizu-server/api"
 	"github.com/trv3wood/kuaizu-server/internal/email"
 	"github.com/trv3wood/kuaizu-server/internal/models"
 )
-
-// TriggerEmailPromotionRequest 触发邮件推广请求
-type TriggerEmailPromotionRequest struct {
-	OrderID   int `json:"orderId"`
-	ProjectID int `json:"projectId"`
-}
 
 // TriggerEmailPromotion 触发邮件推广
 // POST /api/email/promotion/trigger
@@ -21,20 +16,20 @@ type TriggerEmailPromotionRequest struct {
 func (s *Server) TriggerEmailPromotion(ctx echo.Context) error {
 	userID := GetUserID(ctx)
 
-	var req TriggerEmailPromotionRequest
-	if err := ctx.Bind(&req); err != nil {
+	var body api.TriggerEmailPromotionJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
 		return BadRequest(ctx, "请求参数错误")
 	}
 
-	if req.OrderID <= 0 {
+	if body.OrderId <= 0 {
 		return BadRequest(ctx, "订单ID无效")
 	}
-	if req.ProjectID <= 0 {
+	if body.ProjectId <= 0 {
 		return BadRequest(ctx, "项目ID无效")
 	}
 
 	// 验证订单归属和状态
-	order, err := s.repo.Order.GetByID(ctx.Request().Context(), req.OrderID)
+	order, err := s.repo.Order.GetByID(ctx.Request().Context(), body.OrderId)
 	if err != nil {
 		return InternalError(ctx, "获取订单失败")
 	}
@@ -49,7 +44,7 @@ func (s *Server) TriggerEmailPromotion(ctx echo.Context) error {
 	}
 
 	// 验证项目归属
-	project, err := s.repo.Project.GetByID(ctx.Request().Context(), req.ProjectID)
+	project, err := s.repo.Project.GetByID(ctx.Request().Context(), body.ProjectId)
 	if err != nil {
 		return InternalError(ctx, "获取项目失败")
 	}
@@ -61,7 +56,7 @@ func (s *Server) TriggerEmailPromotion(ctx echo.Context) error {
 	}
 
 	// 检查是否已经为此订单创建过推广
-	existingPromotion, err := s.repo.EmailPromotion.GetByOrderID(ctx.Request().Context(), req.OrderID)
+	existingPromotion, err := s.repo.EmailPromotion.GetByOrderID(ctx.Request().Context(), body.OrderId)
 	if err != nil {
 		return InternalError(ctx, "检查推广记录失败")
 	}
@@ -87,8 +82,8 @@ func (s *Server) TriggerEmailPromotion(ctx echo.Context) error {
 
 	// 创建推广记录
 	promotion := &models.EmailPromotion{
-		OrderID:       req.OrderID,
-		ProjectID:     req.ProjectID,
+		OrderID:       body.OrderId,
+		ProjectID:     body.ProjectId,
 		CreatorID:     userID,
 		MaxRecipients: maxRecipients,
 		Status:        models.EmailPromotionStatusPending,
@@ -118,11 +113,14 @@ func (s *Server) TriggerEmailPromotion(ctx echo.Context) error {
 		emailService.SendPromotionEmails(context.Background(), promotion)
 	}()
 
-	return Success(ctx, map[string]interface{}{
-		"promotionId":   promotion.ID,
-		"maxRecipients": maxRecipients,
-		"status":        "pending",
-		"message":       "推广任务已创建，正在发送中",
+	status := "pending"
+	message := "推广任务已创建，正在发送中"
+
+	return Success(ctx, api.TriggerEmailPromotionResponse{
+		MaxRecipients: &maxRecipients,
+		PromotionId:   &promotion.ID,
+		Status:        &status,
+		Message:       &message,
 	})
 }
 
@@ -149,18 +147,21 @@ func (s *Server) GetEmailPromotionStatus(ctx echo.Context, id int) error {
 		models.EmailPromotionStatusFailed:    "发送失败",
 	}
 
-	return Success(ctx, map[string]interface{}{
-		"id":            promotion.ID,
-		"projectId":     promotion.ProjectID,
-		"projectName":   promotion.ProjectName,
-		"maxRecipients": promotion.MaxRecipients,
-		"totalSent":     promotion.TotalSent,
-		"status":        promotion.Status,
-		"statusText":    statusText[promotion.Status],
-		"errorMessage":  promotion.ErrorMessage,
-		"startedAt":     promotion.StartedAt,
-		"completedAt":   promotion.CompletedAt,
-		"createdAt":     promotion.CreatedAt,
+	statusTextValue := statusText[promotion.Status]
+	statusValue := api.EmailPromotionStatus(promotion.Status)
+
+	return Success(ctx, api.EmailPromotionVO{
+		Id:            &promotion.ID,
+		ProjectId:     &promotion.ProjectID,
+		ProjectName:   promotion.ProjectName,
+		MaxRecipients: &promotion.MaxRecipients,
+		TotalSent:     &promotion.TotalSent,
+		Status:        &statusValue,
+		StatusText:    &statusTextValue,
+		ErrorMessage:  promotion.ErrorMessage,
+		StartedAt:     promotion.StartedAt,
+		CompletedAt:   promotion.CompletedAt,
+		CreatedAt:     &promotion.CreatedAt,
 	})
 }
 
@@ -185,17 +186,20 @@ func (s *Server) ListMyEmailPromotions(ctx echo.Context) error {
 		models.EmailPromotionStatusFailed:    "发送失败",
 	}
 
-	list := make([]map[string]interface{}, len(promotions))
+	list := make([]api.EmailPromotionVO, len(promotions))
 	for i, p := range promotions {
-		list[i] = map[string]interface{}{
-			"id":            p.ID,
-			"projectId":     p.ProjectID,
-			"projectName":   p.ProjectName,
-			"maxRecipients": p.MaxRecipients,
-			"totalSent":     p.TotalSent,
-			"status":        p.Status,
-			"statusText":    statusText[p.Status],
-			"createdAt":     p.CreatedAt,
+		statusTextValue := statusText[p.Status]
+		statusValue := api.EmailPromotionStatus(p.Status)
+
+		list[i] = api.EmailPromotionVO{
+			Id:            &p.ID,
+			ProjectId:     &p.ProjectID,
+			ProjectName:   p.ProjectName,
+			MaxRecipients: &p.MaxRecipients,
+			TotalSent:     &p.TotalSent,
+			Status:        &statusValue,
+			StatusText:    &statusTextValue,
+			CreatedAt:     &p.CreatedAt,
 		}
 	}
 
