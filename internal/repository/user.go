@@ -196,3 +196,58 @@ func (r *UserRepository) AddOliveBranchCountTx(ctx context.Context, tx *sqlx.Tx,
 
 	return nil
 }
+
+// EmailRecipient 邮件接收者
+type EmailRecipient struct {
+	ID       int
+	Email    string
+	Nickname *string
+}
+
+// FindEmailRecipients 查找邮件发送对象
+// 排除指定用户，排除已退订用户，随机排序后限制数量
+func (r *UserRepository) FindEmailRecipients(ctx context.Context, excludeUserID int, limit int) ([]*EmailRecipient, error) {
+	query := `
+		SELECT id, email, nickname 
+		FROM ` + "`user`" + `
+		WHERE email IS NOT NULL 
+		  AND email != ''
+		  AND email_opt_out = FALSE
+		  AND id != ?
+		ORDER BY RAND()
+		LIMIT ?
+	`
+
+	rows, err := r.db.QueryxContext(ctx, query, excludeUserID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("query email recipients: %w", err)
+	}
+	defer rows.Close()
+
+	var recipients []*EmailRecipient
+	for rows.Next() {
+		var r EmailRecipient
+		if err := rows.Scan(&r.ID, &r.Email, &r.Nickname); err != nil {
+			return nil, fmt.Errorf("scan email recipient: %w", err)
+		}
+		recipients = append(recipients, &r)
+	}
+
+	return recipients, nil
+}
+
+// SetEmailOptOut 设置用户的邮件退订状态
+func (r *UserRepository) SetEmailOptOut(ctx context.Context, userID int, optOut bool) error {
+	query := `
+		UPDATE ` + "`user`" + ` SET
+			email_opt_out = ?
+		WHERE id = ?
+	`
+
+	_, err := r.db.ExecContext(ctx, query, optOut, userID)
+	if err != nil {
+		return fmt.Errorf("set email opt out: %w", err)
+	}
+
+	return nil
+}

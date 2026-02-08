@@ -23,11 +23,11 @@ type Order struct {
 
 // OrderItem represents an order item in the database
 type OrderItem struct {
-	ID        int
-	OrderID   int
-	ProductID int
-	Price     float64
-	Quantity  int
+	ID               int
+	OrderID          int
+	ProductID        int
+	Price            float64
+	Quantity         int
 
 	// Joined fields
 	ProductName *string

@@ -52,6 +52,7 @@ CREATE TABLE `user` (
     `last_active_date` DATE COMMENT '最后活跃日期(用于重置免费次数)',
     `auth_status` INT DEFAULT 0 COMMENT '认证状态:0-未认证,1-已认证,2-认证失败',
     `auth_img_url` TEXT COMMENT '学生证认证图',
+    `email_opt_out` BOOLEAN DEFAULT FALSE COMMENT '是否退订邮件推广',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     CONSTRAINT `fk_user_school` FOREIGN KEY (`school_id`) REFERENCES `school` (`id`) ON DELETE SET NULL,
     CONSTRAINT `fk_user_major` FOREIGN KEY (`major_id`) REFERENCES `major` (`id`) ON DELETE SET NULL
@@ -141,7 +142,6 @@ CREATE TABLE `product` (
     `type` INT NOT NULL COMMENT '类型:1-虚拟币,2-服务权益',
     `description` TEXT COMMENT '商品描述',
     `price` DECIMAL(10, 2) NOT NULL COMMENT '商品价格',
-    `config_json` TEXT COMMENT '配置参数(如增加多少个橄榄枝)', -- 保留字段，暂时不用
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品表';
@@ -167,8 +167,10 @@ CREATE TABLE `order_item` (
     `product_id` INT NOT NULL COMMENT '商品ID',
     `price` DECIMAL(10, 2) NOT NULL COMMENT '下单时的单价快照',
     `quantity` INT NOT NULL COMMENT '数量',
+    `related_project_id` INT COMMENT '关联项目ID(邮件推广用)',
     CONSTRAINT `fk_order_item_order` FOREIGN KEY (`order_id`) REFERENCES `order` (`id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_order_item_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`) ON DELETE RESTRICT
+    CONSTRAINT `fk_order_item_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`) ON DELETE RESTRICT,
+    CONSTRAINT `fk_order_item_project` FOREIGN KEY (`related_project_id`) REFERENCES `project` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单详情表';
 
 -- 意见反馈表
@@ -184,7 +186,7 @@ CREATE TABLE `feedback` (
     CONSTRAINT `fk_feedback_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='意见反馈表';
 
--- 消息订阅配置表
+-- 消息订阅配置表 暂时未使用
 CREATE TABLE `subscribe_config` (
     `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
     `user_id` INT NOT NULL COMMENT '用户ID',
@@ -196,6 +198,31 @@ CREATE TABLE `subscribe_config` (
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     CONSTRAINT `fk_sub_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='消息订阅配置表';
+
+-- 邮件推广记录表
+CREATE TABLE email_promotion (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    order_id INT NOT NULL COMMENT '关联订单',
+    project_id INT NULL COMMENT '推广的项目',
+    creator_id INT NOT NULL COMMENT '发起人（队长）',
+    
+    -- 配置
+    max_recipients INT NOT NULL COMMENT '购买的最大发送人数',
+    
+    -- 发送情况
+    total_sent INT DEFAULT 0 COMMENT '实际发送数量',
+    status TINYINT DEFAULT 0 COMMENT '0-待发送, 1-发送中, 2-已完成, 3-失败',
+    
+    error_message TEXT COMMENT '错误信息',
+    started_at TIMESTAMP NULL COMMENT '开始发送时间',
+    completed_at TIMESTAMP NULL COMMENT '完成时间',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT `fk_email_promotion_order` FOREIGN KEY (`order_id`) REFERENCES `order` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_email_promotion_project` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE,
+    INDEX idx_project (project_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '邮件推广记录表';
 
 -- ================= 索引优化 =================
 

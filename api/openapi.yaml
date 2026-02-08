@@ -41,6 +41,8 @@ tags:
     description: 基础数据字典接口
   - name: Commons
     description: 通用接口
+  - name: EmailPromotions
+    description: 邮件推广服务接口
 
 security:
   - bearerAuth: []
@@ -356,7 +358,6 @@ paths:
                               $ref: "#/components/schemas/ProjectVO"
                           pageInfo:
                             $ref: "#/components/schemas/PageInfo"
-        
 
   /projects/{id}/applications:
     parameters:
@@ -456,7 +457,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BaseResponse"
-                
+
   /project-applications/my:
     get:
       tags: [ProjectApplications]
@@ -788,6 +789,87 @@ paths:
                     properties:
                       data:
                         $ref: "#/components/schemas/WechatPaymentParams"
+
+  # ==================== 邮件推广模块 ====================
+  /email/unsubscribe:
+    get:
+      tags: [EmailPromotions]
+      summary: 邮件退订
+      description: 用户点击邮件中的退订链接后访问此接口
+      operationId: emailUnsubscribe
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: 退订token
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 退订成功（返回HTML页面）
+          content:
+            text/html:
+              schema:
+                type: string
+        "400":
+          description: 无效或过期的token
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /email/promotion/trigger:
+    post:
+      tags: [EmailPromotions]
+      summary: 触发邮件推广
+      description: 用户购买邮件推广商品后，选择要推广的项目并触发发送
+      operationId: triggerEmailPromotion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TriggerEmailPromotionDTO"
+      responses:
+        "200":
+          description: 推广任务创建成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/TriggerEmailPromotionResponse"
+
+  /email/promotions/my:
+    get:
+      tags: [EmailPromotions]
+      summary: 我的推广记录列表
+      description: 获取当前用户的邮件推广记录
+      operationId: listMyEmailPromotions
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/EmailPromotionVO"
+                          total:
+                            type: integer
+                            format: int64
 
   # ==================== 基础数据模块 ====================
   /dictionaries/schools:
@@ -1511,3 +1593,83 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MajorVO"
+
+    # ==================== 邮件推广相关 ====================
+    EmailPromotionStatus:
+      type: integer
+      enum: [0, 1, 2, 3]
+      description: |
+        推广状态:
+        - 0: 待发送
+        - 1: 发送中
+        - 2: 已完成
+        - 3: 发送失败
+
+    TriggerEmailPromotionDTO:
+      type: object
+      required: [orderId, projectId]
+      properties:
+        orderId:
+          type: integer
+          description: 购买邮件推广商品的订单ID
+        projectId:
+          type: integer
+          description: 要推广的项目ID
+
+    TriggerEmailPromotionResponse:
+      type: object
+      properties:
+        promotionId:
+          type: integer
+          description: 创建的推广记录ID
+        maxRecipients:
+          type: integer
+          description: 最大发送人数
+        status:
+          type: string
+          description: 状态
+          example: "pending"
+        message:
+          type: string
+          description: 提示信息
+          example: "推广任务已创建，正在发送中"
+
+    EmailPromotionVO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 推广记录ID
+        projectId:
+          type: integer
+          description: 推广的项目ID
+        projectName:
+          type: string
+          description: 项目名称
+        maxRecipients:
+          type: integer
+          description: 购买的最大发送人数
+        totalSent:
+          type: integer
+          description: 实际发送数量
+        status:
+          $ref: "#/components/schemas/EmailPromotionStatus"
+        statusText:
+          type: string
+          description: 状态文本
+          example: "已完成"
+        errorMessage:
+          type: string
+          description: 错误信息（如有）
+        startedAt:
+          type: string
+          format: date-time
+          description: 开始发送时间
+        completedAt:
+          type: string
+          format: date-time
+          description: 完成时间
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间

@@ -32,6 +32,7 @@ erDiagram
         date last_active_date "最后活跃日期(用于重置免费次数)"
         int auth_status "认证状态(0未认证,1已认证,2失败)"
         string auth_img_url "学生证认证图"
+        boolean email_opt_out "是否退订邮件推广"
         timestamp created_at
     }
 
@@ -98,7 +99,6 @@ erDiagram
         string name "商品名"
         int type "类型(1虚拟币, 2服务权益)"
         decimal price "价格"
-        string config_json "配置参数(如增加多少个橄榄枝)"
     }
 
     %% 订单管理
@@ -140,6 +140,18 @@ erDiagram
         string email "接收邮箱"
         boolean is_active "是否开启"
     }
+    EMAIL_PROMOTION {
+        int id PK
+        int order_id FK
+        int project_id FK
+        int creator_id FK
+        int max_recipients "购买的最大发送人数"
+        int total_sent "实际发送数量"
+        int status "0-待发送, 1-发送中, 2-已完成, 3-失败"
+        string error_message "错误信息"
+        timestamp started_at "开始发送时间"
+        timestamp completed_at "完成时间"
+    }
 
     %% ================= 关系定义 =================
     
@@ -164,3 +176,7 @@ erDiagram
     PROJECT ||--o{ OLIVE_BRANCH_RECORD : "作为邀请背景"
 
     PRODUCT ||--o{ ORDER : "包含"
+
+    USER ||--o{ EMAIL_PROMOTION : "发起"
+    ORDER ||--o| EMAIL_PROMOTION : "触发"
+    PROJECT ||--o{ EMAIL_PROMOTION : "被推广"

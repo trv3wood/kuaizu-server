@@ -149,8 +149,7 @@ func (s *Server) WechatPayCallback(ctx echo.Context) error {
 					"message": "分发权益失败",
 				})
 			}
-		case 2: // 服务权益
-			// TODO: Implement service benefit distribution (e.g., email promotion)
+		case 2: // 服务权益, 后续手动触发
 		default:
 			ctx.Logger().Error("Unknown product type: ", product.Type)
 		}

@@ -136,6 +136,7 @@ func main() {
 			"/api/v2/dictionaries/schools", // School list
 			"/api/v2/dictionaries/majors",  // Major list
 			"/api/v2/products",             // Product list
+			"/api/v2/email/unsubscribe",    // Email unsubscribe
 		}
 
 		// Check exact matches
