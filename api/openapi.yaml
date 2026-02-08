@@ -5,7 +5,7 @@ info:
     快组校园 RESTful API v2 - 大学生组队与人才匹配平台
 
     ## 核心规约
-    - URL路径：全小写，单词间用中划线分隔，只使用名词复数
+    - URL路径：全小写，单词间用中划线分隔
     - JSON字段：严格使用小驼峰(camelCase)
     - 鉴权方式：Header携带 `Authorization: Bearer {token}`
   version: 2.0.0
@@ -277,7 +277,6 @@ paths:
       summary: 获取项目详情
       description: 返回包含浏览量、队长信息的数据
       operationId: getProject
-      security: []
       responses:
         "200":
           description: 成功
@@ -507,6 +506,7 @@ paths:
           description: 学校ID筛选
           schema:
             type: integer
+      security: []
       responses:
         "200":
           description: 成功
@@ -636,7 +636,6 @@ paths:
       summary: 获取商品列表
       description: 获取所有可购买的商品
       operationId: listProducts
-      security: []
       responses:
         "200":
           description: 成功
@@ -657,7 +656,6 @@ paths:
       tags: [Products]
       summary: 获取商品详情
       operationId: getProductDetail
-      security: []
       parameters:
         - name: id
           in: path
@@ -877,7 +875,6 @@ paths:
       tags: [Dictionaries]
       summary: 获取学校列表
       operationId: listSchools
-      security: []
       parameters:
         - name: keyword
           in: query
@@ -905,7 +902,6 @@ paths:
       summary: 获取专业/大类列表
       description: 返回树形结构或列表
       operationId: listMajors
-      security: []
       parameters:
         - name: classId
           in: query

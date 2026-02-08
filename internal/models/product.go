@@ -13,7 +13,6 @@ type Product struct {
 	Type        int       `db:"type"` // 类型: 1-虚拟币, 2-服务权益
 	Description *string   `db:"description"`
 	Price       float64   `db:"price"`
-	ConfigJson  *string   `db:"config_json"` // 配置参数(JSON格式)
 	CreatedAt   time.Time `db:"created_at"`
 	UpdatedAt   time.Time `db:"updated_at"`
 }
@@ -26,6 +25,5 @@ func (p *Product) ToVO() *api.ProductVO {
 		Type:        &p.Type,
 		Description: p.Description,
 		Price:       &p.Price,
-		ConfigJson:  p.ConfigJson,
 	}
 }

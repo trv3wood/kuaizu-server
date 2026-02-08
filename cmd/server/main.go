@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -135,7 +134,6 @@ func main() {
 			"/api/v2/auth/login/wechat",    // WeChat login
 			"/api/v2/dictionaries/schools", // School list
 			"/api/v2/dictionaries/majors",  // Major list
-			"/api/v2/products",             // Product list
 			"/api/v2/email/unsubscribe",    // Email unsubscribe
 		}
 
@@ -152,18 +150,8 @@ func main() {
 			if path == "/api/v2/projects" {
 				return true
 			}
-			// /api/v2/projects/:id - detail (public), but NOT /projects/my
-			if strings.HasPrefix(path, "/api/v2/projects/") &&
-				!strings.Contains(path, "/applications") &&
-				path != "/api/v2/projects/my" {
-				return true
-			}
 			// /api/v2/talent-profiles - list (public)
 			if path == "/api/v2/talent-profiles" {
-				return true
-			}
-			// /api/v2/talent-profiles/:id - detail (public)
-			if strings.HasPrefix(path, "/api/v2/talent-profiles/") {
 				return true
 			}
 		}
