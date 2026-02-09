@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/trv3wood/kuaizu-server/internal/models"
@@ -195,6 +196,107 @@ func (r *UserRepository) AddOliveBranchCountTx(ctx context.Context, tx *sqlx.Tx,
 	}
 
 	return nil
+}
+
+// UpdateAuthStatus updates user's certification auth status
+func (r *UserRepository) UpdateAuthStatus(ctx context.Context, userID int, authStatus int) error {
+	query := `UPDATE ` + "`user`" + ` SET auth_status = ? WHERE id = ?`
+
+	result, err := r.db.ExecContext(ctx, query, authStatus, userID)
+	if err != nil {
+		return fmt.Errorf("update auth status: %w", err)
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+// UserListParams contains parameters for listing users
+type UserListParams struct {
+	Page       int
+	Size       int
+	AuthStatus *int
+	SchoolID   *int
+	Keyword    *string
+}
+
+// ListUsers retrieves paginated users with optional filters
+func (r *UserRepository) ListUsers(ctx context.Context, params UserListParams) ([]models.User, int64, error) {
+	conditions := []string{"1=1"}
+	args := []interface{}{}
+
+	if params.AuthStatus != nil {
+		conditions = append(conditions, "u.auth_status = ?")
+		args = append(args, *params.AuthStatus)
+	}
+
+	if params.SchoolID != nil {
+		conditions = append(conditions, "u.school_id = ?")
+		args = append(args, *params.SchoolID)
+	}
+
+	if params.Keyword != nil && *params.Keyword != "" {
+		conditions = append(conditions, "(u.nickname LIKE ? OR u.phone LIKE ?)")
+		args = append(args, "%"+*params.Keyword+"%", "%"+*params.Keyword+"%")
+	}
+
+	whereClause := strings.Join(conditions, " AND ")
+
+	// Count total
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM `user` u WHERE %s", whereClause)
+	var total int64
+	err := r.db.QueryRowxContext(ctx, countQuery, args...).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count users: %w", err)
+	}
+
+	// Query with pagination
+	offset := (params.Page - 1) * params.Size
+	query := fmt.Sprintf(`
+		SELECT
+			u.id, u.openid, u.nickname, u.phone, u.email,
+			u.school_id, u.major_id, u.grade, u.olive_branch_count,
+			u.free_branch_used_today, u.last_active_date,
+			u.auth_status, u.auth_img_url, u.created_at,
+			s.school_name, s.school_code,
+			m.major_name, m.class_id
+		FROM `+"`user`"+` u
+		LEFT JOIN school s ON u.school_id = s.id
+		LEFT JOIN major m ON u.major_id = m.id
+		WHERE %s
+		ORDER BY u.created_at DESC
+		LIMIT ? OFFSET ?
+	`, whereClause)
+	args = append(args, params.Size, offset)
+
+	rows, err := r.db.QueryxContext(ctx, query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("query users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []models.User
+	for rows.Next() {
+		var u models.User
+		err := rows.Scan(
+			&u.ID, &u.OpenID, &u.Nickname, &u.Phone, &u.Email,
+			&u.SchoolID, &u.MajorID, &u.Grade, &u.OliveBranchCount,
+			&u.FreeBranchUsedToday, &u.LastActiveDate,
+			&u.AuthStatus, &u.AuthImgUrl, &u.CreatedAt,
+			&u.SchoolName, &u.SchoolCode,
+			&u.MajorName, &u.ClassID,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("scan user: %w", err)
+		}
+		users = append(users, u)
+	}
+
+	return users, total, nil
 }
 
 // EmailRecipient 邮件接收者

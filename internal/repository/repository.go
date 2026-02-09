@@ -17,6 +17,8 @@ type Repository struct {
 	TalentProfile  *TalentProfileRepository
 	Order          *OrderRepository
 	EmailPromotion *EmailPromotionRepository
+	AdminUser      *AdminUserRepository
+	Feedback       *FeedbackRepository
 }
 
 // DB returns the underlying database connection for transaction support
@@ -38,5 +40,7 @@ func New(db *sqlx.DB) *Repository {
 		TalentProfile:  NewTalentProfileRepository(db),
 		Order:          NewOrderRepository(db),
 		EmailPromotion: NewEmailPromotionRepository(db),
+		AdminUser:      NewAdminUserRepository(db),
+		Feedback:       NewFeedbackRepository(db),
 	}
 }

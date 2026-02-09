@@ -247,6 +247,23 @@ func (r *ProjectRepository) IsOwner(ctx context.Context, projectID, userID int) 
 	return exists, nil
 }
 
+// UpdateStatus updates the review status of a project
+func (r *ProjectRepository) UpdateStatus(ctx context.Context, id int, status int) error {
+	query := `UPDATE project SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+
+	result, err := r.db.ExecContext(ctx, query, status, id)
+	if err != nil {
+		return fmt.Errorf("update project status: %w", err)
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("project not found")
+	}
+
+	return nil
+}
+
 // IncrementViewCount increments the view count of a project
 func (r *ProjectRepository) IncrementViewCount(ctx context.Context, id int) error {
 	query := `UPDATE project SET view_count = view_count + 1 WHERE id = ?`
