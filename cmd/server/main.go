@@ -2,16 +2,17 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
-	"fmt"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	echomiddleware "github.com/labstack/echo/v4/middleware"
 	"github.com/trv3wood/kuaizu-server/api"
 	"github.com/trv3wood/kuaizu-server/internal/db"
 	"github.com/trv3wood/kuaizu-server/internal/handler"
+	"github.com/trv3wood/kuaizu-server/internal/middleware"
 	"github.com/trv3wood/kuaizu-server/internal/repository"
 )
 
@@ -30,9 +31,81 @@ func main() {
 
 	// Initialize Echo
 	e := echo.New()
-	e.Use(middleware.RequestLogger())
-	e.Use(middleware.Recover())
-	e.Use(middleware.CORS())
+	e.HideBanner = true
+
+	// Enable method override (X-HTTP-Method-Override header)
+	e.Pre(echomiddleware.MethodOverride())
+
+	// Custom colored logger using RequestLoggerWithConfig
+	e.Use(echomiddleware.RequestLoggerWithConfig(echomiddleware.RequestLoggerConfig{
+		LogStatus:   true,
+		LogURI:      true,
+		LogError:    true,
+		LogMethod:   true,
+		LogLatency:  true,
+		HandleError: true,
+		LogValuesFunc: func(c echo.Context, v echomiddleware.RequestLoggerValues) error {
+			// Color codes
+			const (
+				reset   = "\033[0m"
+				gray    = "\033[90m"
+				cyan    = "\033[36m"
+				blue    = "\033[34m"
+				green   = "\033[32m"
+				yellow  = "\033[33m"
+				red     = "\033[31m"
+				magenta = "\033[35m"
+			)
+
+			// Skip health checks
+			if v.URI == "/health" {
+				return nil
+			}
+
+			// Method color
+			methodColor := cyan
+			switch v.Method {
+			case "GET":
+				methodColor = blue
+			case "POST":
+				methodColor = green
+			case "PUT":
+				methodColor = yellow
+			case "DELETE":
+				methodColor = red
+			case "PATCH":
+				methodColor = magenta
+			}
+
+			// Status color
+			statusColor := green
+			if v.Status >= 500 {
+				statusColor = red
+			} else if v.Status >= 400 {
+				statusColor = yellow
+			} else if v.Status >= 300 {
+				statusColor = cyan
+			}
+
+			// Format: timestamp method uri status latency
+			fmt.Printf("%s%s%s %s%s%s %s %s%d%s %s%v%s\n",
+				gray, v.StartTime.Format("2006/01/02 15:04:05"), reset,
+				methodColor, v.Method, reset,
+				v.URI,
+				statusColor, v.Status, reset,
+				gray, v.Latency, reset,
+			)
+
+			if v.Error != nil {
+				fmt.Printf("%sError: %v%s\n", red, v.Error, reset)
+			}
+
+			return nil
+		},
+	}))
+
+	e.Use(echomiddleware.Recover())
+	e.Use(echomiddleware.CORS())
 
 	// Initialize database connection
 	ctx := context.Background()
@@ -49,7 +122,48 @@ func main() {
 
 	// Register API routes with /api/v2 prefix
 	apiGroup := e.Group("/api/v2")
+
+	// Add JWT authentication middleware with skipper for public endpoints
+	jwtConfig := middleware.DefaultJWTConfig()
+	jwtConfig.Skipper = func(c echo.Context) bool {
+		path := c.Path()
+		method := c.Request().Method
+
+		// Public endpoints that don't require authentication
+		publicEndpoints := []string{
+			"/api/v2/auth/login/wechat",    // WeChat login
+			"/api/v2/dictionaries/schools", // School list
+			"/api/v2/dictionaries/majors",  // Major list
+			"/api/v2/email/unsubscribe",    // Email unsubscribe
+		}
+
+		// Check exact matches
+		for _, endpoint := range publicEndpoints {
+			if path == endpoint {
+				return true
+			}
+		}
+
+		// Public GET endpoints with path parameters
+		if method == "GET" {
+			// /api/v2/projects - list (public)
+			if path == "/api/v2/projects" {
+				return true
+			}
+			// /api/v2/talent-profiles - list (public)
+			if path == "/api/v2/talent-profiles" {
+				return true
+			}
+		}
+
+		return false
+	}
+	apiGroup.Use(middleware.JWTAuth(jwtConfig))
+
 	api.RegisterHandlers(apiGroup, server)
+
+	// WeChat Pay callback (no auth required)
+	e.POST("/api/v2/payment/wechat/notify", server.WechatPayCallback)
 
 	// Health check endpoint
 	e.GET("/health", func(c echo.Context) error {

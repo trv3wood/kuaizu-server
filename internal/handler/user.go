@@ -84,7 +84,7 @@ func (s *Server) SubmitCertification(ctx echo.Context) error {
 		return BadRequest(ctx, "请求参数错误")
 	}
 
-	if req.StudentImgUrl == "" {
+	if req.AuthImgUrl == "" {
 		return BadRequest(ctx, "学生证照片不能为空")
 	}
 
@@ -97,18 +97,14 @@ func (s *Server) SubmitCertification(ctx echo.Context) error {
 		return NotFound(ctx, "用户不存在")
 	}
 
-	// Update certification info
-	user.StudentImgURL = &req.StudentImgUrl
-	user.AuthStatus = 1 // PENDING
+	// Update certification info - 注意新API中AuthStatus: 0-未认证, 1-已认证, 2-认证失败
+	// 提交认证图片后设为未认证状态，等待人工审核
+	user.AuthImgUrl = &req.AuthImgUrl
+	user.AuthStatus = 0 // 未认证，等待审核
 
 	if err := s.repo.User.Update(ctx.Request().Context(), user); err != nil {
 		return InternalError(ctx, "提交认证失败")
 	}
 
 	return SuccessMessage(ctx, "认证申请已提交，请等待审核")
-}
-
-// GetMyReceivedOliveBranches handles GET /users/me/olive-branches
-func (s *Server) GetMyReceivedOliveBranches(ctx echo.Context, params api.GetMyReceivedOliveBranchesParams) error {
-	return NotImplemented(ctx)
 }

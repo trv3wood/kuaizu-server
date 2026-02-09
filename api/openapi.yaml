@@ -5,7 +5,7 @@ info:
     快组校园 RESTful API v2 - 大学生组队与人才匹配平台
 
     ## 核心规约
-    - URL路径：全小写，单词间用中划线分隔，只使用名词复数
+    - URL路径：全小写，单词间用中划线分隔
     - JSON字段：严格使用小驼峰(camelCase)
     - 鉴权方式：Header携带 `Authorization: Bearer {token}`
   version: 2.0.0
@@ -17,6 +17,8 @@ servers:
     description: 本地开发
   - url: https://api.zhaoxiaokai.xyz/api/v2
     description: 生产环境
+  - url: https://dev-pay.darker233.top/api/v2
+    description: 开发环境
 
 tags:
   - name: Auth
@@ -31,12 +33,16 @@ tags:
     description: 人才库接口
   - name: OliveBranches
     description: 橄榄枝邀请接口
+  - name: Products
+    description: 商品管理接口
   - name: Orders
     description: 订单与支付接口
   - name: Dictionaries
     description: 基础数据字典接口
   - name: Commons
     description: 通用接口
+  - name: EmailPromotions
+    description: 邮件推广服务接口
 
 security:
   - bearerAuth: []
@@ -127,9 +133,9 @@ paths:
           application/json:
             schema:
               type: object
-              required: [studentImgUrl]
+              required: [authImgUrl]
               properties:
-                studentImgUrl:
+                authImgUrl:
                   type: string
                   description: 学生证照片URL
                   example: "https://cdn.example.com/student/123.jpg"
@@ -147,6 +153,31 @@ paths:
       summary: 查看我收到的橄榄枝邀请
       description: 人才视角查看收到的邀请
       operationId: getMyReceivedOliveBranches
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/OliveBranchStatus"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/OliveBranchPageResponse"
+  /users/me/sent-olive-branches:
+    get:
+      tags: [OliveBranches]
+      summary: 查看我发出的橄榄枝邀请
+      description: 企业视角查看发出的邀请
+      operationId: getMySentOliveBranches
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/SizeParam"
@@ -196,7 +227,7 @@ paths:
           in: query
           description: 项目方向筛选
           schema:
-            type: integer
+            $ref: "#/components/schemas/Direction"
       responses:
         "200":
           description: 成功
@@ -246,7 +277,6 @@ paths:
       summary: 获取项目详情
       description: 返回包含浏览量、队长信息的数据
       operationId: getProject
-      security: []
       responses:
         "200":
           description: 成功
@@ -295,6 +325,39 @@ paths:
               schema:
                 $ref: "#/components/schemas/BaseResponse"
 
+  /projects/my:
+    parameters:
+      - $ref: "#/components/parameters/PageParam"
+      - $ref: "#/components/parameters/SizeParam"
+      - name: status
+        in: query
+        schema:
+          $ref: "#/components/schemas/ProjectStatus"
+    get:
+      tags: [ProjectApplications]
+      summary: 列出我组建的项目
+      description: 返回组队者的项目数据
+      operationId: listMyProjects
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/ProjectVO"
+                          pageInfo:
+                            $ref: "#/components/schemas/PageInfo"
+
   /projects/{id}/applications:
     parameters:
       - name: id
@@ -339,7 +402,7 @@ paths:
             schema:
               type: object
               properties:
-                reason:
+                applyReason:
                   type: string
                   description: 自我介绍/申请理由
                   example: "我有2年的Java开发经验..."
@@ -383,9 +446,9 @@ paths:
               properties:
                 status:
                   $ref: "#/components/schemas/ApplicationStatus"
-                rejectReason:
+                replyMsg:
                   type: string
-                  description: 拒绝原因(拒绝时填写)
+                  description: 队长回复(通过或拒绝时填写)
       responses:
         "200":
           description: 操作成功
@@ -393,6 +456,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BaseResponse"
+
+  /project-applications/my:
+    get:
+      tags: [ProjectApplications]
+      summary: 获取我的申请
+      operationId: listMyApplications
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/ApplicationStatus"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ApplicationPageResponse"
 
   # ==================== 人才库模块 ====================
   /talent-profiles:
@@ -418,6 +506,7 @@ paths:
           description: 学校ID筛选
           schema:
             type: integer
+      security: []
       responses:
         "200":
           description: 成功
@@ -540,6 +629,53 @@ paths:
               schema:
                 $ref: "#/components/schemas/BaseResponse"
 
+  # ==================== 商品模块 ====================
+  /products:
+    get:
+      tags: [Products]
+      summary: 获取商品列表
+      description: 获取所有可购买的商品
+      operationId: listProducts
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ProductVO"
+
+  /products/{id}:
+    get:
+      tags: [Products]
+      summary: 获取商品详情
+      operationId: getProductDetail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: 商品ID
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ProductVO"
+
   # ==================== 订单与支付模块 ====================
   /orders:
     post:
@@ -551,7 +687,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateOrderDTO"
+              type: array
+              items:
+                $ref: "#/components/schemas/CreateOrderDTO"
       responses:
         "200":
           description: 创建成功
@@ -591,6 +729,39 @@ paths:
                       data:
                         $ref: "#/components/schemas/OrderVO"
 
+  /orders/my:
+    get:
+      tags: [Orders]
+      summary: 我的订单列表
+      operationId: listMyOrders
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - name: status
+          in: query
+          description: 订单状态筛选
+          schema:
+            $ref: "#/components/schemas/OrderStatus"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/OrderVO"
+                          pageInfo:
+                            $ref: "#/components/schemas/PageInfo"
+
   /orders/{id}/pay:
     parameters:
       - name: id
@@ -617,13 +788,93 @@ paths:
                       data:
                         $ref: "#/components/schemas/WechatPaymentParams"
 
+  # ==================== 邮件推广模块 ====================
+  /email/unsubscribe:
+    get:
+      tags: [EmailPromotions]
+      summary: 邮件退订
+      description: 用户点击邮件中的退订链接后访问此接口
+      operationId: emailUnsubscribe
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: 退订token
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 退订成功（返回HTML页面）
+          content:
+            text/html:
+              schema:
+                type: string
+        "400":
+          description: 无效或过期的token
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /email/promotion/trigger:
+    post:
+      tags: [EmailPromotions]
+      summary: 触发邮件推广
+      description: 用户购买邮件推广商品后，选择要推广的项目并触发发送
+      operationId: triggerEmailPromotion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TriggerEmailPromotionDTO"
+      responses:
+        "200":
+          description: 推广任务创建成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/TriggerEmailPromotionResponse"
+
+  /email/promotions/my:
+    get:
+      tags: [EmailPromotions]
+      summary: 我的推广记录列表
+      description: 获取当前用户的邮件推广记录
+      operationId: listMyEmailPromotions
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/EmailPromotionVO"
+                          total:
+                            type: integer
+                            format: int64
+
   # ==================== 基础数据模块 ====================
   /dictionaries/schools:
     get:
       tags: [Dictionaries]
       summary: 获取学校列表
       operationId: listSchools
-      security: []
       parameters:
         - name: keyword
           in: query
@@ -651,13 +902,22 @@ paths:
       summary: 获取专业/大类列表
       description: 返回树形结构或列表
       operationId: listMajors
-      security: []
       parameters:
         - name: classId
           in: query
           description: 专业大类ID筛选
           schema:
             type: integer
+        - name: majorKeyword
+          in: query
+          description: 专业关键词筛选
+          schema:
+            type: string
+        - name: classKeyword
+          in: query
+          description: 专业大类关键词筛选
+          schema:
+            type: string
       responses:
         "200":
           description: 成功
@@ -775,69 +1035,69 @@ components:
 
     # ==================== 枚举类型 ====================
     ProjectStatus:
-      type: string
-      enum: [PENDING, ACTIVE, REJECTED, CLOSED]
+      type: integer
+      enum: [0, 1, 2, 3]
       description: |
         项目状态:
-        - PENDING: 待审核
-        - ACTIVE: 进行中/已上架
-        - REJECTED: 已驳回
-        - CLOSED: 已关闭
+        - 0: 待审核
+        - 1: 已通过/进行中
+        - 2: 已驳回
+        - 3: 已关闭
 
     ApplicationStatus:
-      type: string
-      enum: [PENDING, APPROVED, REJECTED]
+      type: integer
+      enum: [0, 1, 2]
       description: |
         申请状态:
-        - PENDING: 待审核
-        - APPROVED: 已通过
-        - REJECTED: 已拒绝
+        - 0: 待审核
+        - 1: 已通过
+        - 2: 已拒绝
 
     OliveBranchStatus:
-      type: string
-      enum: [PENDING, ACCEPTED, REJECTED]
+      type: integer
+      enum: [0, 1, 2, 3]
       description: |
         橄榄枝状态:
-        - PENDING: 待处理
-        - ACCEPTED: 已接受
-        - REJECTED: 已拒绝
+        - 0: 待处理
+        - 1: 已接受
+        - 2: 已拒绝
+        - 3: 已忽略
 
     TalentStatus:
-      type: string
-      enum: [ACTIVE, INACTIVE]
+      type: integer
+      enum: [0, 1]
       description: |
         人才档案状态:
-        - ACTIVE: 上架
-        - INACTIVE: 下架
-
-    OrderType:
-      type: string
-      enum: [OLIVE_PACK_10, OLIVE_PACK_50, PROMOTION]
-      description: |
-        订单类型:
-        - OLIVE_PACK_10: 橄榄枝10次包
-        - OLIVE_PACK_50: 橄榄枝50次包
-        - PROMOTION: 项目推广
+        - 0: 下架
+        - 1: 上架
 
     OrderStatus:
-      type: string
-      enum: [PENDING, PAID, CANCELLED, REFUNDED]
+      type: integer
+      enum: [0, 1, 2, 3]
       description: |
         订单状态:
-        - PENDING: 待支付
-        - PAID: 已支付
-        - CANCELLED: 已取消
-        - REFUNDED: 已退款
+        - 0: 待支付
+        - 1: 已支付
+        - 2: 已取消
+        - 3: 已退款
 
     AuthStatus:
-      type: string
-      enum: [UNVERIFIED, PENDING, VERIFIED, FAILED]
+      type: integer
+      enum: [0, 1, 2]
       description: |
         认证状态:
-        - UNVERIFIED: 未认证
-        - PENDING: 审核中
-        - VERIFIED: 已认证
-        - FAILED: 认证失败
+        - 0: 未认证
+        - 1: 已认证
+        - 2: 认证失败
+
+    Direction:
+      type: integer
+      enum: [1, 2, 3]
+      description: |
+        项目方向:
+        - 1: 落地
+        - 2: 比赛
+        - 3: 学习
 
     # ==================== 认证相关 ====================
     LoginResponse:
@@ -877,9 +1137,19 @@ components:
           type: integer
         oliveBranchCount:
           type: integer
-          description: 剩余橄榄枝数量
+          description: 付费橄榄枝余额
+        freeBranchUsedToday:
+          type: integer
+          description: 今日已用免费次数(每日重置)
+        lastActiveDate:
+          type: string
+          format: date
+          description: 最后活跃日期(用于重置免费次数)
         authStatus:
           $ref: "#/components/schemas/AuthStatus"
+        authImgUrl:
+          type: string
+          description: 学生证认证图
         createdAt:
           type: string
           format: date-time
@@ -920,15 +1190,21 @@ components:
         schoolName:
           type: string
         direction:
-          type: integer
+          $ref: "#/components/schemas/Direction"
         memberCount:
           type: integer
-        educationReq:
-          type: integer
-        isCrossSchool:
-          type: boolean
         status:
           $ref: "#/components/schemas/ProjectStatus"
+        promotionStatus:
+          type: integer
+          description: 推广状态:0-无,1-推广中,2-已结束
+        promotionExpireTime:
+          type: string
+          format: date-time
+          description: 推广结束时间
+        viewCount:
+          type: integer
+          description: 浏览量
         createdAt:
           type: string
           format: date-time
@@ -946,7 +1222,16 @@ components:
             applicationCount:
               type: integer
               description: 申请数量
-
+            isCrossSchool:
+              type: integer
+              description: |
+                是否跨校: 1-可以,2-不可以
+            educationRequirement:
+              type: integer
+              description: 学历要求1-大专2-本科
+            skillRequirement:
+              type: string
+              description: 技能要求
     CreateProjectDTO:
       type: object
       required: [name, description, memberCount]
@@ -959,15 +1244,20 @@ components:
         schoolId:
           type: integer
         direction:
-          type: integer
+          $ref: "#/components/schemas/Direction"
         memberCount:
           type: integer
           minimum: 1
-        educationReq:
-          type: integer
         isCrossSchool:
-          type: boolean
-          default: false
+          type: integer
+          description: |
+            是否跨校: 1-可以,2-不可以
+        educationRequirement:
+          type: integer
+          description: 学历要求1-大专2-本科
+        skillRequirement:
+          type: string
+          description: 技能要求
 
     UpdateProjectDTO:
       type: object
@@ -978,14 +1268,20 @@ components:
         description:
           type: string
         direction:
-          type: integer
+          $ref: "#/components/schemas/Direction"
         memberCount:
           type: integer
           minimum: 1
-        educationReq:
-          type: integer
         isCrossSchool:
-          type: boolean
+          type: integer
+          description: |
+            是否跨校: 1-可以,2-不可以
+        educationRequirement:
+          type: integer
+          description: 学历要求1-大专2-本科
+        skillRequirement:
+          type: string
+          description: 技能要求
 
     ProjectPageResponse:
       type: object
@@ -1009,12 +1305,16 @@ components:
           type: string
         applicant:
           $ref: "#/components/schemas/UserVO"
-        reason:
+        applyReason:
           type: string
+          description: 申请理由/留言
         contact:
           type: string
         status:
           $ref: "#/components/schemas/ApplicationStatus"
+        replyMsg:
+          type: string
+          description: 队长回复
         appliedAt:
           type: string
           format: date-time
@@ -1055,6 +1355,9 @@ components:
           type: string
         status:
           $ref: "#/components/schemas/TalentStatus"
+        isPublicContact:
+          type: boolean
+          description: 是否公开联系方式
 
     TalentProfileDetailVO:
       allOf:
@@ -1091,6 +1394,9 @@ components:
           maxLength: 10
         status:
           $ref: "#/components/schemas/TalentStatus"
+        isPublicContact:
+          type: boolean
+          description: 是否公开联系方式
 
     TalentProfilePageResponse:
       type: object
@@ -1108,32 +1414,56 @@ components:
       properties:
         id:
           type: integer
-        projectId:
+        senderId:
           type: integer
+          description: 发起人ID
+        receiverId:
+          type: integer
+          description: 接收人ID
+        relatedProjectId:
+          type: integer
+          description: 关联项目ID(若是项目邀请)
         projectName:
           type: string
-        talent:
-          $ref: "#/components/schemas/TalentProfileVO"
+          description: 项目名称
+        type:
+          type: integer
+          description: 类型:1-人才互联,2-项目邀请
+        costType:
+          type: integer
+          description: 消耗类型:1-免费额度,2-付费额度
+        hasSmsNotify:
+          type: boolean
+          description: 是否购买短信通知
         sender:
+          $ref: "#/components/schemas/UserVO"
+        receiver:
           $ref: "#/components/schemas/UserVO"
         message:
           type: string
         status:
           $ref: "#/components/schemas/OliveBranchStatus"
-        sentAt:
+        createdAt:
           type: string
           format: date-time
 
     SendOliveBranchDTO:
       type: object
-      required: [talentId, projectId]
+      required: [receiverId, type]
       properties:
-        talentId:
+        receiverId:
           type: integer
-          description: 人才档案ID
-        projectId:
+          description: 接收人ID
+        relatedProjectId:
           type: integer
-          description: 项目ID
+          description: 关联项目ID(若是项目邀请)
+        type:
+          type: integer
+          description: 类型:1-人才互联,2-项目邀请
+        hasSmsNotify:
+          type: boolean
+          description: 是否购买短信通知
+          default: false
         message:
           type: string
           description: 邀请留言
@@ -1148,36 +1478,69 @@ components:
         pageInfo:
           $ref: "#/components/schemas/PageInfo"
 
+    # ==================== 商品相关 ====================
+    ProductVO:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          description: 商品名称
+        type:
+          type: integer
+          description: 类型:1-虚拟币,2-服务权益
+        description:
+          type: string
+          description: 商品描述
+        price:
+          type: number
+          format: double
+          description: 商品价格
+        configJson:
+          type: string
+          description: 配置参数(如增加多少个橄榄枝)
+
     # ==================== 订单相关 ====================
     OrderVO:
       type: object
       properties:
         id:
           type: integer
-        type:
-          $ref: "#/components/schemas/OrderType"
-        amount:
+        productId:
+          type: integer
+          description: 商品ID
+        productName:
+          type: string
+          description: 商品名称
+        actualPaid:
           type: number
           format: double
+          description: 实付金额
         status:
           $ref: "#/components/schemas/OrderStatus"
-        tradeNo:
+        wxPayNo:
           type: string
           description: 微信支付单号
+        payTime:
+          type: string
+          format: date-time
+          description: 支付时间
         createdAt:
           type: string
           format: date-time
 
     CreateOrderDTO:
       type: object
-      required: [type, amount]
+      required: [productId, quantity]
       properties:
-        type:
-          $ref: "#/components/schemas/OrderType"
-        amount:
-          type: number
-          format: double
-          minimum: 0.01
+        productId:
+          type: integer
+          description: 商品ID
+        quantity:
+          type: integer
+          description: 购买数量
+          default: 1
 
     WechatPaymentParams:
       type: object
@@ -1226,3 +1589,83 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MajorVO"
+
+    # ==================== 邮件推广相关 ====================
+    EmailPromotionStatus:
+      type: integer
+      enum: [0, 1, 2, 3]
+      description: |
+        推广状态:
+        - 0: 待发送
+        - 1: 发送中
+        - 2: 已完成
+        - 3: 发送失败
+
+    TriggerEmailPromotionDTO:
+      type: object
+      required: [orderId, projectId]
+      properties:
+        orderId:
+          type: integer
+          description: 购买邮件推广商品的订单ID
+        projectId:
+          type: integer
+          description: 要推广的项目ID
+
+    TriggerEmailPromotionResponse:
+      type: object
+      properties:
+        promotionId:
+          type: integer
+          description: 创建的推广记录ID
+        maxRecipients:
+          type: integer
+          description: 最大发送人数
+        status:
+          type: string
+          description: 状态
+          example: "pending"
+        message:
+          type: string
+          description: 提示信息
+          example: "推广任务已创建，正在发送中"
+
+    EmailPromotionVO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 推广记录ID
+        projectId:
+          type: integer
+          description: 推广的项目ID
+        projectName:
+          type: string
+          description: 项目名称
+        maxRecipients:
+          type: integer
+          description: 购买的最大发送人数
+        totalSent:
+          type: integer
+          description: 实际发送数量
+        status:
+          $ref: "#/components/schemas/EmailPromotionStatus"
+        statusText:
+          type: string
+          description: 状态文本
+          example: "已完成"
+        errorMessage:
+          type: string
+          description: 错误信息（如有）
+        startedAt:
+          type: string
+          format: date-time
+          description: 开始发送时间
+        completedAt:
+          type: string
+          format: date-time
+          description: 完成时间
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间

@@ -1,4 +1,3 @@
-```mermaid
 erDiagram
     %% ================= 基础字典 =================
     SCHOOL {
@@ -27,22 +26,17 @@ erDiagram
         string email "邮箱"
         int school_id FK
         int major_id FK
-        int grade "年级字典值"
-        int olive_branch_count "剩余橄榄枝数量"
-        string student_img_url "学生证照片"
-        int auth_status "认证状态"
-    }
-
-    RESUME {
-        int id PK
-        int user_id FK
-        string resume_name "简历名称"
-        string content "简历内容/JSON"
-        datetime created_at
+        int grade "年级"
+        int olive_branch_count "付费橄榄枝余额"
+        int free_branch_used_today "今日已用免费次数(每日重置)"
+        date last_active_date "最后活跃日期(用于重置免费次数)"
+        int auth_status "认证状态(0未认证,1已认证,2失败)"
+        string auth_img_url "学生证认证图"
+        boolean email_opt_out "是否退订邮件推广"
+        timestamp created_at
     }
 
     %% ================= 核心业务：人才库 =================
-    %% 说明：用户需要单独创建人才档案才能进入人才库被搜索
     TALENT_PROFILE {
         int id PK
         int user_id FK "关联用户"
@@ -50,10 +44,11 @@ erDiagram
         string skill_summary "技能标签"
         string project_experience "项目经历"
         string mbti "MBTI性格"
-        string status "状态(上架/下架)"
+        int status "状态(1上架/0下架)"
+        boolean is_public_contact "是否公开联系方式"
     }
 
-    %% ================= 核心业务：项目组队 =================
+    %% ================= 核心业务：项目与组队 =================
     PROJECT {
         int id PK
         int creator_id FK "队长(用户ID)"
@@ -62,57 +57,126 @@ erDiagram
         int school_id FK "所属学校"
         int direction "项目方向(落地/比赛等)"
         int member_count "需求人数"
-        int education_req "学历要求"
-        boolean is_cross_school "是否跨校"
         int status "审核状态(0待审/1通过/2驳回)"
-        datetime created_at
+        int promotion_status "推广状态(0无, 1推广中, 2已结束)"
+        timestamp promotion_expire_time "推广结束时间"
+        int view_count "浏览量"
+        timestamp created_at
+        tinyint is_cross_school "是否跨校：1-可以，2-不可以"
+        tinyint education_requirement "学历要求1-大专2-本科"
+        text skill_requirement "技能要求"
     }
 
-    %% 流程一：用户申请加入项目
+    %% 项目申请记录 (用户 -> 项目)
     PROJECT_APPLICATION {
         int id PK
         int project_id FK
         int user_id FK "申请人"
-        int status "状态(待审/通过/拒绝)"
-        datetime applied_at
+        string apply_reason "申请理由/留言"
+        int status "状态(0待审/1通过/2拒绝)"
+        string reply_msg "队长回复"
+        timestamp applied_at
     }
 
-    %% 流程二：队长向人才抛出橄榄枝
-    OLIVE_BRANCH {
+    %% 橄榄枝/联系记录 (核心社交：人才->人才, 项目->人才)
+    %% 对应“投递橄榄枝”和“可选短信通知”
+    OLIVE_BRANCH_RECORD {
         int id PK
-        int project_id FK
-        int talent_id FK "接收人(人才ID)"
-        string message "邀请留言"
-        int status "状态(待处理/接受/拒绝)"
-        datetime sent_at
+        int sender_id FK "发起人ID"
+        int receiver_id FK "接收人ID(人才或队长)"
+        int related_project_id FK "关联项目ID(若是项目邀请)"
+        int type "类型(1:人才互联, 2:项目邀请)"
+        int cost_type "消耗类型(1:免费额度, 2:付费额度)"
+        boolean has_sms_notify "是否购买短信通知"
+        int status "状态(0待处理/1已接受/2已拒绝/3已忽略)"
+        timestamp created_at
     }
 
-    %% ================= 增值服务 =================
+    %% ================= 运营与增值服务 =================
+    %% 商品表 (含：橄榄枝包, 邮件推广服务, VIP等)
+    PRODUCT {
+        int id PK
+        string name "商品名"
+        int type "类型(1虚拟币, 2服务权益)"
+        decimal price "价格"
+    }
+
+    %% 订单管理
     ORDER {
         int id PK
         int user_id FK
-        decimal amount "金额"
-        string type "类型(购买橄榄枝/邮件推广)"
-        int status "支付状态"
-        string trade_no "微信支付单号"
+        decimal actual_paid "实付金额"
+        int status "状态(0未付 1已付 2退款)"
+        string wx_pay_no "微信支付单号"
+        timestamp pay_time
+    }
+    
+    %% 订单详情
+    ORDER_ITEM {
+        int id PK
+        int order_id FK
+        int product_id FK
+        decimal price "下单时的单价快照"
+        int quantity "数量"
+    }
+
+    %% 意见反馈 (管理员：表单反馈管理)
+    FEEDBACK {
+        int id PK
+        int user_id FK
+        string content "反馈内容"
+        string contact_image "图片凭证"
+        int status "处理状态(0待处理/1已处理)"
+        string admin_reply "管理员回复"
+        timestamp created_at
+    }
+
+    %% 消息订阅 (对应MQ逻辑：可选邮件推广/项目订阅)
+    SUBSCRIBE_CONFIG {
+        int id PK
+        int user_id FK
+        string target_type "订阅类型(新项目/审核结果/投递进度)"
+        string filter_json "过滤条件(如:只看某学校项目)"
+        string email "接收邮箱"
+        boolean is_active "是否开启"
+    }
+    EMAIL_PROMOTION {
+        int id PK
+        int order_id FK
+        int project_id FK
+        int creator_id FK
+        int max_recipients "购买的最大发送人数"
+        int total_sent "实际发送数量"
+        int status "0-待发送, 1-发送中, 2-已完成, 3-失败"
+        string error_message "错误信息"
+        timestamp started_at "开始发送时间"
+        timestamp completed_at "完成时间"
     }
 
     %% ================= 关系定义 =================
     
-    SCHOOL ||--o{ USER : "包含"
+    SCHOOL ||--o{ USER : "属于"
     SCHOOL ||--o{ PROJECT : "归属"
     
-    MAJOR_CLASS ||--|{ MAJOR : "包含"
-    MAJOR ||--o{ USER : "学习"
+    MAJOR ||--o{ USER : "专业"
+    MAJOR_CLASS ||--o{ MAJOR : "包含"
 
-    USER ||--o{ RESUME : "拥有"
-    USER ||--|| TALENT_PROFILE : "发布"
-    USER ||--o{ PROJECT : "创建(队长)"
+    USER ||--o| TALENT_PROFILE : "拥有"
+    USER ||--o{ PROJECT : "创建"
     USER ||--o{ ORDER : "支付"
+    USER ||--o{ FEEDBACK : "提交"
+    USER ||--o{ SUBSCRIBE_CONFIG : "订阅"
 
     PROJECT ||--o{ PROJECT_APPLICATION : "收到申请"
     USER ||--o{ PROJECT_APPLICATION : "发起申请"
 
-    PROJECT ||--o{ OLIVE_BRANCH : "发出邀请"
-    TALENT_PROFILE ||--o{ OLIVE_BRANCH : "收到邀请"
-```
+    %% 橄榄枝关系的复杂性
+    USER ||--o{ OLIVE_BRANCH_RECORD : "发送橄榄枝"
+    USER ||--o{ OLIVE_BRANCH_RECORD : "接收橄榄枝"
+    PROJECT ||--o{ OLIVE_BRANCH_RECORD : "作为邀请背景"
+
+    PRODUCT ||--o{ ORDER : "包含"
+
+    USER ||--o{ EMAIL_PROMOTION : "发起"
+    ORDER ||--o| EMAIL_PROMOTION : "触发"
+    PROJECT ||--o{ EMAIL_PROMOTION : "被推广"

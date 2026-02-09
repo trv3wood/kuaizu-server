@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+
 	"github.com/labstack/echo/v4"
 	"github.com/trv3wood/kuaizu-server/api"
 	"github.com/trv3wood/kuaizu-server/internal/models"
@@ -32,10 +34,13 @@ func (s *Server) ListProjects(ctx echo.Context, params api.ListProjectsParams) e
 	listParams.SchoolID = params.SchoolId
 
 	if params.Status != nil {
-		status := models.ProjectStatusFromEnum(*params.Status)
+		status := int(*params.Status)
 		listParams.Status = &status
 	}
-	listParams.Direction = params.Direction
+	if params.Direction != nil {
+		direction := int(*params.Direction)
+		listParams.Direction = &direction
+	}
 
 	// Query
 	projects, total, err := s.repo.Project.List(ctx.Request().Context(), listParams)
@@ -82,19 +87,22 @@ func (s *Server) CreateProject(ctx echo.Context) error {
 
 	// Create project
 	project := &models.Project{
-		CreatorID:     userID,
-		Name:          req.Name,
-		Description:   &req.Description,
-		SchoolID:      req.SchoolId,
-		Direction:     req.Direction,
-		MemberCount:   &req.MemberCount,
-		EducationReq:  req.EducationReq,
-		IsCrossSchool: false,
-		Status:        0, // PENDING
+		CreatorID:            userID,
+		Name:                 req.Name,
+		Description:          &req.Description,
+		SchoolID:             req.SchoolId,
+		MemberCount:          &req.MemberCount,
+		Status:               0, // 待审核
+		PromotionStatus:      0, // 无推广
+		ViewCount:            0,
+		IsCrossSchool:        req.IsCrossSchool,
+		EducationRequirement: req.EducationRequirement,
+		SkillRequirement:     req.SkillRequirement,
 	}
 
-	if req.IsCrossSchool != nil {
-		project.IsCrossSchool = *req.IsCrossSchool
+	if req.Direction != nil {
+		direction := int(*req.Direction)
+		project.Direction = &direction
 	}
 
 	if err := s.repo.Project.Create(ctx.Request().Context(), project); err != nil {
@@ -102,6 +110,62 @@ func (s *Server) CreateProject(ctx echo.Context) error {
 	}
 
 	return Success(ctx, project.ToVO())
+}
+
+// ListMyProjects handles GET /projects/my
+func (s *Server) ListMyProjects(ctx echo.Context, params api.ListMyProjectsParams) error {
+	userID := GetUserID(ctx)
+
+	// Build list params
+	listParams := repository.ListParams{
+		Page:      1,
+		Size:      10,
+		CreatorID: &userID, // Filter by current user
+	}
+
+	if params.Page != nil {
+		listParams.Page = *params.Page
+	}
+	if params.Size != nil {
+		listParams.Size = *params.Size
+	}
+	if listParams.Page < 1 {
+		listParams.Page = 1
+	}
+	if listParams.Size < 1 || listParams.Size > 100 {
+		listParams.Size = 10
+	}
+
+	if params.Status != nil {
+		status := int(*params.Status)
+		listParams.Status = &status
+	}
+
+	// Query
+	projects, total, err := s.repo.Project.List(ctx.Request().Context(), listParams)
+	if err != nil {
+		return InternalError(ctx, "获取我的项目列表失败")
+	}
+
+	// Convert to VOs
+	list := make([]api.ProjectVO, len(projects))
+	for i, p := range projects {
+		list[i] = *p.ToVO()
+	}
+
+	// Build pagination info
+	totalPages := int((total + int64(listParams.Size) - 1) / int64(listParams.Size))
+	pageInfo := api.PageInfo{
+		Page:       &listParams.Page,
+		Size:       &listParams.Size,
+		Total:      &total,
+		TotalPages: &totalPages,
+	}
+
+	return Success(ctx, api.ProjectPageResponse{
+		List:     &list,
+		PageInfo: &pageInfo,
+	})
 }
 
 // GetProject handles GET /projects/{id}
@@ -113,6 +177,11 @@ func (s *Server) GetProject(ctx echo.Context, id int) error {
 	if project == nil {
 		return NotFound(ctx, "项目不存在")
 	}
+
+	// Increment view count (fire and forget)
+	go func() {
+		_ = s.repo.Project.IncrementViewCount(ctx.Request().Context(), id)
+	}()
 
 	return Success(ctx, project.ToDetailVO())
 }
@@ -153,16 +222,20 @@ func (s *Server) UpdateProject(ctx echo.Context, id int) error {
 		project.Description = req.Description
 	}
 	if req.Direction != nil {
-		project.Direction = req.Direction
+		direction := int(*req.Direction)
+		project.Direction = &direction
 	}
 	if req.MemberCount != nil {
 		project.MemberCount = req.MemberCount
 	}
-	if req.EducationReq != nil {
-		project.EducationReq = req.EducationReq
-	}
 	if req.IsCrossSchool != nil {
-		project.IsCrossSchool = *req.IsCrossSchool
+		project.IsCrossSchool = req.IsCrossSchool
+	}
+	if req.EducationRequirement != nil {
+		project.EducationRequirement = req.EducationRequirement
+	}
+	if req.SkillRequirement != nil {
+		project.SkillRequirement = req.SkillRequirement
 	}
 
 	if err := s.repo.Project.Update(ctx.Request().Context(), project); err != nil {
@@ -200,10 +273,219 @@ func (s *Server) DeleteProject(ctx echo.Context, id int) error {
 
 // ListProjectApplications handles GET /projects/{id}/applications
 func (s *Server) ListProjectApplications(ctx echo.Context, id int, params api.ListProjectApplicationsParams) error {
-	return NotImplemented(ctx)
+	userID := GetUserID(ctx)
+
+	// Check ownership - only project creator can view applications
+	isOwner, err := s.repo.Project.IsOwner(ctx.Request().Context(), id, userID)
+	if err != nil {
+		return InternalError(ctx, "检查权限失败")
+	}
+	if !isOwner {
+		return Forbidden(ctx, "只有队长可以查看申请列表")
+	}
+
+	// Build list params
+	listParams := repository.ApplicationListParams{
+		ProjectID: &id,
+		Page:      1,
+		Size:      10,
+	}
+
+	if params.Page != nil {
+		listParams.Page = *params.Page
+	}
+	if params.Size != nil {
+		listParams.Size = *params.Size
+	}
+	if listParams.Page < 1 {
+		listParams.Page = 1
+	}
+	if listParams.Size < 1 || listParams.Size > 100 {
+		listParams.Size = 10
+	}
+
+	if params.Status != nil {
+		status := int(*params.Status)
+		listParams.Status = &status
+	}
+
+	// Query applications
+	applications, total, err := s.repo.Application.List(ctx.Request().Context(), listParams)
+	if err != nil {
+		return InternalError(ctx, "获取申请列表失败")
+	}
+
+	// Convert to VOs
+	list := make([]api.ProjectApplicationVO, len(applications))
+	for i, app := range applications {
+		list[i] = *app.ToVO()
+	}
+
+	// Build pagination info
+	totalPages := int((total + int64(listParams.Size) - 1) / int64(listParams.Size))
+	pageInfo := api.PageInfo{
+		Page:       &listParams.Page,
+		Size:       &listParams.Size,
+		Total:      &total,
+		TotalPages: &totalPages,
+	}
+
+	return Success(ctx, api.ApplicationPageResponse{
+		List:     &list,
+		PageInfo: &pageInfo,
+	})
+}
+
+func (s *Server) ListMyApplications(ctx echo.Context, params api.ListMyApplicationsParams) error {
+	userID := GetUserID(ctx)
+
+	// Build list params
+	listParams := repository.ApplicationListParams{
+		UserID: &userID,
+		Page:   1,
+		Size:   10,
+	}
+
+	if params.Page != nil {
+		listParams.Page = *params.Page
+	}
+	if params.Size != nil {
+		listParams.Size = *params.Size
+	}
+	if listParams.Page < 1 {
+		listParams.Page = 1
+	}
+	if listParams.Size < 1 || listParams.Size > 100 {
+		listParams.Size = 10
+	}
+
+	if params.Status != nil {
+		status := int(*params.Status)
+		listParams.Status = &status
+	}
+
+	// Query applications
+	applications, total, err := s.repo.Application.List(ctx.Request().Context(), listParams)
+	if err != nil {
+		return InternalError(ctx, "获取申请列表失败")
+	}
+
+	// Convert to VOs
+	list := make([]api.ProjectApplicationVO, len(applications))
+	for i, app := range applications {
+		list[i] = *app.ToVO()
+	}
+
+	// Build pagination info
+	totalPages := int((total + int64(listParams.Size) - 1) / int64(listParams.Size))
+	pageInfo := api.PageInfo{
+		Page:       &listParams.Page,
+		Size:       &listParams.Size,
+		Total:      &total,
+		TotalPages: &totalPages,
+	}
+
+	return Success(ctx, api.ApplicationPageResponse{
+		List:     &list,
+		PageInfo: &pageInfo,
+	})
 }
 
 // ApplyToProject handles POST /projects/{id}/applications
 func (s *Server) ApplyToProject(ctx echo.Context, id int) error {
-	return NotImplemented(ctx)
+	userID := GetUserID(ctx)
+
+	// Check if project exists
+	project, err := s.repo.Project.GetByID(ctx.Request().Context(), id)
+	if err != nil {
+		return InternalError(ctx, "获取项目信息失败")
+	}
+	if project == nil {
+		return NotFound(ctx, "项目不存在")
+	}
+
+	// Check if user is the project creator
+	if project.CreatorID == userID {
+		return BadRequest(ctx, "不能申请加入自己的项目")
+	}
+
+	// Check if project is open for applications (status = 1)
+	if project.Status != 1 {
+		return BadRequest(ctx, "该项目当前不接受申请")
+	}
+
+	// Check for duplicate application
+	exists, err := s.repo.Application.CheckDuplicate(ctx.Request().Context(), id, userID)
+	if err != nil {
+		return InternalError(ctx, "检查申请状态失败")
+	}
+	if exists {
+		return BadRequest(ctx, "您已申请过该项目")
+	}
+
+	// Bind request
+	var req api.ApplyToProjectJSONBody
+	if err := ctx.Bind(&req); err != nil {
+		return BadRequest(ctx, "请求参数错误")
+	}
+
+	// Create application
+	application := &models.ProjectApplication{
+		ProjectID:   id,
+		UserID:      userID,
+		ApplyReason: req.ApplyReason,
+		Contact:     req.Contact,
+		Status:      0, // 待审核
+	}
+
+	if err := s.repo.Application.Create(ctx.Request().Context(), application); err != nil {
+		return InternalError(ctx, "提交申请失败")
+	}
+
+	return Success(ctx, application.ToVO())
+}
+
+// ReviewApplication handles PATCH /project-applications/{id}
+func (s *Server) ReviewApplication(ctx echo.Context, id int) error {
+	// 1. Get current user
+	userID := GetUserID(ctx)
+
+	// 2. Parse request body
+	var req api.ReviewApplicationJSONBody
+	if err := ctx.Bind(&req); err != nil {
+		return InvalidParams(ctx, err)
+	}
+
+	// 3. Validate status
+	if req.Status != api.ApplicationStatusN1 && req.Status != api.ApplicationStatusN2 {
+		return InvalidParams(ctx, fmt.Errorf("invalid status"))
+	}
+
+	// 4. Get application to check existence and project owner
+	app, err := s.repo.Application.GetByID(ctx.Request().Context(), id)
+	if err != nil {
+		return InternalError(ctx, "failed to get application")
+	}
+	if app == nil {
+		return NotFound(ctx, "Application not found")
+	}
+
+	// 5. Check if current user is the project creator
+	isOwner, err := s.repo.Project.IsOwner(ctx.Request().Context(), app.ProjectID, userID)
+	if err != nil {
+		return InternalError(ctx, "failed to check permission")
+	}
+	if !isOwner {
+		return Forbidden(ctx, "Only project creator can review applications")
+	}
+
+	// 6. Update status
+	err = s.repo.Application.UpdateStatus(ctx.Request().Context(), id, int(req.Status), req.ReplyMsg)
+	if err != nil {
+		return InternalError(ctx, "failed to update application status")
+	}
+
+	// TODO: Send notification to applicant
+
+	return Success(ctx, nil)
 }

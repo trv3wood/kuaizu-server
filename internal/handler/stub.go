@@ -1,16 +1,11 @@
 package handler
 
 import (
+	"fmt"
+
 	"github.com/labstack/echo/v4"
 	"github.com/trv3wood/kuaizu-server/api"
 )
-
-// ========== Auth Module (Not Implemented) ==========
-
-// LoginWithWechat handles POST /auth/login/wechat
-func (s *Server) LoginWithWechat(ctx echo.Context) error {
-	return NotImplemented(ctx)
-}
 
 // ========== Commons Module (Not Implemented) ==========
 
@@ -19,67 +14,45 @@ func (s *Server) UploadFile(ctx echo.Context) error {
 	return NotImplemented(ctx)
 }
 
-// ========== Dictionaries Module (Not Implemented) ==========
+// Helper function to check if JSON Body parsing failed
+func (s *Server) reviewApplicationHelper(ctx echo.Context, id int) error {
+	// 1. Get current user
+	userID := GetUserID(ctx)
 
-// ListMajors handles GET /dictionaries/majors
-func (s *Server) ListMajors(ctx echo.Context, params api.ListMajorsParams) error {
-	return NotImplemented(ctx)
-}
+	// 2. Parse request body
+	var req api.ReviewApplicationJSONBody
+	if err := ctx.Bind(&req); err != nil {
+		return InvalidParams(ctx, err)
+	}
 
-// ListSchools handles GET /dictionaries/schools
-func (s *Server) ListSchools(ctx echo.Context, params api.ListSchoolsParams) error {
-	return NotImplemented(ctx)
-}
+	// 3. Validate status
+	if req.Status != api.ApplicationStatusN1 && req.Status != api.ApplicationStatusN2 {
+		return InvalidParams(ctx, fmt.Errorf("invalid status"))
+	}
 
-// ========== Olive Branches Module (Not Implemented) ==========
+	// 4. Get application to check existence and project owner
+	app, err := s.repo.Application.GetByID(ctx.Request().Context(), id)
+	if err != nil {
+		return InternalError(ctx, "failed to get application")
+	}
+	if app == nil {
+		return NotFound(ctx, "Application not found")
+	}
 
-// SendOliveBranch handles POST /olive-branches
-func (s *Server) SendOliveBranch(ctx echo.Context) error {
-	return NotImplemented(ctx)
-}
+	// 5. Check if current user is the project creator
+	isOwner, err := s.repo.Project.IsOwner(ctx.Request().Context(), app.ProjectID, userID)
+	if err != nil {
+		return InternalError(ctx, "failed to check permission")
+	}
+	if !isOwner {
+		return Forbidden(ctx, "Only project creator can review applications")
+	}
 
-// HandleOliveBranch handles PATCH /olive-branches/{id}
-func (s *Server) HandleOliveBranch(ctx echo.Context, id int) error {
-	return NotImplemented(ctx)
-}
+	// 6. Update status
+	err = s.repo.Application.UpdateStatus(ctx.Request().Context(), id, int(req.Status), req.ReplyMsg)
+	if err != nil {
+		return InternalError(ctx, "failed to update application status")
+	}
 
-// ========== Orders Module (Not Implemented) ==========
-
-// CreateOrder handles POST /orders
-func (s *Server) CreateOrder(ctx echo.Context) error {
-	return NotImplemented(ctx)
-}
-
-// GetOrder handles GET /orders/{id}
-func (s *Server) GetOrder(ctx echo.Context, id int) error {
-	return NotImplemented(ctx)
-}
-
-// InitiatePayment handles POST /orders/{id}/pay
-func (s *Server) InitiatePayment(ctx echo.Context, id int) error {
-	return NotImplemented(ctx)
-}
-
-// ========== Project Applications Module (Not Implemented) ==========
-
-// ReviewApplication handles PATCH /project-applications/{id}
-func (s *Server) ReviewApplication(ctx echo.Context, id int) error {
-	return NotImplemented(ctx)
-}
-
-// ========== Talent Profiles Module (Not Implemented) ==========
-
-// ListTalentProfiles handles GET /talent-profiles
-func (s *Server) ListTalentProfiles(ctx echo.Context, params api.ListTalentProfilesParams) error {
-	return NotImplemented(ctx)
-}
-
-// UpsertTalentProfile handles POST /talent-profiles
-func (s *Server) UpsertTalentProfile(ctx echo.Context) error {
-	return NotImplemented(ctx)
-}
-
-// GetTalentProfile handles GET /talent-profiles/{id}
-func (s *Server) GetTalentProfile(ctx echo.Context, id int) error {
-	return NotImplemented(ctx)
+	return Success(ctx, nil)
 }
