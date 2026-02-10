@@ -346,17 +346,7 @@ paths:
               schema:
                 allOf:
                   - $ref: "#/components/schemas/BaseResponse"
-                  - type: object
-                    properties:
-                      data:
-                        type: object
-                        properties:
-                          list:
-                            type: array
-                            items:
-                              $ref: "#/components/schemas/ProjectVO"
-                          pageInfo:
-                            $ref: "#/components/schemas/PageInfo"
+                  - $ref: "#/components/schemas/ProjectPageResponse"
 
   /projects/{id}/applications:
     parameters:
@@ -753,14 +743,14 @@ paths:
                   - type: object
                     properties:
                       data:
-                        type: object
-                        properties:
-                          list:
-                            type: array
-                            items:
-                              $ref: "#/components/schemas/OrderVO"
-                          pageInfo:
-                            $ref: "#/components/schemas/PageInfo"
+                        allOf:
+                          - type: object
+                            properties:
+                              list:
+                                type: array
+                                items:
+                                  $ref: "#/components/schemas/OrderVO"
+                          - $ref: "#/components/schemas/PageInfo"
 
   /orders/{id}/pay:
     parameters:
@@ -1285,13 +1275,14 @@ components:
 
     ProjectPageResponse:
       type: object
-      properties:
-        list:
-          type: array
-          items:
-            $ref: "#/components/schemas/ProjectVO"
-        pageInfo:
-          $ref: "#/components/schemas/PageInfo"
+      allOf:
+        - type: object
+          properties:
+            list:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProjectVO"
+        - $ref: "#/components/schemas/PageInfo"
 
     # ==================== 项目申请相关 ====================
     ProjectApplicationVO:
@@ -1321,13 +1312,14 @@ components:
 
     ApplicationPageResponse:
       type: object
-      properties:
-        list:
-          type: array
-          items:
-            $ref: "#/components/schemas/ProjectApplicationVO"
-        pageInfo:
-          $ref: "#/components/schemas/PageInfo"
+      allOf:
+        - type: object
+          properties:
+            list:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProjectApplicationVO"
+        - $ref: "#/components/schemas/PageInfo"
 
     # ==================== 人才档案相关 ====================
     TalentProfileVO:
@@ -1400,13 +1392,14 @@ components:
 
     TalentProfilePageResponse:
       type: object
-      properties:
-        list:
-          type: array
-          items:
-            $ref: "#/components/schemas/TalentProfileVO"
-        pageInfo:
-          $ref: "#/components/schemas/PageInfo"
+      allOf:
+        - type: object
+          properties:
+            list:
+              type: array
+              items:
+                $ref: "#/components/schemas/TalentProfileVO"
+        - $ref: "#/components/schemas/PageInfo"
 
     # ==================== 橄榄枝相关 ====================
     OliveBranchVO:
@@ -1470,13 +1463,14 @@ components:
 
     OliveBranchPageResponse:
       type: object
-      properties:
-        list:
-          type: array
-          items:
-            $ref: "#/components/schemas/OliveBranchVO"
-        pageInfo:
-          $ref: "#/components/schemas/PageInfo"
+      allOf:
+        - type: object
+          properties:
+            list:
+              type: array
+              items:
+                $ref: "#/components/schemas/OliveBranchVO"
+        - $ref: "#/components/schemas/PageInfo"
 
     # ==================== 商品相关 ====================
     ProductVO:
