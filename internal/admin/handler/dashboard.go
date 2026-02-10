@@ -4,13 +4,15 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/trv3wood/kuaizu-server/internal/response"
 )
+
 type DashboradStatsResponse struct {
-	UserCount int64 `json:"userCount"`
-	ProjectCount int64 `json:"projectCount"`
-	PendingProjectCount int64 `json:"pendingProjectCount"`
-	PendingAuthCount int64 `json:"pendingAuthCount"`
+	UserCount            int64 `json:"userCount"`
+	ProjectCount         int64 `json:"projectCount"`
+	PendingProjectCount  int64 `json:"pendingProjectCount"`
+	PendingAuthCount     int64 `json:"pendingAuthCount"`
 	PendingFeedbackCount int64 `json:"pendingFeedbackCount"`
 }
+
 // GetDashboardStats handles GET /admin/dashboard/stats
 func (s *AdminServer) GetDashboardStats(ctx echo.Context) error {
 	db := s.repo.DB()
@@ -35,10 +37,10 @@ func (s *AdminServer) GetDashboardStats(ctx echo.Context) error {
 	}
 
 	return response.Success(ctx, DashboradStatsResponse{
-		UserCount: userCount,
-		ProjectCount: projectCount,
-		PendingProjectCount: pendingProjectCount,
-		PendingAuthCount: pendingAuthCount,
+		UserCount:            userCount,
+		ProjectCount:         projectCount,
+		PendingProjectCount:  pendingProjectCount,
+		PendingAuthCount:     pendingAuthCount,
 		PendingFeedbackCount: pendingFeedbackCount,
 	})
 }

@@ -4,7 +4,7 @@ run:
 	go run cmd/server/main.go
 
 build:
-	go build -o bin/ cmd/server/main.go
+	go build -o bin/kuaizu-server cmd/server/main.go
 
 run-admin:
 	go run cmd/admin/main.go

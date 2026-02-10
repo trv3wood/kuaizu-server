@@ -25,7 +25,7 @@ type AdminProjectVO struct {
 	IsCrossSchool        *int         `json:"isCrossSchool"`
 	EducationRequirement *int         `json:"educationRequirement"`
 	SkillRequirement     *string      `json:"skillRequirement"`
-	Creator              *AdminUserVO `json:"creator"`
+	Creator              *AdminUserVO `json:"creator,omitempty"`
 }
 
 // AdminUserVO is the admin-facing user response model.
@@ -70,7 +70,7 @@ func NewAdminProjectVO(p *models.Project) *AdminProjectVO {
 		return nil
 	}
 
-	return &AdminProjectVO{
+	adminProjectVo := AdminProjectVO{
 		ID:                   p.ID,
 		CreatorID:            p.CreatorID,
 		Name:                 p.Name,
@@ -89,6 +89,10 @@ func NewAdminProjectVO(p *models.Project) *AdminProjectVO {
 		EducationRequirement: p.EducationRequirement,
 		SkillRequirement:     p.SkillRequirement,
 	}
+	if p.Creator != nil {
+		adminProjectVo.Creator = NewAdminUserVO(p.Creator)
+	}
+	return &adminProjectVo
 }
 
 // NewAdminUserVO converts a User model to AdminUserVO.

@@ -46,7 +46,7 @@ func (s *AdminServer) Login(ctx echo.Context) error {
 	}
 
 	return response.Success(ctx, map[string]interface{}{
-		"token":      token,
+		"token":     token,
 		"expiresIn": expiresIn,
 	})
 }

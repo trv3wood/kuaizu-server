@@ -79,7 +79,8 @@ func (r *ProjectRepository) List(ctx context.Context, params ListParams) ([]mode
 			p.id, p.creator_id, p.name, p.description, p.school_id,
 			p.direction, p.member_count, p.status,
 			p.promotion_status, p.promotion_expire_time, p.view_count,
-			p.created_at, p.updated_at,
+			p.created_at, p.updated_at, p.is_cross_school,
+			p.education_requirement, p.skill_requirement,
 			s.school_name
 		FROM project p
 		LEFT JOIN school s ON p.school_id = s.id
@@ -102,7 +103,8 @@ func (r *ProjectRepository) List(ctx context.Context, params ListParams) ([]mode
 			&p.ID, &p.CreatorID, &p.Name, &p.Description, &p.SchoolID,
 			&p.Direction, &p.MemberCount, &p.Status,
 			&p.PromotionStatus, &p.PromotionExpireTime, &p.ViewCount,
-			&p.CreatedAt, &p.UpdatedAt,
+			&p.CreatedAt, &p.UpdatedAt, &p.IsCrossSchool,
+			&p.EducationRequirement, &p.SkillRequirement,
 			&p.SchoolName,
 		)
 		if err != nil {
