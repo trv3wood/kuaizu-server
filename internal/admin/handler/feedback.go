@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/labstack/echo/v4"
+	adminvo "github.com/trv3wood/kuaizu-server/internal/admin/vo"
 	"github.com/trv3wood/kuaizu-server/internal/repository"
 	"github.com/trv3wood/kuaizu-server/internal/response"
 )
@@ -37,8 +38,13 @@ func (s *AdminServer) ListFeedbacks(ctx echo.Context) error {
 		return response.InternalError(ctx, "failed to list feedbacks")
 	}
 
+	list := make([]adminvo.AdminFeedbackVO, len(feedbacks))
+	for i := range feedbacks {
+		list[i] = *adminvo.NewAdminFeedbackVO(&feedbacks[i])
+	}
+
 	return response.Success(ctx, map[string]interface{}{
-		"list":  feedbacks,
+		"list":  list,
 		"total": total,
 		"page":  page,
 		"size":  size,
@@ -60,11 +66,11 @@ func (s *AdminServer) GetFeedback(ctx echo.Context) error {
 		return response.NotFound(ctx, "feedback not found")
 	}
 
-	return response.Success(ctx, feedback)
+	return response.Success(ctx, adminvo.NewAdminFeedbackVO(feedback))
 }
 
 type replyFeedbackRequest struct {
-	AdminReply string `json:"admin_reply"`
+	AdminReply string `json:"adminReply"`
 }
 
 // ReplyFeedback handles PATCH /admin/feedbacks/:id
@@ -80,7 +86,7 @@ func (s *AdminServer) ReplyFeedback(ctx echo.Context) error {
 	}
 
 	if req.AdminReply == "" {
-		return response.BadRequest(ctx, "admin_reply is required")
+		return response.BadRequest(ctx, "adminReply is required")
 	}
 
 	if err := s.repo.Feedback.Reply(ctx.Request().Context(), id, req.AdminReply); err != nil {

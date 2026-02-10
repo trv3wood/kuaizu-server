@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/labstack/echo/v4"
+	adminvo "github.com/trv3wood/kuaizu-server/internal/admin/vo"
 	"github.com/trv3wood/kuaizu-server/internal/repository"
 	"github.com/trv3wood/kuaizu-server/internal/response"
 )
@@ -24,18 +25,18 @@ func (s *AdminServer) ListUsers(ctx echo.Context) error {
 		Size: size,
 	}
 
-	if v := ctx.QueryParam("auth_status"); v != "" {
+	if v := ctx.QueryParam("authStatus"); v != "" {
 		status, err := strconv.Atoi(v)
 		if err != nil {
-			return response.BadRequest(ctx, "invalid auth_status")
+			return response.BadRequest(ctx, "invalid authStatus")
 		}
 		params.AuthStatus = &status
 	}
 
-	if v := ctx.QueryParam("school_id"); v != "" {
+	if v := ctx.QueryParam("schoolId"); v != "" {
 		schoolID, err := strconv.Atoi(v)
 		if err != nil {
-			return response.BadRequest(ctx, "invalid school_id")
+			return response.BadRequest(ctx, "invalid schoolId")
 		}
 		params.SchoolID = &schoolID
 	}
@@ -49,8 +50,13 @@ func (s *AdminServer) ListUsers(ctx echo.Context) error {
 		return response.InternalError(ctx, "failed to list users")
 	}
 
+	list := make([]adminvo.AdminUserVO, len(users))
+	for i := range users {
+		list[i] = *adminvo.NewAdminUserVO(&users[i])
+	}
+
 	return response.Success(ctx, map[string]interface{}{
-		"list":  users,
+		"list":  list,
 		"total": total,
 		"page":  page,
 		"size":  size,
@@ -72,11 +78,11 @@ func (s *AdminServer) GetUser(ctx echo.Context) error {
 		return response.NotFound(ctx, "user not found")
 	}
 
-	return response.Success(ctx, user)
+	return response.Success(ctx, adminvo.NewAdminUserVO(user))
 }
 
 type reviewAuthRequest struct {
-	AuthStatus int `json:"auth_status"`
+	AuthStatus int `json:"authStatus"`
 }
 
 // ReviewUserAuth handles PATCH /admin/users/:id/auth
@@ -92,7 +98,7 @@ func (s *AdminServer) ReviewUserAuth(ctx echo.Context) error {
 	}
 
 	if req.AuthStatus != 1 && req.AuthStatus != 2 {
-		return response.BadRequest(ctx, "invalid auth_status, must be 1 (approve) or 2 (reject)")
+		return response.BadRequest(ctx, "invalid authStatus, must be 1 (approve) or 2 (reject)")
 	}
 
 	if err := s.repo.User.UpdateAuthStatus(ctx.Request().Context(), id, req.AuthStatus); err != nil {

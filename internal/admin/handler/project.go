@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/labstack/echo/v4"
+	adminvo "github.com/trv3wood/kuaizu-server/internal/admin/vo"
 	"github.com/trv3wood/kuaizu-server/internal/repository"
 	"github.com/trv3wood/kuaizu-server/internal/response"
 )
@@ -42,8 +43,13 @@ func (s *AdminServer) ListProjects(ctx echo.Context) error {
 		return response.InternalError(ctx, "failed to list projects")
 	}
 
+	list := make([]adminvo.AdminProjectVO, len(projects))
+	for i := range projects {
+		list[i] = *adminvo.NewAdminProjectVO(&projects[i])
+	}
+
 	return response.Success(ctx, map[string]interface{}{
-		"list":  projects,
+		"list":  list,
 		"total": total,
 		"page":  page,
 		"size":  size,
@@ -65,7 +71,7 @@ func (s *AdminServer) GetProject(ctx echo.Context) error {
 		return response.NotFound(ctx, "project not found")
 	}
 
-	return response.Success(ctx, project)
+	return response.Success(ctx, adminvo.NewAdminProjectVO(project))
 }
 
 type reviewProjectRequest struct {
