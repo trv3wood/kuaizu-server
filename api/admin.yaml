@@ -1,0 +1,179 @@
+openapi: "3.0.3"
+info:
+  title: 快组校园 API v2
+  description: |
+    快组校园后台服务 RESTful API v2
+
+    ## 核心规约
+    - URL路径：全小写，单词间用中划线分隔
+    - JSON字段：严格使用小驼峰(camelCase)
+    - 鉴权方式：Header携带 `Authorization: Bearer {token}`
+  version: 2.0.0
+  contact:
+    name: 快组校园团队
+servers:
+  - url: http://localhost:8081/admin
+    description: 本地开发
+  - url: https://dev.darker233.top/admin
+    description: 测试
+tags:
+  - name: Auth
+    description: 认证相关接口
+  - name: Users
+    description: 用户管理接口
+  - name: Projects
+    description: 项目大厅接口
+
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      servers:
+      - url: http://localhost:8081
+        description: 测活
+      - url: https://dev.darker233.top
+        description: 测活
+      operationId: checkHealth
+      security: []
+      responses:
+        "200":
+          description: 服务运行中
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: 管理员登录
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  expiresIn:
+                    type: integer
+  /dashboard/stats:
+    get:
+      summary: 数据看板
+      responses:
+        "200":
+          description: 成功获取数据看板统计数据
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userCount:
+                    type: integer
+                  projectCount:
+                    type: integer
+                  pendingProjectCount:
+                    type: integer
+                  pendingAuthCount:
+                    type: integer
+                  pendingFeedbackCount:
+                    type: integer
+  /projects:
+    get:
+      tags: [Projects]
+      summary: 获取项目列表（支持分页和筛选）
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: 页码
+        - in: query
+          name: size
+          schema:
+            type: integer
+            default: 10
+          description: 每页条数
+        - in: query
+          name: status
+          schema:
+            type: string
+          description: 项目状态筛选
+      responses:
+        "200":
+          description: 成功获取项目列表
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          schema:
+                            allOf:
+                              - $ref: '#/components/schemas/pageInfo'
+                              - type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    id:
+                                      type: integer
+                                    name:
+                                      type: string
+                                    status:
+                                      type: string
+                                    createdAt:
+                                      type: string
+                                      format: date-time
+components:
+  schemas:
+    BaseResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+          description: 业务状态码，200成功，其他为错误码
+          example: 200
+        message:
+          type: string
+          description: 提示信息
+          example: "操作成功"
+    pageInfo:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: 总条数
+          example: 100
+        page:
+          type: integer
+          description: 当前页码
+          example: 1
+        size:
+          type: integer
+          description: 每页条数
+          example: 10
