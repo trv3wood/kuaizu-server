@@ -7,7 +7,8 @@ before:
     - go mod tidy
 
 builds:
-  - env:
+  - id: server
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
@@ -18,6 +19,23 @@ builds:
       - arm64
     main: ./cmd/server
     binary: kuaizu-server
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+  - id: admin
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    main: ./cmd/admin
+    binary: kuaizu-admin
     ldflags:
       - -s -w
       - -X main.version={{.Version}}

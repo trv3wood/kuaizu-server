@@ -1,0 +1,707 @@
+openapi: "3.0.3"
+info:
+  title: 快组校园 API v2
+  description: |
+    快组校园后台服务 RESTful API v2
+
+    ## 核心规约
+    - URL路径：全小写，单词间用中划线分隔
+    - JSON字段：严格使用小驼峰(camelCase)
+    - 鉴权方式：Header携带 `Authorization: Bearer {token}`
+  version: 2.0.0
+  contact:
+    name: 快组校园团队
+servers:
+  - url: http://localhost:8081/admin
+    description: 本地开发
+  - url: https://dev.darker233.top/admin
+    description: 测试
+
+tags:
+  - name: Auth
+    description: 认证相关接口
+  - name: Dashboard
+    description: 数据看板接口
+  - name: Projects
+    description: 项目大厅接口
+  - name: Users
+    description: 用户管理接口
+  - name: Feedbacks
+    description: 反馈管理接口
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      servers:
+        - url: http://localhost:8081
+          description: 测活
+        - url: https://dev.darker233.top
+          description: 测活
+      operationId: checkHealth
+      security: []
+      responses:
+        "200":
+          description: 服务运行中
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: 管理员登录
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/LoginData"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /dashboard/stats:
+    get:
+      tags: [Dashboard]
+      summary: 数据看板
+      responses:
+        "200":
+          description: 成功获取数据看板统计数据
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/DashboardStats"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /projects:
+    get:
+      tags: [Projects]
+      summary: 获取项目列表（支持分页和筛选）
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: 页码
+        - in: query
+          name: size
+          schema:
+            type: integer
+            default: 20
+          description: 每页条数
+        - in: query
+          name: status
+          schema:
+            type: integer
+          description: 项目状态筛选
+        - in: query
+          name: keyword
+          schema:
+            type: string
+          description: 关键词筛选（name/description）
+      responses:
+        "200":
+          description: 成功获取项目列表
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ProjectPagedData"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /projects/{id}:
+    get:
+      tags: [Projects]
+      summary: 获取项目详情
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: 成功获取项目详情
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminProject"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    patch:
+      tags: [Projects]
+      summary: 审核项目
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: integer
+                  description: 审核状态（1=通过，2=驳回）
+                  enum: [1, 2]
+      responses:
+        "200":
+          description: 审核成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /users:
+    get:
+      tags: [Users]
+      summary: 获取用户列表（支持分页和筛选）
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: 页码
+        - in: query
+          name: size
+          schema:
+            type: integer
+            default: 20
+          description: 每页条数
+        - in: query
+          name: authStatus
+          schema:
+            type: integer
+          description: 认证状态筛选
+        - in: query
+          name: schoolId
+          schema:
+            type: integer
+          description: 学校筛选
+        - in: query
+          name: keyword
+          schema:
+            type: string
+          description: 关键词筛选（nickname/phone）
+      responses:
+        "200":
+          description: 成功获取用户列表
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/UserPagedData"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: 获取用户详情
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: 成功获取用户详情
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminUser"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /users/{id}/auth:
+    patch:
+      tags: [Users]
+      summary: 审核用户认证
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [authStatus]
+              properties:
+                authStatus:
+                  type: integer
+                  description: 审核状态（1=通过，2=驳回）
+                  enum: [1, 2]
+      responses:
+        "200":
+          description: 审核成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /feedbacks:
+    get:
+      tags: [Feedbacks]
+      summary: 获取反馈列表（支持分页和筛选）
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: 页码
+        - in: query
+          name: size
+          schema:
+            type: integer
+            default: 20
+          description: 每页条数
+        - in: query
+          name: status
+          schema:
+            type: integer
+          description: 处理状态筛选
+      responses:
+        "200":
+          description: 成功获取反馈列表
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/FeedbackPagedData"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /feedbacks/{id}:
+    get:
+      tags: [Feedbacks]
+      summary: 获取反馈详情
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: 成功获取反馈详情
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminFeedback"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    patch:
+      tags: [Feedbacks]
+      summary: 回复反馈
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [adminReply]
+              properties:
+                adminReply:
+                  type: string
+      responses:
+        "200":
+          description: 回复成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: 请求参数错误
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseResponse"
+    Unauthorized:
+      description: 未授权
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseResponse"
+    Forbidden:
+      description: 禁止访问
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseResponse"
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseResponse"
+    InternalError:
+      description: 服务内部错误
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseResponse"
+  schemas:
+    BaseResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+          description: 业务状态码，200成功，其他为错误码
+          example: 200
+        message:
+          type: string
+          description: 提示信息
+          example: 操作成功
+    LoginData:
+      type: object
+      properties:
+        token:
+          type: string
+        expiresIn:
+          type: integer
+          description: 过期时间（秒）
+    DashboardStats:
+      type: object
+      properties:
+        userCount:
+          type: integer
+        projectCount:
+          type: integer
+        pendingProjectCount:
+          type: integer
+        pendingAuthCount:
+          type: integer
+        pendingFeedbackCount:
+          type: integer
+    AdminProject:
+      type: object
+      properties:
+        id:
+          type: integer
+        creatorId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        schoolId:
+          type: integer
+          nullable: true
+        direction:
+          type: integer
+          nullable: true
+        memberCount:
+          type: integer
+          nullable: true
+        status:
+          type: integer
+        promotionStatus:
+          type: integer
+          description: 推广状态:0-无,1-推广中,2-已结束
+        promotionExpireTime:
+          type: string
+          format: date-time
+          nullable: true
+          description: 推广结束时间
+        viewCount:
+          type: integer
+          description: 浏览量
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        schoolName:
+          type: string
+          nullable: true
+        isCrossSchool:
+          type: integer
+          nullable: true
+        educationRequirement:
+          type: integer
+          nullable: true
+        skillRequirement:
+          type: string
+          nullable: true
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        openId:
+          type: string
+        nickname:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        schoolId:
+          type: integer
+          nullable: true
+        majorId:
+          type: integer
+          nullable: true
+        grade:
+          type: integer
+          nullable: true
+        oliveBranchCount:
+          type: integer
+          description: 付费橄榄枝余额
+        freeBranchUsedToday:
+          type: integer
+          description: 今日已用免费次数
+        lastActiveDate:
+          type: string
+          format: date-time
+          nullable: true
+        authStatus:
+          type: integer
+          description: 0-未认证, 1-已认证, 2-认证失败
+        authImgUrl:
+          type: string
+          nullable: true
+        emailOptOut:
+          type: boolean
+          description: 是否退订邮件推广
+        createdAt:
+          type: string
+          format: date-time
+        schoolName:
+          type: string
+          nullable: true
+        schoolCode:
+          type: string
+          nullable: true
+        majorName:
+          type: string
+          nullable: true
+        classId:
+          type: integer
+          nullable: true
+    AdminFeedback:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        content:
+          type: string
+        contactImage:
+          type: string
+          nullable: true
+        status:
+          type: integer
+          description: 0=待处理,1=已处理
+        adminReply:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        userNickname:
+          type: string
+          nullable: true
+    ProjectPagedData:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminProject"
+        total:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+    UserPagedData:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUser"
+        total:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+    FeedbackPagedData:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminFeedback"
+        total:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer

@@ -79,7 +79,8 @@ func (r *ProjectRepository) List(ctx context.Context, params ListParams) ([]mode
 			p.id, p.creator_id, p.name, p.description, p.school_id,
 			p.direction, p.member_count, p.status,
 			p.promotion_status, p.promotion_expire_time, p.view_count,
-			p.created_at, p.updated_at,
+			p.created_at, p.updated_at, p.is_cross_school,
+			p.education_requirement, p.skill_requirement,
 			s.school_name
 		FROM project p
 		LEFT JOIN school s ON p.school_id = s.id
@@ -102,7 +103,8 @@ func (r *ProjectRepository) List(ctx context.Context, params ListParams) ([]mode
 			&p.ID, &p.CreatorID, &p.Name, &p.Description, &p.SchoolID,
 			&p.Direction, &p.MemberCount, &p.Status,
 			&p.PromotionStatus, &p.PromotionExpireTime, &p.ViewCount,
-			&p.CreatedAt, &p.UpdatedAt,
+			&p.CreatedAt, &p.UpdatedAt, &p.IsCrossSchool,
+			&p.EducationRequirement, &p.SkillRequirement,
 			&p.SchoolName,
 		)
 		if err != nil {
@@ -245,6 +247,23 @@ func (r *ProjectRepository) IsOwner(ctx context.Context, projectID, userID int) 
 		return false, fmt.Errorf("check project owner: %w", err)
 	}
 	return exists, nil
+}
+
+// UpdateStatus updates the review status of a project
+func (r *ProjectRepository) UpdateStatus(ctx context.Context, id int, status int) error {
+	query := `UPDATE project SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+
+	result, err := r.db.ExecContext(ctx, query, status, id)
+	if err != nil {
+		return fmt.Errorf("update project status: %w", err)
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("project not found")
+	}
+
+	return nil
 }
 
 // IncrementViewCount increments the view count of a project
