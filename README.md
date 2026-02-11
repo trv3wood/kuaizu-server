@@ -60,7 +60,6 @@ cp .env.example .env
 
 ```bash
 mysql -u root -p < sql/create_mysql.sql
-mysql -u root -p < sql/seed_mysql.sql
 ```
 
 ### 4. 安装依赖并运行

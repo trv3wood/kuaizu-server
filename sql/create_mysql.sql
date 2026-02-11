@@ -1,259 +1,397 @@
--- ===============================================
--- 快组数据库初始化脚本 (MySQL)
--- ===============================================
+-- MySQL dump 10.13  Distrib 8.0.19, for Win64 (x86_64)
+--
+-- Host: localhost    Database: kuaizu
+-- ------------------------------------------------------
+-- Server version	8.0.45-0ubuntu0.24.04.1
 
--- 创建数据库
-CREATE DATABASE IF NOT EXISTS kuaizu DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE kuaizu;
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!50503 SET NAMES utf8mb4 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
--- ================= 基础字典表 =================
+--
+-- Table structure for table `admin_user`
+--
 
--- 学校表
-CREATE TABLE `school` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
-    `school_name` VARCHAR(100) NOT NULL COMMENT '学校名称',
-    `school_code` VARCHAR(50) UNIQUE COMMENT '学校代码',
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学校字典表';
+DROP TABLE IF EXISTS `admin_user`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `admin_user` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `username` varchar(50) NOT NULL COMMENT '用户名',
+  `password_hash` varchar(255) NOT NULL COMMENT 'bcrypt密码哈希',
+  `nickname` varchar(50) DEFAULT NULL COMMENT '显示名称',
+  `status` tinyint DEFAULT '1' COMMENT '状态:1-启用,0-禁用',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`),
+  KEY `idx_admin_user_username` (`username`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='管理员用户表';
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- 专业大类表
-CREATE TABLE `major_class` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
-    `class_name` VARCHAR(50) NOT NULL COMMENT '专业大类名称',
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='专业大类表';
+--
+-- Table structure for table `email_promotion`
+--
 
--- 专业表
-CREATE TABLE `major` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
-    `major_name` VARCHAR(100) NOT NULL COMMENT '专业名称',
-    `class_id` INT NOT NULL COMMENT '所属大类ID',
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    CONSTRAINT `fk_major_class` FOREIGN KEY (`class_id`) REFERENCES `major_class` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='专业表';
+DROP TABLE IF EXISTS `email_promotion`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `email_promotion` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `order_id` int NOT NULL COMMENT '关联订单',
+  `project_id` int DEFAULT NULL COMMENT '推广的项目',
+  `creator_id` int NOT NULL COMMENT '发起人（队长）',
+  `max_recipients` int NOT NULL COMMENT '购买的最大发送人数',
+  `total_sent` int DEFAULT '0' COMMENT '实际发送数量',
+  `status` tinyint DEFAULT '0' COMMENT '0-待发送, 1-发送中, 2-已完成, 3-失败',
+  `error_message` text COMMENT '错误信息',
+  `started_at` timestamp NULL DEFAULT NULL COMMENT '开始发送时间',
+  `completed_at` timestamp NULL DEFAULT NULL COMMENT '完成时间',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `fk_email_promotion_order` (`order_id`),
+  KEY `idx_project` (`project_id`),
+  KEY `idx_status` (`status`),
+  CONSTRAINT `fk_email_promotion_order` FOREIGN KEY (`order_id`) REFERENCES `order` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_email_promotion_project` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='邮件推广记录表';
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- ================= 用户中心 =================
+--
+-- Table structure for table `feedback`
+--
 
--- 用户表
-CREATE TABLE `user` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
-    `openid` VARCHAR(100) UNIQUE NOT NULL COMMENT '微信OpenID',
-    `nickname` VARCHAR(50) COMMENT '昵称',
-    `phone` VARCHAR(20) COMMENT '手机号',
-    `email` VARCHAR(100) COMMENT '邮箱',
-    `school_id` INT COMMENT '学校ID',
-    `major_id` INT COMMENT '专业ID',
-    `grade` INT COMMENT '年级',
-    `olive_branch_count` INT DEFAULT 0 COMMENT '付费橄榄枝余额',
-    `free_branch_used_today` INT DEFAULT 0 COMMENT '今日已用免费次数(每日重置)',
-    `last_active_date` DATE COMMENT '最后活跃日期(用于重置免费次数)',
-    `auth_status` INT DEFAULT 0 COMMENT '认证状态:0-未认证,1-已认证,2-认证失败',
-    `auth_img_url` TEXT COMMENT '学生证认证图',
-    `email_opt_out` BOOLEAN DEFAULT FALSE COMMENT '是否退订邮件推广',
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    CONSTRAINT `fk_user_school` FOREIGN KEY (`school_id`) REFERENCES `school` (`id`) ON DELETE SET NULL,
-    CONSTRAINT `fk_user_major` FOREIGN KEY (`major_id`) REFERENCES `major` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
-
--- ================= 核心业务：人才库 =================
-
--- 人才档案表
-CREATE TABLE `talent_profile` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
-    `user_id` INT UNIQUE NOT NULL COMMENT '关联用户ID',
-    `self_evaluation` TEXT COMMENT '自我评价',
-    `skill_summary` TEXT COMMENT '技能标签',
-    `project_experience` TEXT COMMENT '项目经历',
-    `mbti` VARCHAR(10) COMMENT 'MBTI性格类型',
-    `status` INT DEFAULT 1 COMMENT '状态:1-上架,0-下架',
-    `is_public_contact` TINYINT(1) DEFAULT 0 COMMENT '是否公开联系方式',
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    CONSTRAINT `fk_talent_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='人才档案表';
-
--- ================= 核心业务：项目组队 =================
-
--- 项目表
-CREATE TABLE `project` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
-    `creator_id` INT NOT NULL COMMENT '队长(用户ID)',
-    `name` VARCHAR(200) NOT NULL COMMENT '项目名称',
-    `description` TEXT COMMENT '项目详情',
-    `school_id` INT COMMENT '所属学校',
-    `direction` INT COMMENT '项目方向:1-落地,2-比赛,3-学习',
-    `member_count` INT COMMENT '需求人数',
-    `status` INT DEFAULT 0 COMMENT '审核状态:0-待审核,1-已通过,2-已驳回',
-    `promotion_status` INT DEFAULT 0 COMMENT '推广状态:0-无,1-推广中,2-已结束',
-    `promotion_expire_time` TIMESTAMP NULL COMMENT '推广结束时间',
-    `view_count` INT DEFAULT 0 COMMENT '浏览量',
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `is_cross_school` TINYINT DEFAULT 1 COMMENT "是否跨校: 1-可以,2-不可以",
-    `education_requirement` TINYINT DEFAULT 1 COMMENT "学历要求1-大专2-本科",
-    `skill_requirement` TEXT COMMENT "技能要求",
-    CONSTRAINT `fk_project_creator` FOREIGN KEY (`creator_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_project_school` FOREIGN KEY (`school_id`) REFERENCES `school` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='项目表';
-
--- 项目申请表
-CREATE TABLE `project_application` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
-    `project_id` INT NOT NULL COMMENT '项目ID',
-    `user_id` INT NOT NULL COMMENT '申请人',
-    `apply_reason` TEXT COMMENT '申请理由/留言',
-    `contact` TEXT COMMENT '联系方式',
-    `status` INT DEFAULT 0 COMMENT '状态:0-待审核,1-已通过,2-已拒绝',
-    `reply_msg` TEXT COMMENT '队长回复',
-    `applied_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '申请时间',
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    UNIQUE KEY `uk_project_user` (`project_id`, `user_id`),
-    CONSTRAINT `fk_app_project` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_app_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='项目申请表';
-
--- 橄榄枝表
-CREATE TABLE `olive_branch_record` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
-    `sender_id` INT NOT NULL COMMENT '发起人ID',
-    `receiver_id` INT NOT NULL COMMENT '接收人ID(人才或队长)',
-    `related_project_id` INT COMMENT '关联项目ID(若是项目邀请)',
-    `type` INT NOT NULL COMMENT '类型:1-人才互联,2-项目邀请',
-    `cost_type` INT NOT NULL COMMENT '消耗类型:1-免费额度,2-付费额度',
-    `has_sms_notify` TINYINT(1) DEFAULT 0 COMMENT '是否购买短信通知',
-    `message` TEXT COMMENT '邀请留言',
-    `status` INT DEFAULT 0 COMMENT '状态:0-待处理,1-已接受,2-已拒绝,3-已忽略',
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    CONSTRAINT `fk_olive_sender` FOREIGN KEY (`sender_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_olive_receiver` FOREIGN KEY (`receiver_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_olive_project` FOREIGN KEY (`related_project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='橄榄枝/联系记录表';
-
--- ================= 增值服务 =================
-
--- 商品表
-CREATE TABLE `product` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
-    `name` VARCHAR(100) NOT NULL COMMENT '商品名称',
-    `type` INT NOT NULL COMMENT '类型:1-虚拟币,2-服务权益',
-    `description` TEXT COMMENT '商品描述',
-    `price` DECIMAL(10, 2) NOT NULL COMMENT '商品价格',
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品表';
-
--- 订单表
-CREATE TABLE `order` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
-    `user_id` INT NOT NULL COMMENT '用户ID',
-    `actual_paid` DECIMAL(10, 2) NOT NULL COMMENT '实付金额',
-    `status` INT DEFAULT 0 COMMENT '支付状态:0-待支付,1-已支付,2-已取消,3-已退款',
-    `wx_pay_no` VARCHAR(100) COMMENT '微信支付订单号',
-    `pay_time` TIMESTAMP NULL COMMENT '支付时间',
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    CONSTRAINT `fk_order_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
-    CONSTRAINT `unq_order_wx_pay_no` UNIQUE (`wx_pay_no`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单表';
-
--- 订单详情表
-CREATE TABLE `order_item` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
-    `order_id` INT NOT NULL COMMENT '订单ID',
-    `product_id` INT NOT NULL COMMENT '商品ID',
-    `price` DECIMAL(10, 2) NOT NULL COMMENT '下单时的单价快照',
-    `quantity` INT NOT NULL COMMENT '数量',
-    `related_project_id` INT COMMENT '关联项目ID(邮件推广用)',
-    CONSTRAINT `fk_order_item_order` FOREIGN KEY (`order_id`) REFERENCES `order` (`id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_order_item_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`) ON DELETE RESTRICT,
-    CONSTRAINT `fk_order_item_project` FOREIGN KEY (`related_project_id`) REFERENCES `project` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单详情表';
-
--- 意见反馈表
+DROP TABLE IF EXISTS `feedback`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `feedback` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
-    `user_id` INT NOT NULL COMMENT '用户ID',
-    `content` TEXT NOT NULL COMMENT '反馈内容',
-    `contact_image` TEXT COMMENT '图片凭证',
-    `status` INT DEFAULT 0 COMMENT '处理状态:0-待处理,1-已处理',
-    `admin_reply` TEXT COMMENT '管理员回复',
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    CONSTRAINT `fk_feedback_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='意见反馈表';
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `user_id` int NOT NULL COMMENT '用户ID',
+  `content` text NOT NULL COMMENT '反馈内容',
+  `contact_image` text COMMENT '图片凭证',
+  `status` int DEFAULT '0' COMMENT '处理状态:0-待处理,1-已处理',
+  `admin_reply` text COMMENT '管理员回复',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_feedback_user` (`user_id`),
+  KEY `idx_feedback_status` (`status`),
+  CONSTRAINT `fk_feedback_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='意见反馈表';
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- 消息订阅配置表 暂时未使用
+--
+-- Table structure for table `major`
+--
+
+DROP TABLE IF EXISTS `major`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `major` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `major_name` varchar(100) NOT NULL COMMENT '专业名称',
+  `class_id` int NOT NULL COMMENT '所属大类ID',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `fk_major_class` (`class_id`),
+  CONSTRAINT `fk_major_class` FOREIGN KEY (`class_id`) REFERENCES `major_class` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB AUTO_INCREMENT=1037 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='专业表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `major_class`
+--
+
+DROP TABLE IF EXISTS `major_class`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `major_class` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `class_name` varchar(50) NOT NULL COMMENT '专业大类名称',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=113 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='专业大类表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `olive_branch_record`
+--
+
+DROP TABLE IF EXISTS `olive_branch_record`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `olive_branch_record` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `sender_id` int NOT NULL COMMENT '发起人ID',
+  `receiver_id` int NOT NULL COMMENT '接收人ID(人才或队长)',
+  `related_project_id` int DEFAULT NULL COMMENT '关联项目ID(若是项目邀请)',
+  `type` int NOT NULL COMMENT '类型:1-人才互联,2-项目邀请',
+  `cost_type` int NOT NULL COMMENT '消耗类型:1-免费额度,2-付费额度',
+  `has_sms_notify` tinyint(1) DEFAULT '0' COMMENT '是否购买短信通知',
+  `message` text COMMENT '邀请留言',
+  `status` int DEFAULT '0' COMMENT '状态:0-待处理,1-已接受,2-已拒绝,3-已忽略',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_olive_sender` (`sender_id`),
+  KEY `idx_olive_receiver` (`receiver_id`),
+  KEY `idx_olive_project` (`related_project_id`),
+  KEY `idx_olive_status` (`status`),
+  CONSTRAINT `fk_olive_project` FOREIGN KEY (`related_project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_olive_receiver` FOREIGN KEY (`receiver_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_olive_sender` FOREIGN KEY (`sender_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='橄榄枝/联系记录表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `order`
+--
+
+DROP TABLE IF EXISTS `order`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `order` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `user_id` int NOT NULL COMMENT '用户ID',
+  `actual_paid` decimal(10,2) NOT NULL COMMENT '实付金额',
+  `status` int DEFAULT '0' COMMENT '支付状态:0-待支付,1-已支付,2-已取消,3-已退款',
+  `wx_pay_no` varchar(100) DEFAULT NULL COMMENT '微信支付订单号',
+  `pay_time` timestamp NULL DEFAULT NULL COMMENT '支付时间',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unq_order_wx_pay_no` (`wx_pay_no`),
+  KEY `fk_order_user` (`user_id`),
+  CONSTRAINT `fk_order_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='订单表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `order_item`
+--
+
+DROP TABLE IF EXISTS `order_item`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `order_item` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `order_id` int NOT NULL COMMENT '订单ID',
+  `product_id` int NOT NULL COMMENT '商品ID',
+  `price` decimal(10,2) NOT NULL COMMENT '下单时的单价快照',
+  `quantity` int NOT NULL COMMENT '数量',
+  PRIMARY KEY (`id`),
+  KEY `fk_order_item_order` (`order_id`),
+  KEY `fk_order_item_product` (`product_id`),
+  CONSTRAINT `fk_order_item_order` FOREIGN KEY (`order_id`) REFERENCES `order` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_order_item_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='订单详情表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `product`
+--
+
+DROP TABLE IF EXISTS `product`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `product` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `name` varchar(100) NOT NULL COMMENT '商品名称',
+  `type` int NOT NULL COMMENT '类型:1-虚拟币,2-服务权益',
+  `description` text COMMENT '商品描述',
+  `price` decimal(10,2) NOT NULL COMMENT '商品价格',
+  `config_json` text COMMENT '配置参数(如增加多少个橄榄枝)',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='商品表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `project`
+--
+
+DROP TABLE IF EXISTS `project`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `project` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `creator_id` int NOT NULL COMMENT '队长(用户ID)',
+  `name` varchar(200) NOT NULL COMMENT '项目名称',
+  `description` text COMMENT '项目详情',
+  `school_id` int DEFAULT NULL COMMENT '所属学校',
+  `direction` int DEFAULT NULL COMMENT '项目方向:1-落地,2-比赛,3-学习',
+  `member_count` int DEFAULT NULL COMMENT '需求人数',
+  `status` int DEFAULT '0' COMMENT '审核状态:0-待审核,1-已通过,2-已驳回',
+  `promotion_status` int DEFAULT '0' COMMENT '推广状态:0-无,1-推广中,2-已结束',
+  `promotion_expire_time` timestamp NULL DEFAULT NULL COMMENT '推广结束时间',
+  `view_count` int DEFAULT '0' COMMENT '浏览量',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_cross_school` tinyint DEFAULT '1' COMMENT '是否跨校: 1-可以,2-不可以',
+  `education_requirement` tinyint DEFAULT '1' COMMENT '学历要求1-大专2-本科',
+  `skill_requirement` text COMMENT '技能要求',
+  PRIMARY KEY (`id`),
+  KEY `idx_project_creator` (`creator_id`),
+  KEY `idx_project_school` (`school_id`),
+  KEY `idx_project_status` (`status`),
+  KEY `idx_project_created` (`created_at`),
+  CONSTRAINT `fk_project_creator` FOREIGN KEY (`creator_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_project_school` FOREIGN KEY (`school_id`) REFERENCES `school` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=335 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='项目表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `project_application`
+--
+
+DROP TABLE IF EXISTS `project_application`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `project_application` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `project_id` int NOT NULL COMMENT '项目ID',
+  `user_id` int NOT NULL COMMENT '申请人',
+  `apply_reason` text COMMENT '申请理由/留言',
+  `contact` text COMMENT '联系方式',
+  `status` int DEFAULT '0' COMMENT '状态:0-待审核,1-已通过,2-已拒绝',
+  `reply_msg` text COMMENT '队长回复',
+  `applied_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '申请时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_project_user` (`project_id`,`user_id`),
+  KEY `idx_application_project` (`project_id`),
+  KEY `idx_application_user` (`user_id`),
+  KEY `idx_application_status` (`status`),
+  CONSTRAINT `fk_app_project` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_app_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=300 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='项目申请表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `school`
+--
+
+DROP TABLE IF EXISTS `school`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `school` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `school_name` varchar(100) NOT NULL COMMENT '学校名称',
+  `school_code` varchar(50) DEFAULT NULL COMMENT '学校代码',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `province` varchar(100) DEFAULT NULL COMMENT '学校所处省份',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `school_code` (`school_code`)
+) ENGINE=InnoDB AUTO_INCREMENT=2979 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='学校字典表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `subscribe_config`
+--
+
+DROP TABLE IF EXISTS `subscribe_config`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `subscribe_config` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
-    `user_id` INT NOT NULL COMMENT '用户ID',
-    `target_type` VARCHAR(50) NOT NULL COMMENT '订阅类型(新项目/审核结果/投递进度)',
-    `filter_json` TEXT COMMENT '过滤条件(如:只看某学校项目)',
-    `email` VARCHAR(100) COMMENT '接收邮箱',
-    `is_active` TINYINT(1) DEFAULT 1 COMMENT '是否开启',
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    CONSTRAINT `fk_sub_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='消息订阅配置表';
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `user_id` int NOT NULL COMMENT '用户ID',
+  `target_type` varchar(50) NOT NULL COMMENT '订阅类型(新项目/审核结果/投递进度)',
+  `filter_json` text COMMENT '过滤条件(如:只看某学校项目)',
+  `email` varchar(100) DEFAULT NULL COMMENT '接收邮箱',
+  `is_active` tinyint(1) DEFAULT '1' COMMENT '是否开启',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_subscribe_user` (`user_id`),
+  KEY `idx_subscribe_active` (`is_active`),
+  CONSTRAINT `fk_sub_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='消息订阅配置表';
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- 邮件推广记录表
-CREATE TABLE email_promotion (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    order_id INT NOT NULL COMMENT '关联订单',
-    project_id INT NULL COMMENT '推广的项目',
-    creator_id INT NOT NULL COMMENT '发起人（队长）',
-    
-    -- 配置
-    max_recipients INT NOT NULL COMMENT '购买的最大发送人数',
-    
-    -- 发送情况
-    total_sent INT DEFAULT 0 COMMENT '实际发送数量',
-    status TINYINT DEFAULT 0 COMMENT '0-待发送, 1-发送中, 2-已完成, 3-失败',
-    
-    error_message TEXT COMMENT '错误信息',
-    started_at TIMESTAMP NULL COMMENT '开始发送时间',
-    completed_at TIMESTAMP NULL COMMENT '完成时间',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    CONSTRAINT `fk_email_promotion_order` FOREIGN KEY (`order_id`) REFERENCES `order` (`id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_email_promotion_project` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE,
-    INDEX idx_project (project_id),
-    INDEX idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '邮件推广记录表';
+--
+-- Table structure for table `talent_profile`
+--
 
--- ================= 索引优化 =================
+DROP TABLE IF EXISTS `talent_profile`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `talent_profile` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `user_id` int NOT NULL COMMENT '关联用户ID',
+  `self_evaluation` text COMMENT '自我评价',
+  `skill_summary` text COMMENT '技能标签',
+  `project_experience` text COMMENT '项目经历',
+  `mbti` varchar(10) DEFAULT NULL COMMENT 'MBTI性格类型',
+  `status` int DEFAULT '1' COMMENT '状态:1-上架,0-下架',
+  `is_public_contact` tinyint(1) DEFAULT '0' COMMENT '是否公开联系方式',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `user_id` (`user_id`),
+  KEY `idx_talent_user` (`user_id`),
+  KEY `idx_talent_status` (`status`),
+  CONSTRAINT `fk_talent_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='人才档案表';
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- 相关外键已自动创建索引，以下为其他常用查询索引
-CREATE INDEX idx_user_openid ON `user`(`openid`);
-CREATE INDEX idx_user_school ON `user`(`school_id`);
-CREATE INDEX idx_user_major ON `user`(`major_id`);
+--
+-- Table structure for table `user`
+--
 
-CREATE INDEX idx_talent_user ON `talent_profile`(`user_id`);
-CREATE INDEX idx_talent_status ON `talent_profile`(`status`);
+DROP TABLE IF EXISTS `user`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `user` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `openid` varchar(100) NOT NULL COMMENT '微信OpenID',
+  `nickname` varchar(50) DEFAULT NULL COMMENT '昵称',
+  `phone` varchar(20) DEFAULT NULL COMMENT '手机号',
+  `email` varchar(100) DEFAULT NULL COMMENT '邮箱',
+  `school_id` int DEFAULT NULL COMMENT '学校ID',
+  `major_id` int DEFAULT NULL COMMENT '专业ID',
+  `grade` int DEFAULT NULL COMMENT '年级',
+  `olive_branch_count` int DEFAULT '0' COMMENT '付费橄榄枝余额',
+  `free_branch_used_today` int DEFAULT '0' COMMENT '今日已用免费次数(每日重置)',
+  `last_active_date` date DEFAULT NULL COMMENT '最后活跃日期(用于重置免费次数)',
+  `auth_status` int DEFAULT '0' COMMENT '认证状态:0-未认证,1-已认证,2-认证失败',
+  `auth_img_url` text COMMENT '学生证认证图',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `email_opt_out` tinyint(1) DEFAULT '0' COMMENT '是否退订邮件推广',
+  `avatar_url` varchar(100) DEFAULT NULL COMMENT '用户头像url',
+  `cover_image` varchar(100) DEFAULT NULL COMMENT '用户中心封面url',
+  `unionid` varchar(100) DEFAULT NULL COMMENT '微信用户unionid',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `openid` (`openid`),
+  KEY `idx_user_openid` (`openid`),
+  KEY `idx_user_school` (`school_id`),
+  KEY `idx_user_major` (`major_id`),
+  CONSTRAINT `fk_user_major` FOREIGN KEY (`major_id`) REFERENCES `major` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_user_school` FOREIGN KEY (`school_id`) REFERENCES `school` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=1128 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户表';
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-CREATE INDEX idx_project_creator ON `project`(`creator_id`);
-CREATE INDEX idx_project_school ON `project`(`school_id`);
-CREATE INDEX idx_project_status ON `project`(`status`);
-CREATE INDEX idx_project_created ON `project`(`created_at`);
+--
+-- Dumping routines for database 'kuaizu'
+--
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
-CREATE INDEX idx_application_project ON `project_application`(`project_id`);
-CREATE INDEX idx_application_user ON `project_application`(`user_id`);
-CREATE INDEX idx_application_status ON `project_application`(`status`);
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
-CREATE INDEX idx_olive_sender ON `olive_branch_record`(`sender_id`);
-CREATE INDEX idx_olive_receiver ON `olive_branch_record`(`receiver_id`);
-CREATE INDEX idx_olive_project ON `olive_branch_record`(`related_project_id`);
-CREATE INDEX idx_olive_status ON `olive_branch_record`(`status`);
-
-CREATE INDEX idx_order_user ON `order`(`user_id`);
-CREATE INDEX idx_order_wx_pay_no ON `order`(`wx_pay_no`);
-CREATE INDEX idx_order_status ON `order`(`status`);
-
-CREATE INDEX idx_feedback_user ON `feedback`(`user_id`);
-CREATE INDEX idx_feedback_status ON `feedback`(`status`);
-
-CREATE INDEX idx_subscribe_user ON `subscribe_config`(`user_id`);
-CREATE INDEX idx_subscribe_active ON `subscribe_config`(`is_active`);
+-- Dump completed on 2026-02-11 11:57:01
