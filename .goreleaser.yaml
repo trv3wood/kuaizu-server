@@ -1,5 +1,5 @@
 version: 2
-project_name: kuaizu-server
+project_name: kuaizu
 
 before:
   hooks:
@@ -18,7 +18,7 @@ builds:
       - amd64
       - arm64
     main: ./cmd/server
-    binary: kuaizu-server
+    binary: server
     ldflags:
       - -s -w
       - -X main.version={{.Version}}
@@ -35,7 +35,7 @@ builds:
       - amd64
       - arm64
     main: ./cmd/admin
-    binary: kuaizu-admin
+    binary: admin
     ldflags:
       - -s -w
       - -X main.version={{.Version}}
@@ -49,7 +49,8 @@ archives:
     format_overrides:
       - goos: windows
         formats: [ "zip" ]
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    # 多个 build 时避免归档同名被覆盖
+    name_template: "{{ .ProjectName }}_{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
 checksum:
   name_template: 'checksums.txt'
