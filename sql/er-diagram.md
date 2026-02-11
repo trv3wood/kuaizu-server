@@ -4,6 +4,7 @@ erDiagram
         int id PK
         string school_name "学校名称"
         string school_code "学校代码"
+        string province "省份名称"
     }
 
     MAJOR_CLASS {
@@ -32,6 +33,8 @@ erDiagram
         date last_active_date "最后活跃日期(用于重置免费次数)"
         int auth_status "认证状态(0未认证,1已认证,2失败)"
         string auth_img_url "学生证认证图"
+        string avatar_url "头像url"
+        string cover_image "用户中心封面url"
         boolean email_opt_out "是否退订邮件推广"
         timestamp created_at
     }
