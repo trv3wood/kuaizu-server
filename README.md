@@ -75,12 +75,12 @@ make run     # 启动开发服务器
 |------|------|
 | `make run` | 启动开发服务器 |
 | `make build` | 编译到 `bin/` 目录 |
-| `make generate` | 根据 OpenAPI 规范重新生成服务端代码 |
+| `make generate` | 根据 OpenAPI 规范重新生成服务端代码|
 | `make tidy` | 整理 Go 模块依赖 |
 
 ## 开发流程
 
-1. 在 `api/openapi.yaml` 中定义或修改 API 接口
+1. 在 `api/service.yaml` 中定义或修改 API 接口
 2. 运行 `make generate` 生成服务端代码（`api/api.gen.go`）
 3. 在 `internal/handler/` 中实现对应的请求处理逻辑
 4. 在 `internal/repository/` 中实现数据库操作
@@ -89,4 +89,4 @@ make run     # 启动开发服务器
 
 API 基础路径：`/api/v2`
 
-详细接口定义见 `api/openapi.yaml`。
+详细接口定义见 `api/service.yaml`。
