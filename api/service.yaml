@@ -15,9 +15,9 @@ info:
 servers:
   - url: http://localhost:8080/api/v2
     description: 本地开发
-  - url: https://api.zhaoxiaokai.xyz/api/v2
+  - url: https://kuaizu.xyz/api/v2
     description: 生产环境
-  - url: https://dev-pay.darker233.top/api/v2
+  - url: https://dev.darker233.top/api/v2
     description: 开发环境
 
 tags:
