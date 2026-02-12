@@ -541,7 +541,7 @@ paths:
                   - type: object
                     properties:
                       data:
-                        $ref: "#/components/schemas/TalentProfileVO"
+                        $ref: "#/components/schemas/TalentProfileDetailVO"
 
   /talent-profiles/{id}:
     parameters:
@@ -568,6 +568,34 @@ paths:
                     properties:
                       data:
                         $ref: "#/components/schemas/TalentProfileDetailVO"
+  /talent-profiles/my:
+    get:
+      tags: [TalentProfiles]
+      summary: 查看我的人才详情
+      operationId: getMyTalentProfile
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/TalentProfileDetailVO"
+    delete:
+      tags: [TalentProfiles]
+      summary: 下架我的人才名片
+      operationId: deleteMyTalentProfile
+      responses:
+        "200":
+          description: 下架成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BaseResponse"
 
   # ==================== 橄榄枝模块 ====================
   /olive-branches:
@@ -1339,8 +1367,6 @@ components:
           type: integer
         nickname:
           type: string
-        avatarUrl:
-          type: string
         schoolName:
           type: string
         majorName:
@@ -1349,8 +1375,6 @@ components:
           type: array
           items:
             type: string
-        intro:
-          type: string
         mbti:
           type: string
         status:
@@ -1380,9 +1404,6 @@ components:
           items:
             type: string
           description: 技能标签列表
-        intro:
-          type: string
-          description: 简介
         selfEvaluation:
           type: string
           description: 自我评价

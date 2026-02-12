@@ -51,7 +51,6 @@ func (t *TalentProfile) ToVO() *api.TalentProfileVO {
 		MajorName:       t.MajorName,
 		Mbti:            t.MBTI,
 		Skills:          t.parseSkills(),
-		Intro:           t.SelfEvaluation,
 		IsPublicContact: &t.IsPublicContact,
 		Status:          &status,
 	}

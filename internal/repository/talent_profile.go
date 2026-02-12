@@ -27,6 +27,7 @@ type TalentProfileListParams struct {
 	SchoolID *int
 	MajorID  *int
 	Keyword  *string
+	Status	 *int
 }
 
 // List retrieves paginated talent profiles with optional filters
@@ -49,6 +50,11 @@ func (r *TalentProfileRepository) List(ctx context.Context, params TalentProfile
 		conditions = append(conditions, "(u.nickname LIKE ? OR tp.self_evaluation LIKE ? OR tp.skill_summary LIKE ?)")
 		pattern := "%" + *params.Keyword + "%"
 		args = append(args, pattern, pattern, pattern)
+	}
+
+	if params.Status != nil {
+		conditions = append(conditions, "tp.status = ?")
+		args = append(args, *params.Status)
 	}
 
 	whereClause := strings.Join(conditions, " AND ")
@@ -219,5 +225,17 @@ func (r *TalentProfileRepository) Upsert(ctx context.Context, p *models.TalentPr
 		p.ID = existing.ID
 	}
 
+	return nil
+}
+
+// DeleteByUserID deletes a talent profile by user ID
+func (r *TalentProfileRepository) DeleteByUserID(ctx context.Context, userID int) error {
+	query := `
+		UPDATE talent_profile SET status = 0, is_public_contact = 0 WHERE user_id = ?
+	`
+	_, err := r.db.ExecContext(ctx, query, userID)
+	if err != nil {
+		return fmt.Errorf("delete talent profile by user id: %w", err)
+	}
 	return nil
 }
