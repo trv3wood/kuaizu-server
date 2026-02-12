@@ -21,12 +21,14 @@ func (s *Server) ListTalentProfiles(ctx echo.Context, params api.ListTalentProfi
 		size = *params.Size
 	}
 
+	status := int(api.TalentStatus(1)) // 仅展示已发布的
 	listParams := repository.TalentProfileListParams{
 		Page:     page,
 		Size:     size,
 		SchoolID: params.SchoolId,
 		MajorID:  params.MajorId,
 		Keyword:  params.Keyword,
+		Status:   &status,
 	}
 
 	profiles, total, err := s.repo.TalentProfile.List(ctx.Request().Context(), listParams)
@@ -104,7 +106,7 @@ func (s *Server) UpsertTalentProfile(ctx echo.Context) error {
 		return InternalError(ctx, "获取人才档案失败")
 	}
 
-	return Success(ctx, updated.ToVO())
+	return Success(ctx, updated.ToDetailVO(true))
 }
 
 // GetTalentProfile handles GET /talent-profiles/{id}
@@ -122,4 +124,32 @@ func (s *Server) GetTalentProfile(ctx echo.Context, id int) error {
 	showContact := profile.IsPublicContact
 
 	return Success(ctx, profile.ToDetailVO(showContact))
+}
+
+// GetMyTalentProfile handles GET /users/me/talent-profile
+func (s *Server) GetMyTalentProfile(ctx echo.Context) error {
+	userID := GetUserID(ctx)
+
+	profile, err := s.repo.TalentProfile.GetByUserID(ctx.Request().Context(), userID)
+	if err != nil {
+		return InternalError(ctx, "获取人才档案失败")
+	}
+	if profile == nil {
+		return NotFound(ctx, "人才档案不存在")
+	}
+
+	showContact := profile.IsPublicContact
+
+	return Success(ctx, profile.ToDetailVO(showContact))
+}
+
+// DeleteMyTalentProfile handles DELETE /talent-profiles/my
+func (s *Server) DeleteMyTalentProfile(ctx echo.Context) error {
+	userID := GetUserID(ctx)
+
+	if err := s.repo.TalentProfile.DeleteByUserID(ctx.Request().Context(), userID); err != nil {
+		return InternalError(ctx, "删除人才档案失败")
+	}
+
+	return Success(ctx, nil)
 }
