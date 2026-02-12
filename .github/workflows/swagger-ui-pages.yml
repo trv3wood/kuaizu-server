@@ -1,7 +1,7 @@
 name: Swagger UI Pages
 
 on:
-  pull_request:
+  push:
     branches: ["main"]
     paths:
       - "api/admin.yaml"
