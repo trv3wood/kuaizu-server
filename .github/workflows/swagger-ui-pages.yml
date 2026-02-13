@@ -2,7 +2,7 @@ name: Swagger UI Pages
 
 on:
   push:
-    branches: ["main"]
+    tags: ["v*"]
     paths:
       - "api/admin.yaml"
       - "api/service.yaml"
