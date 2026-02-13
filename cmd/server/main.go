@@ -15,6 +15,7 @@ import (
 	"github.com/trv3wood/kuaizu-server/internal/handler"
 	"github.com/trv3wood/kuaizu-server/internal/middleware"
 	"github.com/trv3wood/kuaizu-server/internal/repository"
+	"github.com/trv3wood/kuaizu-server/internal/service"
 )
 
 var (
@@ -52,9 +53,10 @@ func main() {
 	defer pool.Close()
 	log.Println("Connected to database")
 
-	// Initialize repository and handler
+	// Initialize repository, service, and handler
 	repo := repository.New(pool)
-	server := handler.NewServer(repo)
+	svc := service.New(repo)
+	server := handler.NewServer(repo, svc)
 
 	// Register API routes with /api/v2 prefix
 	apiGroup := e.Group("/api/v2")

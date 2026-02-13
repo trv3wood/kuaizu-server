@@ -1,8 +1,11 @@
 package handler
 
 import (
+	"errors"
+
 	"github.com/labstack/echo/v4"
 	"github.com/trv3wood/kuaizu-server/internal/response"
+	"github.com/trv3wood/kuaizu-server/internal/service"
 )
 
 // Re-export response types and helpers from shared package
@@ -26,3 +29,23 @@ func InternalError(ctx echo.Context, message string) error {
 	return response.InternalError(ctx, message)
 }
 func NotImplemented(ctx echo.Context) error { return response.NotImplemented(ctx) }
+
+// mapServiceError maps a service.ServiceError to the appropriate HTTP error response.
+// For non-ServiceError errors, it falls back to InternalError.
+func mapServiceError(ctx echo.Context, err error) error {
+	var svcErr *service.ServiceError
+	if errors.As(err, &svcErr) {
+		switch svcErr.Code {
+		case service.ErrCodeBadRequest:
+			return BadRequest(ctx, svcErr.Message)
+		case service.ErrCodeNotFound:
+			return NotFound(ctx, svcErr.Message)
+		case service.ErrCodeForbidden:
+			return Forbidden(ctx, svcErr.Message)
+		default:
+			// For custom business codes (like 4002), use Error()
+			return Error(ctx, int(svcErr.Code), svcErr.Message)
+		}
+	}
+	return InternalError(ctx, err.Error())
+}

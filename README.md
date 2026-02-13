@@ -13,13 +13,19 @@
 ## 项目结构
 
 ```
-cmd/server/        程序入口
+cmd/
+  ├── server/      小程序服务入口
+  └── admin/       管理员服务入口
 api/               OpenAPI 规范及生成代码
 internal/
+  ├── admin/       管理员服务
+  |     ├── handler/ HTTP 请求处理
+  |     └── ...      与上层相似的结构
   ├── handler/     HTTP 请求处理
+  ├── service/     服务层
   ├── repository/  数据库访问层
   ├── models/      领域模型
-  ├── middleware/   JWT 认证中间件
+  ├── middleware/  JWT 认证中间件
   ├── auth/        JWT 签发与验证
   ├── wechat/      微信登录与支付
   ├── email/       邮件服务与模板
@@ -65,8 +71,9 @@ mysql -u root -p < sql/create_mysql.sql
 ### 4. 安装依赖并运行
 
 ```bash
-make tidy    # 整理依赖
-make run     # 启动开发服务器
+make tidy      # 整理依赖
+make generate  # 生成代码
+make run       # 启动开发服务器
 ```
 
 ## 常用命令
