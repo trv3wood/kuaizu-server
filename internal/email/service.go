@@ -18,18 +18,18 @@ import (
 type Service struct {
 	client           Client
 	templateRenderer *TemplateRenderer
-	userRepo         *repository.UserRepository
-	projectRepo      *repository.ProjectRepository
-	promotionRepo    *repository.EmailPromotionRepository
+	userRepo         repository.UserRepo
+	projectRepo      repository.ProjectRepo
+	promotionRepo    repository.EmailPromotionRepo
 }
 
 // NewService 创建邮件服务
 func NewService(
 	client Client,
 	baseURL string,
-	userRepo *repository.UserRepository,
-	projectRepo *repository.ProjectRepository,
-	promotionRepo *repository.EmailPromotionRepository,
+	userRepo repository.UserRepo,
+	projectRepo repository.ProjectRepo,
+	promotionRepo repository.EmailPromotionRepo,
 ) *Service {
 	return &Service{
 		client:           client,
@@ -42,9 +42,9 @@ func NewService(
 
 // NewServiceFromEnv 从环境变量创建邮件服务
 func NewServiceFromEnv(
-	userRepo *repository.UserRepository,
-	projectRepo *repository.ProjectRepository,
-	promotionRepo *repository.EmailPromotionRepository,
+	userRepo repository.UserRepo,
+	projectRepo repository.ProjectRepo,
+	promotionRepo repository.EmailPromotionRepo,
 ) (*Service, error) {
 	client, err := NewSMTPClientFromEnv()
 	if err != nil {

@@ -7,16 +7,16 @@ import (
 // Repository aggregates all sub-repositories
 type Repository struct {
 	db             *sqlx.DB
-	User           *UserRepository
-	Project        *ProjectRepository
-	Product        *ProductRepository
+	User           UserRepo
+	Project        ProjectRepo
+	Product        ProductRepo
 	Application    *ApplicationRepository
 	OliveBranch    *OliveBranchRepository
 	School         *SchoolRepository
 	Major          *MajorRepository
 	TalentProfile  *TalentProfileRepository
-	Order          *OrderRepository
-	EmailPromotion *EmailPromotionRepository
+	Order          OrderRepo
+	EmailPromotion EmailPromotionRepo
 	AdminUser      *AdminUserRepository
 	Feedback       *FeedbackRepository
 }
