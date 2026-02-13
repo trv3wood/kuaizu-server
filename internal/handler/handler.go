@@ -3,19 +3,21 @@ package handler
 import (
 	"github.com/trv3wood/kuaizu-server/api"
 	"github.com/trv3wood/kuaizu-server/internal/repository"
+	"github.com/trv3wood/kuaizu-server/internal/service"
 )
 
 // Server implements api.ServerInterface
 type Server struct {
 	repo *repository.Repository
+	svc  *service.Services
 }
 
 // Ensure Server implements the generated ServerInterface
 var _ api.ServerInterface = (*Server)(nil)
 
 // NewServer creates a new Server instance
-func NewServer(repo *repository.Repository) *Server {
-	return &Server{repo: repo}
+func NewServer(repo *repository.Repository, svc *service.Services) *Server {
+	return &Server{repo: repo, svc: svc}
 }
 
 // GetUserID extracts user ID from context (set by auth middleware)
