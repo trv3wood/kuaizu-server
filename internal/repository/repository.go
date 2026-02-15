@@ -10,15 +10,15 @@ type Repository struct {
 	User           UserRepo
 	Project        ProjectRepo
 	Product        ProductRepo
-	Application    *ApplicationRepository
-	OliveBranch    *OliveBranchRepository
-	School         *SchoolRepository
-	Major          *MajorRepository
-	TalentProfile  *TalentProfileRepository
+	Application    ApplicationRepo
+	OliveBranch    OliveBranchRepo
+	School         SchoolRepo
+	Major          MajorRepo
+	TalentProfile  TalentProfileRepo
 	Order          OrderRepo
 	EmailPromotion EmailPromotionRepo
-	AdminUser      *AdminUserRepository
-	Feedback       *FeedbackRepository
+	AdminUser      AdminUserRepo
+	Feedback       FeedbackRepo
 }
 
 // DB returns the underlying database connection for transaction support

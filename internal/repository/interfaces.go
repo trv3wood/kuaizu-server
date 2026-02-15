@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/trv3wood/kuaizu-server/api"
 	"github.com/trv3wood/kuaizu-server/internal/models"
 )
 
@@ -63,9 +64,67 @@ type UserRepo interface {
 	SetEmailOptOut(ctx context.Context, userID int, optOut bool) error
 }
 
+// ApplicationRepo defines the interface for application repository operations.
+type ApplicationRepo interface {
+	List(ctx context.Context, params ApplicationListParams) ([]models.ProjectApplication, int64, error)
+	Create(ctx context.Context, app *models.ProjectApplication) error
+	GetByID(ctx context.Context, id int) (*models.ProjectApplication, error)
+	CheckDuplicate(ctx context.Context, projectID, userID int) (bool, error)
+	UpdateStatus(ctx context.Context, id int, status int, replyMsg *string) error
+}
+
+// OliveBranchRepo defines the interface for olive branch repository operations.
+type OliveBranchRepo interface {
+	ListByReceiverID(ctx context.Context, params OliveBranchListParams) ([]models.OliveBranch, int64, error)
+	GetByID(ctx context.Context, id int) (*models.OliveBranch, error)
+	Create(ctx context.Context, ob *models.OliveBranch) error
+	UpdateStatus(ctx context.Context, id int, status int) error
+	ListBySenderID(ctx context.Context, params OliveBranchListParams) ([]models.OliveBranch, int64, error)
+}
+
+// SchoolRepo defines the interface for school repository operations.
+type SchoolRepo interface {
+	List(ctx context.Context, keyword *string) ([]*models.School, error)
+}
+
+// MajorRepo defines the interface for major repository operations.
+type MajorRepo interface {
+	List(ctx context.Context, params *api.ListMajorsParams) ([]models.Major, error)
+	ListWithMajors(ctx context.Context, params api.ListMajorsParams) ([]models.MajorClass, error)
+}
+
+// TalentProfileRepo defines the interface for talent profile repository operations.
+type TalentProfileRepo interface {
+	List(ctx context.Context, params TalentProfileListParams) ([]models.TalentProfile, int64, error)
+	GetByID(ctx context.Context, id int) (*models.TalentProfile, error)
+	GetByUserID(ctx context.Context, userID int) (*models.TalentProfile, error)
+	Upsert(ctx context.Context, p *models.TalentProfile) error
+	DeleteByUserID(ctx context.Context, userID int) error
+}
+
+// AdminUserRepo defines the interface for admin user repository operations.
+type AdminUserRepo interface {
+	GetByUsername(ctx context.Context, username string) (*models.AdminUser, error)
+	GetByID(ctx context.Context, id int) (*models.AdminUser, error)
+}
+
+// FeedbackRepo defines the interface for feedback repository operations.
+type FeedbackRepo interface {
+	List(ctx context.Context, params FeedbackListParams) ([]models.Feedback, int64, error)
+	GetByID(ctx context.Context, id int) (*models.Feedback, error)
+	Reply(ctx context.Context, id int, reply string) error
+}
+
 // Compile-time interface satisfaction checks
 var _ OrderRepo = (*OrderRepository)(nil)
 var _ ProjectRepo = (*ProjectRepository)(nil)
 var _ ProductRepo = (*ProductRepository)(nil)
 var _ EmailPromotionRepo = (*EmailPromotionRepository)(nil)
 var _ UserRepo = (*UserRepository)(nil)
+var _ ApplicationRepo = (*ApplicationRepository)(nil)
+var _ OliveBranchRepo = (*OliveBranchRepository)(nil)
+var _ SchoolRepo = (*SchoolRepository)(nil)
+var _ MajorRepo = (*MajorRepository)(nil)
+var _ TalentProfileRepo = (*TalentProfileRepository)(nil)
+var _ AdminUserRepo = (*AdminUserRepository)(nil)
+var _ FeedbackRepo = (*FeedbackRepository)(nil)
