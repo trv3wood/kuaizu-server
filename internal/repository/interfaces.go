@@ -51,7 +51,9 @@ type UserRepo interface {
 	GetByID(ctx context.Context, id int) (*models.User, error)
 	GetByOpenID(ctx context.Context, openid string) (*models.User, error)
 	Create(ctx context.Context, openid string) (*models.User, error)
+	CreateWithPhone(ctx context.Context, openid string, phone string) (*models.User, error)
 	Update(ctx context.Context, user *models.User) error
+	UpdatePhone(ctx context.Context, userID int, phone string) error
 	UpdateQuota(ctx context.Context, user *models.User) error
 	AddOliveBranchCount(ctx context.Context, userID int, count int) error
 	AddOliveBranchCountTx(ctx context.Context, tx *sqlx.Tx, userID int, count int) error

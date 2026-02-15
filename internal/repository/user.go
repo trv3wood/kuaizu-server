@@ -110,6 +110,26 @@ func (r *UserRepository) Create(ctx context.Context, openid string) (*models.Use
 	return r.GetByID(ctx, int(id))
 }
 
+// CreateWithPhone creates a new user with phone and returns the created user
+func (r *UserRepository) CreateWithPhone(ctx context.Context, openid string, phone string) (*models.User, error) {
+	query := `
+		INSERT INTO ` + "`user`" + ` (openid, phone, olive_branch_count, free_branch_used_today, auth_status)
+		VALUES (?, ?, 0, 0, 0)
+	`
+
+	result, err := r.db.ExecContext(ctx, query, openid, phone)
+	if err != nil {
+		return nil, fmt.Errorf("create user with phone: %w", err)
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, fmt.Errorf("get last insert id: %w", err)
+	}
+
+	return r.GetByID(ctx, int(id))
+}
+
 // Update updates user fields
 func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 	query := `
@@ -138,6 +158,23 @@ func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 	)
 	if err != nil {
 		return fmt.Errorf("update user: %w", err)
+	}
+
+	return nil
+}
+
+// UpdatePhone updates user phone number
+func (r *UserRepository) UpdatePhone(ctx context.Context, userID int, phone string) error {
+	query := `UPDATE ` + "`user`" + ` SET phone = ? WHERE id = ?`
+
+	result, err := r.db.ExecContext(ctx, query, phone, userID)
+	if err != nil {
+		return fmt.Errorf("update user phone: %w", err)
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found")
 	}
 
 	return nil

@@ -4,6 +4,7 @@ import "github.com/trv3wood/kuaizu-server/internal/repository"
 
 // Services aggregates all service instances.
 type Services struct {
+	Auth             *AuthService
 	EmailPromotion   *EmailPromotionService
 	Payment          *PaymentService
 	EmailUnsubscribe *EmailUnsubscribeService
@@ -14,6 +15,7 @@ type Services struct {
 // New creates a new Services instance with all sub-services.
 func New(repo *repository.Repository) *Services {
 	return &Services{
+		Auth:             NewAuthService(repo),
 		EmailPromotion:   NewEmailPromotionService(repo),
 		Payment:          NewPaymentService(repo),
 		EmailUnsubscribe: NewEmailUnsubscribeService(repo),
