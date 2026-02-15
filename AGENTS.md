@@ -1,0 +1,31 @@
+# AGENTS
+
+## Overview
+This repository is a Go backend for the “快组”校园小程序（组队与人才匹配平台），based on Echo v4 with a MySQL/sqlx data layer. There are two entrypoints: the main mini‑program API server and an admin server.
+
+## Project Layout
+- `cmd/server/` main API server entrypoint (`cmd/server/main.go`).
+- `cmd/admin/` admin server entrypoint (`cmd/admin/main.go`).
+- `api/` OpenAPI spec + generated code (spec in `api/service.yaml`).
+- `internal/` application code (handlers, services, repositories, models, middleware, auth, wechat, email, db, admin sub‑module).
+- `sql/` schema, seed data, ER diagram.
+- `docs/` documentation assets (Swagger UI).
+- `tools/` helper tooling.
+
+## Common Commands
+- `make run` start main server.
+- `make run-admin` start admin server.
+- `make build` build main server into `bin/`.
+- `make build-admin` build admin server into `bin/`.
+- `make generate` regenerate OpenAPI server code from `api/service.yaml` using `oapi-codegen`.
+- `make tidy` run `go mod tidy`.
+
+## Development Workflow
+1. Edit API definitions in `api/service.yaml`.
+2. Run `make generate` (updates `api/api.gen.go`).
+3. Implement handlers in `internal/handler/` (and `internal/admin/handler/` for admin routes).
+4. Add/adjust database logic in `internal/repository/`.
+
+## Notes
+- Environment variables are defined in `.env` (see `.env.example`).
+- Database setup scripts live in `sql/create_mysql.sql`.
