@@ -27,7 +27,7 @@ type TalentProfileListParams struct {
 	SchoolID *int
 	MajorID  *int
 	Keyword  *string
-	Status	 *int
+	Status   *int
 }
 
 // List retrieves paginated talent profiles with optional filters

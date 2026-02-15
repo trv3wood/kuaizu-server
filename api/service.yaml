@@ -53,7 +53,9 @@ paths:
     post:
       tags: [Auth]
       summary: 微信一键登录/注册
-      description: 后端自动判断是注册还是登录，返回Token
+      description: |
+        后端自动判断是注册还是登录，返回Token。
+        若为新用户（数据库无记录），返回需要绑定手机号的状态并下发 registerToken。
       operationId: loginWithWechat
       security: []
       requestBody:
@@ -71,6 +73,52 @@ paths:
       responses:
         "200":
           description: 登录成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/LoginResponse"
+        "202":
+          description: 新用户需绑定手机号
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/RegisterTokenResponse"
+
+  /auth/register/phone:
+    post:
+      tags: [Auth]
+      summary: 手机号注册/绑定
+      description: 使用 registerToken + phoneCode 完成注册并换取正式 Token
+      operationId: registerWithPhone
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [registerToken, phoneCode]
+              properties:
+                registerToken:
+                  type: string
+                  description: 临时注册凭证
+                phoneCode:
+                  type: string
+                  description: 手机号快速验证组件返回的 code
+                  example: "0a1b2c3d4e5f"
+      responses:
+        "200":
+          description: 注册成功
           content:
             application/json:
               schema:
@@ -1142,6 +1190,15 @@ components:
           description: 是否为新注册用户
         user:
           $ref: "#/components/schemas/UserVO"
+    RegisterTokenResponse:
+      type: object
+      properties:
+        registerToken:
+          type: string
+          description: 临时注册凭证
+        expiresIn:
+          type: integer
+          description: 注册凭证过期时间(秒)
 
     # ==================== 用户相关 ====================
     UserVO:

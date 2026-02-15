@@ -1,10 +1,12 @@
 package wechat
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -17,11 +19,33 @@ type Code2SessionResponse struct {
 	ErrMsg     string `json:"errmsg,omitempty"`
 }
 
+type accessTokenResponse struct {
+	AccessToken string `json:"access_token"`
+	ExpiresIn   int    `json:"expires_in"`
+	ErrCode     int    `json:"errcode,omitempty"`
+	ErrMsg      string `json:"errmsg,omitempty"`
+}
+
+type PhoneInfo struct {
+	PhoneNumber     string `json:"phoneNumber"`
+	PurePhoneNumber string `json:"purePhoneNumber"`
+	CountryCode     string `json:"countryCode"`
+}
+
+type getPhoneNumberResponse struct {
+	ErrCode   int        `json:"errcode,omitempty"`
+	ErrMsg    string     `json:"errmsg,omitempty"`
+	PhoneInfo *PhoneInfo `json:"phone_info,omitempty"`
+}
+
 // Client is a WeChat Mini Program API client
 type Client struct {
 	appID      string
 	appSecret  string
 	httpClient *http.Client
+	mu         sync.Mutex
+	token      string
+	tokenExp   time.Time
 }
 
 // NewClient creates a new WeChat client from environment variables
@@ -79,4 +103,105 @@ func (c *Client) Code2Session(code string) (*Code2SessionResponse, error) {
 	}
 
 	return &result, nil
+}
+
+// GetAccessToken retrieves (and caches) the WeChat access_token
+// https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/mp-access-token/getAccessToken.html
+func (c *Client) GetAccessToken() (string, error) {
+	if c.appID == "" || c.appSecret == "" {
+		return "", fmt.Errorf("WECHAT_APPID or WECHAT_SECRET not configured")
+	}
+
+	c.mu.Lock()
+	if c.token != "" && time.Now().Before(c.tokenExp.Add(-5*time.Minute)) {
+		token := c.token
+		c.mu.Unlock()
+		return token, nil
+	}
+	c.mu.Unlock()
+
+	url := fmt.Sprintf(
+		"https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s",
+		c.appID, c.appSecret,
+	)
+
+	resp, err := c.httpClient.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("request access token: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result accessTokenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("decode access token response: %w", err)
+	}
+	if result.ErrCode != 0 {
+		return "", fmt.Errorf("wechat api error: %d - %s", result.ErrCode, result.ErrMsg)
+	}
+	if result.AccessToken == "" || result.ExpiresIn == 0 {
+		return "", fmt.Errorf("wechat api returned empty access token")
+	}
+
+	exp := time.Now().Add(time.Duration(result.ExpiresIn) * time.Second)
+	c.mu.Lock()
+	c.token = result.AccessToken
+	c.tokenExp = exp
+	c.mu.Unlock()
+
+	return result.AccessToken, nil
+}
+
+// GetPhoneNumber exchanges phoneCode for the user's phone number
+// https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/user-info/phone-number/getPhoneNumber.html
+func (c *Client) GetPhoneNumber(code string) (string, error) {
+	if code == "" {
+		return "", fmt.Errorf("phone code is empty")
+	}
+
+	accessToken, err := c.GetAccessToken()
+	if err != nil {
+		return "", err
+	}
+
+	url := fmt.Sprintf(
+		"https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=%s",
+		accessToken,
+	)
+	body, err := json.Marshal(map[string]string{"code": code})
+	if err != nil {
+		return "", fmt.Errorf("marshal phone code: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
+	if err != nil {
+		return "", fmt.Errorf("create phone request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("request phone number: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result getPhoneNumberResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("decode phone response: %w", err)
+	}
+	if result.ErrCode != 0 {
+		return "", fmt.Errorf("wechat api error: %d - %s", result.ErrCode, result.ErrMsg)
+	}
+	if result.PhoneInfo == nil {
+		return "", fmt.Errorf("wechat api returned empty phone info")
+	}
+
+	phone := result.PhoneInfo.PurePhoneNumber
+	if phone == "" {
+		phone = result.PhoneInfo.PhoneNumber
+	}
+	if phone == "" {
+		return "", fmt.Errorf("wechat api returned empty phone number")
+	}
+
+	return phone, nil
 }
