@@ -2,22 +2,27 @@ post:
   tags:
     - Users
   summary: 提交学生认证
+  description: |
+    上传学生证照片并提交认证申请。
+    - 支持格式: JPEG, PNG
+    - 文件大小限制: ≤5MB
+    - 重复提交会覆盖之前的认证申请
   operationId: submitCertification
   requestBody:
     required: true
     content:
-      application/json:
+      multipart/form-data:
         schema:
           type: object
           required:
-            - authImgUrl
+            - studentCertImage
           properties:
-            authImgUrl:
+            studentCertImage:
               type: string
-              description: 学生证照片URL
-              example: https://cdn.example.com/student/123.jpg
+              format: binary
+              description: 学生证照片（JPEG/PNG，≤5MB）
   responses:
-    '200':
+    "200":
       description: 提交成功
       content:
         application/json:
@@ -29,7 +34,7 @@ get:
   summary: 获取当前用户认证状态
   operationId: getCertificationStatus
   responses:
-    '200':
+    "200":
       description: 成功获取当前用户认证状态
       content:
         application/json:

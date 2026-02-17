@@ -108,3 +108,7 @@ func (s *Server) SubmitCertification(ctx echo.Context) error {
 
 	return SuccessMessage(ctx, "认证申请已提交，请等待审核")
 }
+
+func (s *Server) GetCertificationStatus(ctx echo.Context) error {
+	return NotImplemented(ctx)
+}
