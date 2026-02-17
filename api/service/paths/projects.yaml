@@ -1,0 +1,65 @@
+get:
+  tags:
+    - Projects
+  summary: 项目列表/搜索
+  operationId: listProjects
+  security: []
+  parameters:
+    - $ref: ../components/parameters/PageParam.yaml
+    - $ref: ../components/parameters/SizeParam.yaml
+    - name: keyword
+      in: query
+      description: 关键词搜索
+      schema:
+        type: string
+    - name: schoolId
+      in: query
+      description: 学校ID筛选
+      schema:
+        type: integer
+    - name: status
+      in: query
+      description: 项目状态筛选
+      schema:
+        $ref: ../components/schemas/ProjectStatus.yaml
+    - name: direction
+      in: query
+      description: 项目方向筛选
+      schema:
+        $ref: ../components/schemas/Direction.yaml
+  responses:
+    '200':
+      description: 成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/ProjectPageResponse.yaml
+post:
+  tags:
+    - Projects
+  summary: 发布新项目
+  description: 创建后状态默认为"待审核"
+  operationId: createProject
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CreateProjectDTO.yaml
+  responses:
+    '200':
+      description: 创建成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/ProjectVO.yaml

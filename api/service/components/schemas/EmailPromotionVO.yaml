@@ -1,0 +1,38 @@
+type: object
+properties:
+  id:
+    type: integer
+    description: 推广记录ID
+  projectId:
+    type: integer
+    description: 推广的项目ID
+  projectName:
+    type: string
+    description: 项目名称
+  maxRecipients:
+    type: integer
+    description: 购买的最大发送人数
+  totalSent:
+    type: integer
+    description: 实际发送数量
+  status:
+    $ref: ./EmailPromotionStatus.yaml
+  statusText:
+    type: string
+    description: 状态文本
+    example: 已完成
+  errorMessage:
+    type: string
+    description: 错误信息（如有）
+  startedAt:
+    type: string
+    format: date-time
+    description: 开始发送时间
+  completedAt:
+    type: string
+    format: date-time
+    description: 完成时间
+  createdAt:
+    type: string
+    format: date-time
+    description: 创建时间

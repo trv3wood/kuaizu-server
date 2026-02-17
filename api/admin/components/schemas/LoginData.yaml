@@ -1,0 +1,7 @@
+type: object
+properties:
+  token:
+    type: string
+  expiresIn:
+    type: integer
+    description: 过期时间（秒）

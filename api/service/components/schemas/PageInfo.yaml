@@ -1,0 +1,15 @@
+type: object
+properties:
+  page:
+    type: integer
+    description: 当前页码
+  size:
+    type: integer
+    description: 每页条数
+  total:
+    type: integer
+    format: int64
+    description: 总记录数
+  totalPages:
+    type: integer
+    description: 总页数

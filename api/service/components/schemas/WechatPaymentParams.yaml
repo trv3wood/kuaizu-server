@@ -1,0 +1,13 @@
+type: object
+description: 微信小程序requestPayment所需参数
+properties:
+  timeStamp:
+    type: string
+  nonceStr:
+    type: string
+  package:
+    type: string
+  signType:
+    type: string
+  paySign:
+    type: string

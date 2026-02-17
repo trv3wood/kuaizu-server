@@ -1,0 +1,10 @@
+type: integer
+enum:
+  - 1
+  - 2
+  - 3
+description: |
+  项目方向:
+  - 1: 落地
+  - 2: 比赛
+  - 3: 学习

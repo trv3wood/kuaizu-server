@@ -13,7 +13,8 @@ build-admin:
 	go build -o bin/kuaizu-admin cmd/admin/main.go
 
 generate:
-	go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=api/config.yaml api/service.yaml
+	npx @redocly/cli bundle api/service/openapi.yaml --output api/service/openapi-bundled.yaml
+	go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=api/service/config.yaml api/service/openapi-bundled.yaml
 
 tidy:
 	go mod tidy

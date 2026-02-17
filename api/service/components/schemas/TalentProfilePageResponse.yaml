@@ -1,0 +1,8 @@
+type: object
+properties:
+  list:
+    type: array
+    items:
+      $ref: ./TalentProfileVO.yaml
+  pageInfo:
+    $ref: ./PageInfo.yaml

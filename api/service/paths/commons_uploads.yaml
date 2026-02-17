@@ -1,0 +1,43 @@
+post:
+  tags:
+    - Commons
+  summary: 文件上传通用接口
+  description: 统一上传图片，返回URL
+  operationId: uploadFile
+  requestBody:
+    required: true
+    content:
+      multipart/form-data:
+        schema:
+          type: object
+          required:
+            - file
+          properties:
+            file:
+              type: string
+              format: binary
+              description: 上传的文件
+            type:
+              type: string
+              enum:
+                - avatar
+                - student_cert
+                - background
+              description: 文件类型
+  responses:
+    '200':
+      description: 上传成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      url:
+                        type: string
+                        description: 文件访问URL
+                        example: https://cdn.example.com/uploads/123.jpg

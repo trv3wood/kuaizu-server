@@ -1,0 +1,23 @@
+type: object
+properties:
+  id:
+    type: integer
+  userId:
+    type: integer
+  nickname:
+    type: string
+  schoolName:
+    type: string
+  majorName:
+    type: string
+  skills:
+    type: array
+    items:
+      type: string
+  mbti:
+    type: string
+  status:
+    $ref: ./TalentStatus.yaml
+  isPublicContact:
+    type: boolean
+    description: 是否公开联系方式

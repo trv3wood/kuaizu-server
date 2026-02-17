@@ -1,0 +1,21 @@
+type: object
+required:
+  - receiverId
+  - type
+properties:
+  receiverId:
+    type: integer
+    description: 接收人ID
+  relatedProjectId:
+    type: integer
+    description: 关联项目ID(若是项目邀请)
+  type:
+    type: integer
+    description: 类型:1-人才互联,2-项目邀请
+  hasSmsNotify:
+    type: boolean
+    description: 是否购买短信通知
+    default: false
+  message:
+    type: string
+    description: 邀请留言

@@ -1,0 +1,36 @@
+type: object
+properties:
+  id:
+    type: integer
+  nickname:
+    type: string
+  avatarUrl:
+    type: string
+  phone:
+    type: string
+  email:
+    type: string
+  school:
+    $ref: ./SchoolVO.yaml
+  major:
+    $ref: ./MajorVO.yaml
+  grade:
+    type: integer
+  oliveBranchCount:
+    type: integer
+    description: 付费橄榄枝余额
+  freeBranchUsedToday:
+    type: integer
+    description: 今日已用免费次数(每日重置)
+  lastActiveDate:
+    type: string
+    format: date
+    description: 最后活跃日期(用于重置免费次数)
+  authStatus:
+    $ref: ./AuthStatus.yaml
+  authImgUrl:
+    type: string
+    description: 学生证认证图
+  createdAt:
+    type: string
+    format: date-time

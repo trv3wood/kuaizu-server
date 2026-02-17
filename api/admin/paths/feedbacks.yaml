@@ -1,0 +1,42 @@
+get:
+  tags:
+    - Feedbacks
+  summary: 获取反馈列表（支持分页和筛选）
+  parameters:
+    - in: query
+      name: page
+      schema:
+        type: integer
+        default: 1
+      description: 页码
+    - in: query
+      name: size
+      schema:
+        type: integer
+        default: 20
+      description: 每页条数
+    - in: query
+      name: status
+      schema:
+        type: integer
+      description: 处理状态筛选
+  responses:
+    '200':
+      description: 成功获取反馈列表
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/FeedbackPagedData.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '500':
+      $ref: ../components/responses/InternalError.yaml

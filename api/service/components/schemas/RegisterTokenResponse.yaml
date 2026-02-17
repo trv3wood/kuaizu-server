@@ -1,0 +1,8 @@
+type: object
+properties:
+  registerToken:
+    type: string
+    description: 临时注册凭证
+  expiresIn:
+    type: integer
+    description: 注册凭证过期时间(秒)

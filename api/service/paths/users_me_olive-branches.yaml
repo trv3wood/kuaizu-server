@@ -1,0 +1,25 @@
+get:
+  tags:
+    - OliveBranches
+  summary: 查看我收到的橄榄枝邀请
+  description: 人才视角查看收到的邀请
+  operationId: getMyReceivedOliveBranches
+  parameters:
+    - $ref: ../components/parameters/PageParam.yaml
+    - $ref: ../components/parameters/SizeParam.yaml
+    - name: status
+      in: query
+      schema:
+        $ref: ../components/schemas/OliveBranchStatus.yaml
+  responses:
+    '200':
+      description: 成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/OliveBranchPageResponse.yaml

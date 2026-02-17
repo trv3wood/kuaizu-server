@@ -1,0 +1,36 @@
+post:
+  tags:
+    - Auth
+  summary: 手机号注册/绑定
+  description: 使用 registerToken + phoneCode 完成注册并换取正式 Token
+  operationId: registerWithPhone
+  security: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - registerToken
+            - phoneCode
+          properties:
+            registerToken:
+              type: string
+              description: 临时注册凭证
+            phoneCode:
+              type: string
+              description: 手机号快速验证组件返回的 code
+              example: 0a1b2c3d4e5f
+  responses:
+    '200':
+      description: 注册成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/LoginResponse.yaml

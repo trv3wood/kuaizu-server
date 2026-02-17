@@ -1,0 +1,11 @@
+type: object
+required:
+  - orderId
+  - projectId
+properties:
+  orderId:
+    type: integer
+    description: 购买邮件推广商品的订单ID
+  projectId:
+    type: integer
+    description: 要推广的项目ID

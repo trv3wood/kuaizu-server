@@ -1,0 +1,42 @@
+post:
+  tags:
+    - Users
+  summary: 提交学生认证
+  operationId: submitCertification
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - authImgUrl
+          properties:
+            authImgUrl:
+              type: string
+              description: 学生证照片URL
+              example: https://cdn.example.com/student/123.jpg
+  responses:
+    '200':
+      description: 提交成功
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/BaseResponse.yaml
+get:
+  tags:
+    - Users
+  summary: 获取当前用户认证状态
+  operationId: getCertificationStatus
+  responses:
+    '200':
+      description: 成功获取当前用户认证状态
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/CertificationStatusVO.yaml

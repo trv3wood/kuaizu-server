@@ -1,0 +1,21 @@
+type: object
+properties:
+  skills:
+    type: array
+    items:
+      type: string
+    description: 技能标签列表
+  selfEvaluation:
+    type: string
+    description: 自我评价
+  projectExperience:
+    type: string
+    description: 项目经历
+  mbti:
+    type: string
+    maxLength: 10
+  status:
+    $ref: ./TalentStatus.yaml
+  isPublicContact:
+    type: boolean
+    description: 是否公开联系方式

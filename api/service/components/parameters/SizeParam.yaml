@@ -1,0 +1,8 @@
+name: size
+in: query
+description: 每页条数
+schema:
+  type: integer
+  default: 10
+  minimum: 1
+  maximum: 100

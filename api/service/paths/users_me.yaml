@@ -1,0 +1,40 @@
+get:
+  tags:
+    - Users
+  summary: 获取当前用户信息
+  operationId: getCurrentUser
+  responses:
+    '200':
+      description: 成功获取用户信息
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/UserVO.yaml
+put:
+  tags:
+    - Users
+  summary: 更新个人资料
+  operationId: updateCurrentUser
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpdateUserDTO.yaml
+  responses:
+    '200':
+      description: 更新成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/UserVO.yaml

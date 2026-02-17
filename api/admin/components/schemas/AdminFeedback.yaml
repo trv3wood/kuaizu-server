@@ -1,0 +1,26 @@
+type: object
+properties:
+  id:
+    type: integer
+  userId:
+    type: integer
+  content:
+    type: string
+  contactImage:
+    type: string
+    nullable: true
+  status:
+    type: integer
+    description: 0=待处理,1=已处理
+  adminReply:
+    type: string
+    nullable: true
+  createdAt:
+    type: string
+    format: date-time
+  updatedAt:
+    type: string
+    format: date-time
+  userNickname:
+    type: string
+    nullable: true

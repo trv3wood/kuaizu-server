@@ -1,0 +1,25 @@
+parameters:
+  - name: id
+    in: path
+    required: true
+    schema:
+      type: integer
+    description: 人才档案ID
+get:
+  tags:
+    - TalentProfiles
+  summary: 查看人才详情
+  description: 需数据脱敏，除非已建立联系
+  operationId: getTalentProfile
+  responses:
+    '200':
+      description: 成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/TalentProfileDetailVO.yaml

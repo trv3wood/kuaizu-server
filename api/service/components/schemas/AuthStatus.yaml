@@ -1,0 +1,10 @@
+type: integer
+enum:
+  - 0
+  - 1
+  - 2
+description: |
+  认证状态:
+  - 0: 未认证
+  - 1: 已认证
+  - 2: 认证失败

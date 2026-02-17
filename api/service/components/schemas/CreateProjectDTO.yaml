@@ -1,0 +1,28 @@
+type: object
+required:
+  - name
+  - description
+  - memberCount
+properties:
+  name:
+    type: string
+    maxLength: 200
+  description:
+    type: string
+  schoolId:
+    type: integer
+  direction:
+    $ref: ./Direction.yaml
+  memberCount:
+    type: integer
+    minimum: 1
+  isCrossSchool:
+    type: integer
+    description: |
+      是否跨校: 1-可以,2-不可以
+  educationRequirement:
+    type: integer
+    description: 学历要求1-大专2-本科
+  skillRequirement:
+    type: string
+    description: 技能要求

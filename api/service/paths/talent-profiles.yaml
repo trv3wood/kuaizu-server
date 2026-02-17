@@ -1,0 +1,60 @@
+get:
+  tags:
+    - TalentProfiles
+  summary: 搜索人才库
+  operationId: listTalentProfiles
+  parameters:
+    - $ref: ../components/parameters/PageParam.yaml
+    - $ref: ../components/parameters/SizeParam.yaml
+    - name: majorId
+      in: query
+      description: 专业ID筛选
+      schema:
+        type: integer
+    - name: keyword
+      in: query
+      description: 关键词搜索
+      schema:
+        type: string
+    - name: schoolId
+      in: query
+      description: 学校ID筛选
+      schema:
+        type: integer
+  security: []
+  responses:
+    '200':
+      description: 成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/TalentProfilePageResponse.yaml
+post:
+  tags:
+    - TalentProfiles
+  summary: 发布/修改我的人才卡片
+  description: 只有发布了才能被搜到
+  operationId: upsertTalentProfile
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpsertTalentProfileDTO.yaml
+  responses:
+    '200':
+      description: 成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/TalentProfileDetailVO.yaml

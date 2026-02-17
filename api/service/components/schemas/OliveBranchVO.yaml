@@ -1,0 +1,36 @@
+type: object
+properties:
+  id:
+    type: integer
+  senderId:
+    type: integer
+    description: 发起人ID
+  receiverId:
+    type: integer
+    description: 接收人ID
+  relatedProjectId:
+    type: integer
+    description: 关联项目ID(若是项目邀请)
+  projectName:
+    type: string
+    description: 项目名称
+  type:
+    type: integer
+    description: 类型:1-人才互联,2-项目邀请
+  costType:
+    type: integer
+    description: 消耗类型:1-免费额度,2-付费额度
+  hasSmsNotify:
+    type: boolean
+    description: 是否购买短信通知
+  sender:
+    $ref: ./UserVO.yaml
+  receiver:
+    $ref: ./UserVO.yaml
+  message:
+    type: string
+  status:
+    $ref: ./OliveBranchStatus.yaml
+  createdAt:
+    type: string
+    format: date-time

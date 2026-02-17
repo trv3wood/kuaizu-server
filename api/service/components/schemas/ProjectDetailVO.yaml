@@ -1,0 +1,22 @@
+allOf:
+  - $ref: ./ProjectVO.yaml
+  - type: object
+    properties:
+      creator:
+        $ref: ./UserVO.yaml
+      viewCount:
+        type: integer
+        description: 浏览量
+      applicationCount:
+        type: integer
+        description: 申请数量
+      isCrossSchool:
+        type: integer
+        description: |
+          是否跨校: 1-可以,2-不可以
+      educationRequirement:
+        type: integer
+        description: 学历要求1-大专2-本科
+      skillRequirement:
+        type: string
+        description: 技能要求

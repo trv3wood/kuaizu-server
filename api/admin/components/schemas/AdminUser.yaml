@@ -1,0 +1,58 @@
+type: object
+properties:
+  id:
+    type: integer
+  openId:
+    type: string
+  nickname:
+    type: string
+    nullable: true
+  phone:
+    type: string
+    nullable: true
+  email:
+    type: string
+    nullable: true
+  schoolId:
+    type: integer
+    nullable: true
+  majorId:
+    type: integer
+    nullable: true
+  grade:
+    type: integer
+    nullable: true
+  oliveBranchCount:
+    type: integer
+    description: 付费橄榄枝余额
+  freeBranchUsedToday:
+    type: integer
+    description: 今日已用免费次数
+  lastActiveDate:
+    type: string
+    format: date-time
+    nullable: true
+  authStatus:
+    type: integer
+    description: 0-未认证, 1-已认证, 2-认证失败
+  authImgUrl:
+    type: string
+    nullable: true
+  emailOptOut:
+    type: boolean
+    description: 是否退订邮件推广
+  createdAt:
+    type: string
+    format: date-time
+  schoolName:
+    type: string
+    nullable: true
+  schoolCode:
+    type: string
+    nullable: true
+  majorName:
+    type: string
+    nullable: true
+  classId:
+    type: integer
+    nullable: true

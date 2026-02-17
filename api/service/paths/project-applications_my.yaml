@@ -1,0 +1,24 @@
+get:
+  tags:
+    - ProjectApplications
+  summary: 获取我的申请
+  operationId: listMyApplications
+  parameters:
+    - $ref: ../components/parameters/PageParam.yaml
+    - $ref: ../components/parameters/SizeParam.yaml
+    - name: status
+      in: query
+      schema:
+        $ref: ../components/schemas/ApplicationStatus.yaml
+  responses:
+    '200':
+      description: 成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/ApplicationPageResponse.yaml

@@ -1,0 +1,12 @@
+type: object
+properties:
+  userCount:
+    type: integer
+  projectCount:
+    type: integer
+  pendingProjectCount:
+    type: integer
+  pendingAuthCount:
+    type: integer
+  pendingFeedbackCount:
+    type: integer
