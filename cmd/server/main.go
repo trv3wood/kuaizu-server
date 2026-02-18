@@ -14,6 +14,7 @@ import (
 	"github.com/trv3wood/kuaizu-server/internal/db"
 	"github.com/trv3wood/kuaizu-server/internal/handler"
 	"github.com/trv3wood/kuaizu-server/internal/middleware"
+	"github.com/trv3wood/kuaizu-server/internal/oss"
 	"github.com/trv3wood/kuaizu-server/internal/repository"
 	"github.com/trv3wood/kuaizu-server/internal/service"
 )
@@ -53,9 +54,15 @@ func main() {
 	defer pool.Close()
 	log.Println("Connected to database")
 
+	// Initialize OSS client
+	ossClient, err := oss.NewClient()
+	if err != nil {
+		log.Fatalf("Failed to initialize OSS client: %v", err)
+	}
+
 	// Initialize repository, service, and handler
 	repo := repository.New(pool)
-	svc := service.New(repo)
+	svc := service.New(repo, ossClient)
 	server := handler.NewServer(repo, svc)
 
 	// Register API routes with /api/v2 prefix
