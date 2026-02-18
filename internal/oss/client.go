@@ -57,5 +57,5 @@ func (c *Client) Upload(r io.Reader, filename string) (*UploadResult, error) {
 		return nil, fmt.Errorf("oss put object: %w", err)
 	}
 
-	return &UploadResult{URL: fmt.Sprintf("%s/%s", c.domain, objectKey), Key: objectKey}, nil
+	return &UploadResult{URL: fmt.Sprintf("%s/%s", c.domain, objectKey), Key: fmt.Sprintf("%s/%s", datePath, filename)}, nil
 }
