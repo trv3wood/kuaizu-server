@@ -387,6 +387,43 @@ func (r *UserRepository) SetEmailOptOut(ctx context.Context, userID int, optOut 
 	if err != nil {
 		return fmt.Errorf("set email opt out: %w", err)
 	}
+	return nil
+}
+
+// UpdateAuthImgUrl updates user's authentication image URL
+func (r *UserRepository) UpdateAuthImgUrl(ctx context.Context, userID int, authImgUrl string) error {
+	query := `
+		UPDATE ` + "`user`" + ` SET
+			auth_img_url = ?
+		WHERE id = ?
+	`
+
+	_, err := r.db.ExecContext(ctx, query, authImgUrl, userID)
+	if err != nil {
+		return fmt.Errorf("update user auth img url: %w", err)
+	}
 
 	return nil
+}
+
+type CertInfo struct {
+	Status     int
+	AuthImgUrl string
+}
+
+func (r *UserRepository) GetEduCertInfoByID(ctx context.Context, userID int) (CertInfo, error) {
+	query := `
+		SELECT auth_status, auth_img_url 
+		FROM ` + "`user`" + `
+		WHERE id = ?
+	`
+
+	var authStatus int
+	var authImgUrl string
+	err := r.db.QueryRowxContext(ctx, query, userID).Scan(&authStatus, &authImgUrl)
+	if err != nil {
+		return CertInfo{0, ""}, fmt.Errorf("get auth status: %w", err)
+	}
+
+	return CertInfo{authStatus, authImgUrl}, nil
 }

@@ -6,15 +6,3 @@ properties:
     type: string
     description: 认证图片URL
     example: https://cdn.example.com/student/123.jpg
-  submittedAt:
-    type: string
-    format: date-time
-    description: 认证提交时间
-  reviewedAt:
-    type: string
-    format: date-time
-    description: 审核完成时间
-  rejectReason:
-    type: string
-    description: 拒绝原因（仅在 status=2 时有值）
-    example: 图片不清晰，请重新上传

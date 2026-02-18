@@ -45,6 +45,7 @@ func NewClient() (*Client, error) {
 // UploadResult holds the result of a successful upload.
 type UploadResult struct {
 	URL string
+	Key string
 }
 
 // Upload streams a reader to OSS under a date-based path.
@@ -56,5 +57,5 @@ func (c *Client) Upload(r io.Reader, filename string) (*UploadResult, error) {
 		return nil, fmt.Errorf("oss put object: %w", err)
 	}
 
-	return &UploadResult{URL: fmt.Sprintf("%s/%s", c.domain, objectKey)}, nil
+	return &UploadResult{URL: fmt.Sprintf("%s/%s", c.domain, objectKey), Key: objectKey}, nil
 }

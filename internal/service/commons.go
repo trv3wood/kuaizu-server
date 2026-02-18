@@ -24,13 +24,8 @@ func NewCommonsService(ossClient *oss.Client) *CommonsService {
 	return &CommonsService{ossClient: ossClient}
 }
 
-// FileUploadResult is returned on successful upload.
-type FileUploadResult struct {
-	URL string
-}
-
 // UploadFile validates and uploads a multipart file to OSS.
-func (s *CommonsService) UploadFile(file multipart.File, header *multipart.FileHeader) (*FileUploadResult, error) {
+func (s *CommonsService) UploadFile(file multipart.File, header *multipart.FileHeader) (*oss.UploadResult, error) {
 	if header.Size > maxFileSize {
 		return nil, ErrBadRequest(fmt.Sprintf("文件大小超过限制 (最大 %dMB)", maxFileSize/1024/1024))
 	}
@@ -45,6 +40,5 @@ func (s *CommonsService) UploadFile(file multipart.File, header *multipart.FileH
 	if err != nil {
 		return nil, ErrInternal("文件上传失败")
 	}
-
-	return &FileUploadResult{URL: result.URL}, nil
+	return result, nil
 }

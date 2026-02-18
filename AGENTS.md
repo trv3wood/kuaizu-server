@@ -6,7 +6,7 @@ This repository is a Go backend for the “快组”校园小程序（组队与�
 ## Project Layout
 - `cmd/server/` main API server entrypoint (`cmd/server/main.go`).
 - `cmd/admin/` admin server entrypoint (`cmd/admin/main.go`).
-- `api/` OpenAPI spec + generated code (spec in `api/service.yaml`).
+- `api/` OpenAPI spec + generated code (spec in `api/service/openapi.yaml` and `api/admin/openapi.yaml`).
 - `internal/` application code (handlers, services, repositories, models, middleware, auth, wechat, email, oss, db, admin sub‑module).
 - `sql/` schema, seed data, ER diagram.
 - `docs/` documentation assets (Swagger UI).
