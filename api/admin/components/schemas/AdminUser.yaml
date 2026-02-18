@@ -34,7 +34,7 @@ properties:
     nullable: true
   authStatus:
     type: integer
-    description: 0-未认证, 1-已认证, 2-认证失败
+    description: 0-未认证, 1-已认证, 2-认证失败 3-审核中
   authImgUrl:
     type: string
     nullable: true

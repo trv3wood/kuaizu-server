@@ -254,11 +254,12 @@ func (r *UserRepository) UpdateAuthStatus(ctx context.Context, userID int, authS
 
 // UserListParams contains parameters for listing users
 type UserListParams struct {
-	Page       int
-	Size       int
-	AuthStatus *int
-	SchoolID   *int
-	Keyword    *string
+	Page            int
+	Size            int
+	AuthStatus      *int
+	SchoolID        *int
+	Keyword         *string
+	AuthImgUploaded *bool
 }
 
 // ListUsers retrieves paginated users with optional filters
@@ -279,6 +280,14 @@ func (r *UserRepository) ListUsers(ctx context.Context, params UserListParams) (
 	if params.Keyword != nil && *params.Keyword != "" {
 		conditions = append(conditions, "(u.nickname LIKE ? OR u.phone LIKE ?)")
 		args = append(args, "%"+*params.Keyword+"%", "%"+*params.Keyword+"%")
+	}
+
+	if params.AuthImgUploaded != nil {
+		if *params.AuthImgUploaded == false {
+			conditions = append(conditions, "u.auth_img_url IS NULL")
+		} else {
+			conditions = append(conditions, "u.auth_img_url IS NOT NULL")
+		}
 	}
 
 	whereClause := strings.Join(conditions, " AND ")
