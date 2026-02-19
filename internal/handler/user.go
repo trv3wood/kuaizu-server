@@ -89,12 +89,10 @@ func (s *Server) SubmitCertification(ctx echo.Context) error {
 		return BadRequest(ctx, "读取文件失败")
 	}
 	defer file.Close()
-	result, err := s.svc.Commons.UploadFile(file, fileHeader)
+
+	result, err := s.svc.Commons.SubmitCertification(ctx.Request().Context(), GetUserID(ctx), file, fileHeader)
 	if err != nil {
-		return InternalError(ctx, "上传失败")
-	}
-	if err := s.repo.User.UpdateAuthImgUrl(ctx.Request().Context(), GetUserID(ctx), result.Key); err != nil {
-		return InternalError(ctx, "更新失败")
+		return mapServiceError(ctx, err)
 	}
 	return Success(ctx, result)
 }
