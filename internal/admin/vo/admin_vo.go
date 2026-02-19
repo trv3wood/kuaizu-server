@@ -101,7 +101,7 @@ func NewAdminUserVO(u *models.User) *AdminUserVO {
 		return nil
 	}
 
-	return &AdminUserVO{
+	vo := AdminUserVO{
 		ID:                  u.ID,
 		OpenID:              u.OpenID,
 		Nickname:            u.Nickname,
@@ -113,7 +113,6 @@ func NewAdminUserVO(u *models.User) *AdminUserVO {
 		OliveBranchCount:    u.OliveBranchCount,
 		FreeBranchUsedToday: u.FreeBranchUsedToday,
 		LastActiveDate:      u.LastActiveDate,
-		AuthStatus:          u.AuthStatus,
 		AuthImgUrl:          u.AuthImgUrl,
 		EmailOptOut:         u.EmailOptOut,
 		CreatedAt:           u.CreatedAt,
@@ -122,6 +121,12 @@ func NewAdminUserVO(u *models.User) *AdminUserVO {
 		MajorName:           u.MajorName,
 		ClassID:             u.ClassID,
 	}
+	if u.AuthImgUrl != nil && u.AuthStatus == 0 {
+		vo.AuthStatus = 3 //  提交了审核材料且未认证，将状态映射为 3-审核中，方便管理员优先处理
+	} else {
+		vo.AuthStatus = u.AuthStatus
+	}
+	return &vo
 }
 
 // NewAdminFeedbackVO converts a Feedback model to AdminFeedbackVO.

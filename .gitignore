@@ -27,8 +27,10 @@ go.work
 
 # Project specific
 bin/
-api/api.gen.go
+api.gen.go
 dist/
+*bundled.yaml
+.vscode/
 
 # Certificate
 *.pem

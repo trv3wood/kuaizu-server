@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"os"
-
 	"github.com/labstack/echo/v4"
 	"github.com/trv3wood/kuaizu-server/api"
 	"github.com/trv3wood/kuaizu-server/internal/models"
@@ -117,13 +115,4 @@ func (s *Server) ListMyEmailPromotions(ctx echo.Context) error {
 		"list":  list,
 		"total": total,
 	})
-}
-
-// getBaseURL 获取基础URL
-func getBaseURL() string {
-	baseURL := os.Getenv("BASE_URL")
-	if baseURL == "" {
-		baseURL = "https://kuaizu.xyz"
-	}
-	return baseURL
 }

@@ -1,0 +1,26 @@
+post:
+  tags:
+    - OliveBranches
+  summary: 发送橄榄枝(邀请)
+  description: |
+    后端逻辑：检查余额 -> 扣除次数 -> 发送通知
+    余额不足返回错误码4002
+  operationId: sendOliveBranch
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/SendOliveBranchDTO.yaml
+  responses:
+    '200':
+      description: 发送成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/OliveBranchVO.yaml

@@ -1,0 +1,25 @@
+parameters:
+  - name: id
+    in: path
+    required: true
+    schema:
+      type: integer
+    description: 订单ID
+post:
+  tags:
+    - Orders
+  summary: 发起微信支付
+  description: 返回微信小程序requestPayment所需的参数
+  operationId: initiatePayment
+  responses:
+    '200':
+      description: 成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/WechatPaymentParams.yaml

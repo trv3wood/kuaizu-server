@@ -1,0 +1,12 @@
+type: object
+required:
+  - productId
+  - quantity
+properties:
+  productId:
+    type: integer
+    description: 商品ID
+  quantity:
+    type: integer
+    description: 购买数量
+    default: 1

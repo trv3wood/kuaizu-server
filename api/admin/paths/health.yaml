@@ -1,0 +1,19 @@
+get:
+  servers:
+    - url: http://localhost:8081
+      description: 测活
+    - url: https://dev.darker233.top
+      description: 测活
+  operationId: checkHealth
+  security: []
+  responses:
+    '200':
+      description: 服务运行中
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: ok

@@ -1,0 +1,20 @@
+type: object
+properties:
+  id:
+    type: integer
+  name:
+    type: string
+    description: 商品名称
+  type:
+    type: integer
+    description: 类型:1-虚拟币,2-服务权益
+  description:
+    type: string
+    description: 商品描述
+  price:
+    type: number
+    format: double
+    description: 商品价格
+  configJson:
+    type: string
+    description: 配置参数(如增加多少个橄榄枝)

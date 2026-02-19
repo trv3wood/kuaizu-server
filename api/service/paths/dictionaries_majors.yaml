@@ -1,0 +1,36 @@
+get:
+  tags:
+    - Dictionaries
+  summary: 获取专业/大类列表
+  description: 返回树形结构或列表
+  operationId: listMajors
+  parameters:
+    - name: classId
+      in: query
+      description: 专业大类ID筛选
+      schema:
+        type: integer
+    - name: majorKeyword
+      in: query
+      description: 专业关键词筛选
+      schema:
+        type: string
+    - name: classKeyword
+      in: query
+      description: 专业大类关键词筛选
+      schema:
+        type: string
+  responses:
+    '200':
+      description: 成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: ../components/schemas/MajorClassVO.yaml

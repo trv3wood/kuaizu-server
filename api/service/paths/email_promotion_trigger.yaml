@@ -1,0 +1,24 @@
+post:
+  tags:
+    - EmailPromotions
+  summary: 触发邮件推广
+  description: 用户购买邮件推广商品后，选择要推广的项目并触发发送
+  operationId: triggerEmailPromotion
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/TriggerEmailPromotionDTO.yaml
+  responses:
+    '200':
+      description: 推广任务创建成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/TriggerEmailPromotionResponse.yaml

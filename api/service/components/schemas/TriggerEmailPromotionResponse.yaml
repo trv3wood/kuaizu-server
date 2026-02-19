@@ -1,0 +1,16 @@
+type: object
+properties:
+  promotionId:
+    type: integer
+    description: 创建的推广记录ID
+  maxRecipients:
+    type: integer
+    description: 最大发送人数
+  status:
+    type: string
+    description: 状态
+    example: pending
+  message:
+    type: string
+    description: 提示信息
+    example: 推广任务已创建，正在发送中

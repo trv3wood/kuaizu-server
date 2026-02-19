@@ -1,0 +1,29 @@
+get:
+  tags:
+    - TalentProfiles
+  summary: 查看我的人才详情
+  operationId: getMyTalentProfile
+  responses:
+    '200':
+      description: 成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/TalentProfileDetailVO.yaml
+delete:
+  tags:
+    - TalentProfiles
+  summary: 下架我的人才名片
+  operationId: deleteMyTalentProfile
+  responses:
+    '200':
+      description: 下架成功
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/BaseResponse.yaml

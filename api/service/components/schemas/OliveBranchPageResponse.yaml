@@ -1,0 +1,8 @@
+type: object
+properties:
+  list:
+    type: array
+    items:
+      $ref: ./OliveBranchVO.yaml
+  pageInfo:
+    $ref: ./PageInfo.yaml

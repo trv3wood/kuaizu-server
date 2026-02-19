@@ -62,6 +62,8 @@ type UserRepo interface {
 	ListUsers(ctx context.Context, params UserListParams) ([]models.User, int64, error)
 	FindEmailRecipients(ctx context.Context, excludeUserID int, limit int) ([]*EmailRecipient, error)
 	SetEmailOptOut(ctx context.Context, userID int, optOut bool) error
+	UpdateAuthImgUrl(ctx context.Context, userID int, authImgUrl string) error
+	GetEduCertInfoByID(ctx context.Context, userID int) (CertInfo, error)
 }
 
 // ApplicationRepo defines the interface for application repository operations.

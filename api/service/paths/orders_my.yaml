@@ -1,0 +1,32 @@
+get:
+  tags:
+    - Orders
+  summary: 我的订单列表
+  operationId: listMyOrders
+  parameters:
+    - $ref: ../components/parameters/PageParam.yaml
+    - $ref: ../components/parameters/SizeParam.yaml
+    - name: status
+      in: query
+      description: 订单状态筛选
+      schema:
+        $ref: ../components/schemas/OrderStatus.yaml
+  responses:
+    '200':
+      description: 成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      list:
+                        type: array
+                        items:
+                          $ref: ../components/schemas/OrderVO.yaml
+                      pageInfo:
+                        $ref: ../components/schemas/PageInfo.yaml

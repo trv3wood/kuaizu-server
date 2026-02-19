@@ -1,0 +1,25 @@
+parameters:
+  - name: id
+    in: path
+    required: true
+    schema:
+      type: integer
+    description: 订单ID
+get:
+  tags:
+    - Orders
+  summary: 查询订单状态
+  description: 轮询查单使用
+  operationId: getOrder
+  responses:
+    '200':
+      description: 成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/OrderVO.yaml

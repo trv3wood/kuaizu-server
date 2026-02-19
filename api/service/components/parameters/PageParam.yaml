@@ -1,0 +1,7 @@
+name: page
+in: query
+description: 页码(从1开始)
+schema:
+  type: integer
+  default: 1
+  minimum: 1

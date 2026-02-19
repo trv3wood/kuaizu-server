@@ -1,0 +1,26 @@
+get:
+  tags:
+    - EmailPromotions
+  summary: 我的推广记录列表
+  description: 获取当前用户的邮件推广记录
+  operationId: listMyEmailPromotions
+  responses:
+    '200':
+      description: 成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      list:
+                        type: array
+                        items:
+                          $ref: ../components/schemas/EmailPromotionVO.yaml
+                      total:
+                        type: integer
+                        format: int64

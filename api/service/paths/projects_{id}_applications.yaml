@@ -1,0 +1,65 @@
+parameters:
+  - name: id
+    in: path
+    required: true
+    schema:
+      type: integer
+    description: 项目ID
+get:
+  tags:
+    - ProjectApplications
+  summary: 查看某项目的申请列表
+  description: 仅队长可见
+  operationId: listProjectApplications
+  parameters:
+    - $ref: ../components/parameters/PageParam.yaml
+    - $ref: ../components/parameters/SizeParam.yaml
+    - name: status
+      in: query
+      schema:
+        $ref: ../components/schemas/ApplicationStatus.yaml
+  responses:
+    '200':
+      description: 成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/ApplicationPageResponse.yaml
+post:
+  tags:
+    - ProjectApplications
+  summary: 申请加入项目
+  description: 触发订阅消息逻辑
+  operationId: applyToProject
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            applyReason:
+              type: string
+              description: 自我介绍/申请理由
+              example: 我有2年的Java开发经验...
+            contact:
+              type: string
+              description: 联系方式
+              example: '微信: example123'
+  responses:
+    '200':
+      description: 申请成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/ProjectApplicationVO.yaml

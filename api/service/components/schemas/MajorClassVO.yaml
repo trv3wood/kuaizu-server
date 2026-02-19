@@ -1,0 +1,10 @@
+type: object
+properties:
+  id:
+    type: integer
+  className:
+    type: string
+  majors:
+    type: array
+    items:
+      $ref: ./MajorVO.yaml

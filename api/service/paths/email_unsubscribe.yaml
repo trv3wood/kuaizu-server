@@ -1,0 +1,27 @@
+get:
+  tags:
+    - EmailPromotions
+  summary: 邮件退订
+  description: 用户点击邮件中的退订链接后访问此接口
+  operationId: emailUnsubscribe
+  security: []
+  parameters:
+    - name: token
+      in: query
+      required: true
+      description: 退订token
+      schema:
+        type: string
+  responses:
+    '200':
+      description: 退订成功（返回HTML页面）
+      content:
+        text/html:
+          schema:
+            type: string
+    '400':
+      description: 无效或过期的token
+      content:
+        text/html:
+          schema:
+            type: string

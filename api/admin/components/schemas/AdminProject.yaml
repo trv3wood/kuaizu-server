@@ -1,0 +1,51 @@
+type: object
+properties:
+  id:
+    type: integer
+  creatorId:
+    type: integer
+  name:
+    type: string
+  description:
+    type: string
+    nullable: true
+  schoolId:
+    type: integer
+    nullable: true
+  direction:
+    type: integer
+    nullable: true
+  memberCount:
+    type: integer
+    nullable: true
+  status:
+    type: integer
+  promotionStatus:
+    type: integer
+    description: 推广状态:0-无,1-推广中,2-已结束
+  promotionExpireTime:
+    type: string
+    format: date-time
+    nullable: true
+    description: 推广结束时间
+  viewCount:
+    type: integer
+    description: 浏览量
+  createdAt:
+    type: string
+    format: date-time
+  updatedAt:
+    type: string
+    format: date-time
+  schoolName:
+    type: string
+    nullable: true
+  isCrossSchool:
+    type: integer
+    nullable: true
+  educationRequirement:
+    type: integer
+    nullable: true
+  skillRequirement:
+    type: string
+    nullable: true

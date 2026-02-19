@@ -1,0 +1,111 @@
+openapi: 3.0.3
+info:
+  title: 快组校园 API v2
+  description: |
+    快组校园 RESTful API v2 - 大学生组队与人才匹配平台
+
+    ## 核心规约
+    - URL路径：全小写，单词间用中划线分隔
+    - JSON字段：严格使用小驼峰(camelCase)
+    - 鉴权方式：Header携带 `Authorization: Bearer {token}`
+  version: 2.0.0
+  contact:
+    name: 快组校园团队
+servers:
+  - url: http://localhost:8080/api/v2
+    description: 本地开发
+  - url: https://kuaizu.xyz/api/v2
+    description: 生产环境
+  - url: https://dev.darker233.top/api/v2
+    description: 开发环境
+tags:
+  - name: Auth
+    description: 认证相关接口
+  - name: Users
+    description: 用户管理接口
+  - name: Projects
+    description: 项目大厅接口
+  - name: ProjectApplications
+    description: 项目申请管理接口
+  - name: TalentProfiles
+    description: 人才库接口
+  - name: OliveBranches
+    description: 橄榄枝邀请接口
+  - name: Products
+    description: 商品管理接口
+  - name: Orders
+    description: 订单与支付接口
+  - name: Dictionaries
+    description: 基础数据字典接口
+  - name: Commons
+    description: 通用接口
+  - name: EmailPromotions
+    description: 邮件推广服务接口
+security:
+  - bearerAuth: []
+paths:
+  /auth/login/wechat:
+    $ref: paths/auth_login_wechat.yaml
+  /auth/register/phone:
+    $ref: paths/auth_register_phone.yaml
+  /users/me:
+    $ref: paths/users_me.yaml
+  /users/me/certification:
+    $ref: paths/users_me_certification.yaml
+  /users/me/olive-branches:
+    $ref: paths/users_me_olive-branches.yaml
+  /users/me/sent-olive-branches:
+    $ref: paths/users_me_sent-olive-branches.yaml
+  /projects:
+    $ref: paths/projects.yaml
+  /projects/{id}:
+    $ref: paths/projects_{id}.yaml
+  /projects/my:
+    $ref: paths/projects_my.yaml
+  /projects/{id}/applications:
+    $ref: paths/projects_{id}_applications.yaml
+  /project-applications/{id}:
+    $ref: paths/project-applications_{id}.yaml
+  /project-applications/my:
+    $ref: paths/project-applications_my.yaml
+  /talent-profiles:
+    $ref: paths/talent-profiles.yaml
+  /talent-profiles/{id}:
+    $ref: paths/talent-profiles_{id}.yaml
+  /talent-profiles/my:
+    $ref: paths/talent-profiles_my.yaml
+  /olive-branches:
+    $ref: paths/olive-branches.yaml
+  /olive-branches/{id}:
+    $ref: paths/olive-branches_{id}.yaml
+  /products:
+    $ref: paths/products.yaml
+  /products/{id}:
+    $ref: paths/products_{id}.yaml
+  /orders:
+    $ref: paths/orders.yaml
+  /orders/{id}:
+    $ref: paths/orders_{id}.yaml
+  /orders/my:
+    $ref: paths/orders_my.yaml
+  /orders/{id}/pay:
+    $ref: paths/orders_{id}_pay.yaml
+  /email/unsubscribe:
+    $ref: paths/email_unsubscribe.yaml
+  /email/promotion/trigger:
+    $ref: paths/email_promotion_trigger.yaml
+  /email/promotions/my:
+    $ref: paths/email_promotions_my.yaml
+  /dictionaries/schools:
+    $ref: paths/dictionaries_schools.yaml
+  /dictionaries/majors:
+    $ref: paths/dictionaries_majors.yaml
+  /commons/uploads:
+    $ref: paths/commons_uploads.yaml
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Token认证

@@ -1,0 +1,25 @@
+get:
+  tags:
+    - Dictionaries
+  summary: 获取学校列表
+  operationId: listSchools
+  parameters:
+    - name: keyword
+      in: query
+      description: 关键词搜索
+      schema:
+        type: string
+  responses:
+    '200':
+      description: 成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: ../components/schemas/SchoolVO.yaml

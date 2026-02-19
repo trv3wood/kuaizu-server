@@ -1,0 +1,45 @@
+post:
+  tags:
+    - Auth
+  summary: 微信一键登录/注册
+  description: |
+    后端自动判断是注册还是登录，返回Token。
+    若为新用户（数据库无记录），返回需要绑定手机号的状态并下发 registerToken。
+  operationId: loginWithWechat
+  security: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - code
+          properties:
+            code:
+              type: string
+              description: 微信登录临时凭证code
+              example: 0a1b2c3d4e5f
+  responses:
+    '200':
+      description: 登录成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/LoginResponse.yaml
+    '202':
+      description: 新用户需绑定手机号
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/RegisterTokenResponse.yaml

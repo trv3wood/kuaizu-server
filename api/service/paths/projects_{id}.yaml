@@ -1,0 +1,62 @@
+parameters:
+  - name: id
+    in: path
+    required: true
+    schema:
+      type: integer
+    description: 项目ID
+get:
+  tags:
+    - Projects
+  summary: 获取项目详情
+  description: 返回包含浏览量、队长信息的数据
+  operationId: getProject
+  responses:
+    '200':
+      description: 成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/ProjectDetailVO.yaml
+put:
+  tags:
+    - Projects
+  summary: 修改项目信息
+  description: 仅队长可操作
+  operationId: updateProject
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpdateProjectDTO.yaml
+  responses:
+    '200':
+      description: 更新成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    $ref: ../components/schemas/ProjectVO.yaml
+delete:
+  tags:
+    - Projects
+  summary: 删除/下架项目
+  description: 逻辑删除
+  operationId: deleteProject
+  responses:
+    '200':
+      description: 删除成功
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/BaseResponse.yaml

@@ -1,0 +1,26 @@
+type: object
+properties:
+  id:
+    type: integer
+  productId:
+    type: integer
+    description: 商品ID
+  productName:
+    type: string
+    description: 商品名称
+  actualPaid:
+    type: number
+    format: double
+    description: 实付金额
+  status:
+    $ref: ./OrderStatus.yaml
+  wxPayNo:
+    type: string
+    description: 微信支付单号
+  payTime:
+    type: string
+    format: date-time
+    description: 支付时间
+  createdAt:
+    type: string
+    format: date-time
