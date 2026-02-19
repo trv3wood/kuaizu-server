@@ -25,6 +25,6 @@ func New(repo *repository.Repository, ossClient *oss.Client) *Services {
 		EmailUnsubscribe: NewEmailUnsubscribeService(repo),
 		Order:            NewOrderService(repo),
 		OliveBranch:      NewOliveBranchService(repo),
-		Commons:          NewCommonsService(ossClient),
+		Commons:          NewCommonsService(ossClient, repo.User),
 	}
 }
