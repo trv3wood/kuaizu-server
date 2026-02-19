@@ -4,8 +4,8 @@ on:
   push:
     tags: ["v*"]
     paths:
-      - "api/admin.yaml"
-      - "api/service.yaml"
+      - "api/admin/**"
+      - "api/service/**"
       - "docs/swagger-ui/**"
       - ".github/workflows/swagger-ui-pages.yml"
   workflow_dispatch:
@@ -29,10 +29,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Install swagger-ui-dist
+      - name: Install dependencies
         run: |
           npm init -y
-          npm install --save-dev swagger-ui-dist
+          npm install --save-dev swagger-ui-dist @redocly/cli
+      - name: Bundle OpenAPI specs
+        run: |
+          npx @redocly/cli bundle api/admin/openapi.yaml -o admin-bundled.yaml
+          npx @redocly/cli bundle api/service/openapi.yaml -o service-bundled.yaml
       - name: Build site
         run: |
           set -euo pipefail
@@ -41,8 +45,8 @@ jobs:
           mkdir -p "$SITE_DIR"
           DIST_DIR="$(node -e "process.stdout.write(require('swagger-ui-dist').getAbsoluteFSPath())")"
           cp -R "$DIST_DIR"/. "$SITE_DIR"/
-          cp api/admin.yaml "$SITE_DIR"/admin.yaml
-          cp api/service.yaml "$SITE_DIR"/service.yaml
+          cp admin-bundled.yaml "$SITE_DIR"/admin.yaml
+          cp service-bundled.yaml "$SITE_DIR"/service.yaml
           cp docs/swagger-ui/index.html "$SITE_DIR"/index.html
       - name: Configure Pages
         uses: actions/configure-pages@v5
