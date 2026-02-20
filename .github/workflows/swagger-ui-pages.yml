@@ -2,7 +2,6 @@ name: Swagger UI Pages
 
 on:
   push:
-    tags: ["v*"]
     paths:
       - "api/admin/**"
       - "api/service/**"
