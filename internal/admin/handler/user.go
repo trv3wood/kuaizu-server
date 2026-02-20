@@ -31,9 +31,10 @@ func (s *AdminServer) ListUsers(ctx echo.Context) error {
 			return response.BadRequest(ctx, "invalid authStatus")
 		}
 		params.AuthStatus = &status
-		if *params.AuthStatus == 3 { // 重新映射
-			*params.AuthStatus = 1
-			*params.AuthImgUploaded = true
+		if params.AuthStatus != nil && *params.AuthStatus == 3 { // 重新映射
+			*params.AuthStatus = 0
+			uploaded := true
+			params.AuthImgUploaded = &uploaded
 		}
 	}
 
