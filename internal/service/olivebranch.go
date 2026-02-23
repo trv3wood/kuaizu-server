@@ -23,8 +23,7 @@ func NewOliveBranchService(repo *repository.Repository) *OliveBranchService {
 // SendRequest holds the input for sending an olive branch.
 type SendRequest struct {
 	ReceiverID       int
-	Type             int
-	RelatedProjectID *int
+	RelatedProjectID int
 	HasSmsNotify     bool
 	Message          *string
 }
@@ -47,10 +46,7 @@ func (s *OliveBranchService) SendOliveBranch(ctx context.Context, userID int, re
 
 	// Validate project
 	var projectName *string
-	if req.RelatedProjectID == nil {
-		return nil, ErrBadRequest("项目邀请必须指定项目ID")
-	}
-	project, err := s.repo.Project.GetByID(ctx, *req.RelatedProjectID)
+	project, err := s.repo.Project.GetByID(ctx, req.RelatedProjectID)
 	if err != nil {
 		return nil, ErrInternal("查询项目失败")
 	}
@@ -63,7 +59,7 @@ func (s *OliveBranchService) SendOliveBranch(ctx context.Context, userID int, re
 	projectName = &project.Name
 
 	// Check for duplicate pending olive branch
-	exists, err := s.repo.OliveBranch.ExistsPending(ctx, userID, req.ReceiverID, *req.RelatedProjectID)
+	exists, err := s.repo.OliveBranch.ExistsPending(ctx, userID, req.ReceiverID, req.RelatedProjectID)
 	if err != nil {
 		return nil, ErrInternal("查询橄榄枝状态失败")
 	}
@@ -108,7 +104,6 @@ func (s *OliveBranchService) SendOliveBranch(ctx context.Context, userID int, re
 		SenderID:         userID,
 		ReceiverID:       req.ReceiverID,
 		RelatedProjectID: req.RelatedProjectID,
-		Type:             req.Type,
 		CostType:         costType,
 		HasSmsNotify:     req.HasSmsNotify,
 		Message:          req.Message,

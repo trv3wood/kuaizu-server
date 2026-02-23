@@ -11,7 +11,7 @@ type OliveBranch struct {
 	ID               int
 	SenderID         int
 	ReceiverID       int
-	RelatedProjectID *int
+	RelatedProjectID int
 	Type             int // 1-人才互联, 2-项目邀请
 	CostType         int // 1-免费额度, 2-付费额度
 	HasSmsNotify     bool
@@ -34,7 +34,7 @@ func (o *OliveBranch) ToVO() *api.OliveBranchVO {
 		Id:               &o.ID,
 		SenderId:         &o.SenderID,
 		ReceiverId:       &o.ReceiverID,
-		RelatedProjectId: o.RelatedProjectID,
+		RelatedProjectId: &o.RelatedProjectID,
 		Type:             &o.Type,
 		CostType:         &o.CostType,
 		HasSmsNotify:     &o.HasSmsNotify,
