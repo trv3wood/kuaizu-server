@@ -1,7 +1,7 @@
 type: object
 required:
   - receiverId
-  - type
+  - relatedProjectId
 properties:
   receiverId:
     type: integer
@@ -11,7 +11,7 @@ properties:
     description: 关联项目ID(若是项目邀请)
   type:
     type: integer
-    description: 类型:1-人才互联,2-项目邀请
+    description: 类型:1-人才互联,2-项目邀请(弃用)
   hasSmsNotify:
     type: boolean
     description: 是否购买短信通知

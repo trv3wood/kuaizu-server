@@ -2,6 +2,8 @@ name: Swagger UI Pages
 
 on:
   push:
+    branches:
+      - main
     paths:
       - "api/admin/**"
       - "api/service/**"
