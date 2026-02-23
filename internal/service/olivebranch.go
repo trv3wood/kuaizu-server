@@ -63,7 +63,7 @@ func (s *OliveBranchService) SendOliveBranch(ctx context.Context, userID int, re
 	projectName = &project.Name
 
 	// Check for duplicate pending olive branch
-	exists, err := s.repo.OliveBranch.ExistsPending(ctx, userID, req.ReceiverID)
+	exists, err := s.repo.OliveBranch.ExistsPending(ctx, userID, req.ReceiverID, *req.RelatedProjectID)
 	if err != nil {
 		return nil, ErrInternal("查询橄榄枝状态失败")
 	}
