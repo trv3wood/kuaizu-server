@@ -82,6 +82,7 @@ type OliveBranchRepo interface {
 	Create(ctx context.Context, ob *models.OliveBranch) error
 	UpdateStatus(ctx context.Context, id int, status int) error
 	ListBySenderID(ctx context.Context, params OliveBranchListParams) ([]models.OliveBranch, int64, error)
+	ExistsPending(ctx context.Context, senderID, receiverID, relatedProjectID int) (bool, error)
 }
 
 // SchoolRepo defines the interface for school repository operations.

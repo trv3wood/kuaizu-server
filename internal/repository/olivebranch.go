@@ -150,6 +150,16 @@ func (r *OliveBranchRepository) Create(ctx context.Context, ob *models.OliveBran
 	return nil
 }
 
+// ExistsPending checks if there is a pending (status=0) olive branch from sender to receiver.
+func (r *OliveBranchRepository) ExistsPending(ctx context.Context, senderID, receiverID, relatedProjectID int) (bool, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM olive_branch_record WHERE sender_id = ? AND receiver_id = ? AND related_project_id = ? AND status = 0`
+	if err := r.db.QueryRowxContext(ctx, query, senderID, receiverID, relatedProjectID).Scan(&count); err != nil {
+		return false, fmt.Errorf("check pending olive branch: %w", err)
+	}
+	return count > 0, nil
+}
+
 // UpdateStatus updates the status of an olive branch
 func (r *OliveBranchRepository) UpdateStatus(ctx context.Context, id int, status int) error {
 	query := `UPDATE olive_branch_record SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
