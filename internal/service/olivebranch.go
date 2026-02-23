@@ -45,28 +45,30 @@ func (s *OliveBranchService) SendOliveBranch(ctx context.Context, userID int, re
 		return nil, ErrBadRequest("不能向自己发送橄榄枝")
 	}
 
-	// Validate type
-	if req.Type != 1 && req.Type != 2 {
-		return nil, ErrBadRequest("类型无效，必须为1(人才互联)或2(项目邀请)")
-	}
-
-	// If project invitation, validate project
+	// Validate project
 	var projectName *string
-	if req.Type == 2 {
-		if req.RelatedProjectID == nil {
-			return nil, ErrBadRequest("项目邀请必须指定项目ID")
-		}
-		project, err := s.repo.Project.GetByID(ctx, *req.RelatedProjectID)
-		if err != nil {
-			return nil, ErrInternal("查询项目失败")
-		}
-		if project == nil {
-			return nil, ErrNotFound("关联项目不存在")
-		}
-		if project.CreatorID != userID {
-			return nil, ErrForbidden("只有项目队长可以发送邀请")
-		}
-		projectName = &project.Name
+	if req.RelatedProjectID == nil {
+		return nil, ErrBadRequest("项目邀请必须指定项目ID")
+	}
+	project, err := s.repo.Project.GetByID(ctx, *req.RelatedProjectID)
+	if err != nil {
+		return nil, ErrInternal("查询项目失败")
+	}
+	if project == nil {
+		return nil, ErrNotFound("关联项目不存在")
+	}
+	if project.CreatorID != userID {
+		return nil, ErrForbidden("只有项目队长可以发送邀请")
+	}
+	projectName = &project.Name
+
+	// Check for duplicate pending olive branch
+	exists, err := s.repo.OliveBranch.ExistsPending(ctx, userID, req.ReceiverID)
+	if err != nil {
+		return nil, ErrInternal("查询橄榄枝状态失败")
+	}
+	if exists {
+		return nil, ErrBadRequest("已有待处理的橄榄枝，请等待对方处理后再发送")
 	}
 
 	// Get sender for quota check
