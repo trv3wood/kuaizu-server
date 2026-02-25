@@ -20,9 +20,6 @@ properties:
   costType:
     type: integer
     description: 消耗类型:1-免费额度,2-付费额度
-  hasSmsNotify:
-    type: boolean
-    description: 是否购买短信通知
   sender:
     $ref: ./UserVO.yaml
   receiver:

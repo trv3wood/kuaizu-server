@@ -14,7 +14,6 @@ type OliveBranch struct {
 	RelatedProjectID int
 	Type             int // 1-人才互联, 2-项目邀请
 	CostType         int // 1-免费额度, 2-付费额度
-	HasSmsNotify     bool
 	Message          *string
 	Status           int // 0-待处理, 1-已接受, 2-已拒绝, 3-已忽略
 	CreatedAt        time.Time
@@ -37,7 +36,6 @@ func (o *OliveBranch) ToVO() *api.OliveBranchVO {
 		RelatedProjectId: &o.RelatedProjectID,
 		Type:             &o.Type,
 		CostType:         &o.CostType,
-		HasSmsNotify:     &o.HasSmsNotify,
 		Message:          o.Message,
 		Status:           &status,
 		CreatedAt:        &o.CreatedAt,
