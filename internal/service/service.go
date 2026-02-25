@@ -14,6 +14,7 @@ type Services struct {
 	Order            *OrderService
 	OliveBranch      *OliveBranchService
 	Commons          *CommonsService
+	ContentAudit     *ContentAuditService
 }
 
 // New creates a new Services instance with all sub-services.
@@ -26,5 +27,6 @@ func New(repo *repository.Repository, ossClient *oss.Client) *Services {
 		Order:            NewOrderService(repo),
 		OliveBranch:      NewOliveBranchService(repo),
 		Commons:          NewCommonsService(ossClient, repo.User),
+		ContentAudit:     NewContentAuditService(),
 	}
 }

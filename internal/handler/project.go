@@ -85,6 +85,15 @@ func (s *Server) CreateProject(ctx echo.Context) error {
 		return BadRequest(ctx, "需求人数必须大于0")
 	}
 
+	// 文字内容审核
+	auditTexts := []string{req.Name, req.Description}
+	if req.SkillRequirement != nil {
+		auditTexts = append(auditTexts, *req.SkillRequirement)
+	}
+	if err := s.svc.ContentAudit.CheckText(ctx.Request().Context(), auditTexts...); err != nil {
+		return BadRequest(ctx, "内容包含违规信息，请修改后重试")
+	}
+
 	// Create project
 	project := &models.Project{
 		CreatorID:            userID,
@@ -236,6 +245,23 @@ func (s *Server) UpdateProject(ctx echo.Context, id int) error {
 	}
 	if req.SkillRequirement != nil {
 		project.SkillRequirement = req.SkillRequirement
+	}
+
+	// 文字内容审核
+	var auditTexts []string
+	if req.Name != nil {
+		auditTexts = append(auditTexts, *req.Name)
+	}
+	if req.Description != nil {
+		auditTexts = append(auditTexts, *req.Description)
+	}
+	if req.SkillRequirement != nil {
+		auditTexts = append(auditTexts, *req.SkillRequirement)
+	}
+	if len(auditTexts) > 0 {
+		if err := s.svc.ContentAudit.CheckText(ctx.Request().Context(), auditTexts...); err != nil {
+			return BadRequest(ctx, "内容包含违规信息，请修改后重试")
+		}
 	}
 
 	if err := s.repo.Project.Update(ctx.Request().Context(), project); err != nil {
