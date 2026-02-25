@@ -71,7 +71,6 @@ func (s *Server) SendOliveBranch(ctx echo.Context) error {
 	ob, err := s.svc.OliveBranch.SendOliveBranch(ctx.Request().Context(), userID, service.SendRequest{
 		ReceiverID:       req.ReceiverId,
 		RelatedProjectID: req.RelatedProjectId,
-		Message:          req.Message,
 	})
 	if err != nil {
 		return mapServiceError(ctx, err)

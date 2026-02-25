@@ -431,11 +431,10 @@ func (s *Server) ApplyToProject(ctx echo.Context, id int) error {
 
 	// Create application
 	application := &models.ProjectApplication{
-		ProjectID:   id,
-		UserID:      userID,
-		ApplyReason: req.ApplyReason,
-		Contact:     req.Contact,
-		Status:      0, // 待审核
+		ProjectID: id,
+		UserID:    userID,
+		Contact:   req.Contact,
+		Status:    0, // 待审核
 	}
 
 	if err := s.repo.Application.Create(ctx.Request().Context(), application); err != nil {
@@ -480,7 +479,7 @@ func (s *Server) ReviewApplication(ctx echo.Context, id int) error {
 	}
 
 	// 6. Update status
-	err = s.repo.Application.UpdateStatus(ctx.Request().Context(), id, int(req.Status), req.ReplyMsg)
+	err = s.repo.Application.UpdateStatus(ctx.Request().Context(), id, int(req.Status))
 	if err != nil {
 		return InternalError(ctx, "failed to update application status")
 	}

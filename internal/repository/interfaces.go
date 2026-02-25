@@ -73,7 +73,7 @@ type ApplicationRepo interface {
 	Create(ctx context.Context, app *models.ProjectApplication) error
 	GetByID(ctx context.Context, id int) (*models.ProjectApplication, error)
 	CheckDuplicate(ctx context.Context, projectID, userID int) (bool, error)
-	UpdateStatus(ctx context.Context, id int, status int, replyMsg *string) error
+	UpdateStatus(ctx context.Context, id int, status int) error
 }
 
 // OliveBranchRepo defines the interface for olive branch repository operations.

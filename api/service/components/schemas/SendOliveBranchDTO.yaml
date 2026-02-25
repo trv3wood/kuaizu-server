@@ -14,4 +14,5 @@ properties:
     description: 类型:1-人才互联,2-项目邀请(弃用)
   message:
     type: string
-    description: 邀请留言
+    deprecated: true
+    description: 邀请留言(已弃用)

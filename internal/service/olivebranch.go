@@ -24,7 +24,6 @@ func NewOliveBranchService(repo *repository.Repository) *OliveBranchService {
 type SendRequest struct {
 	ReceiverID       int
 	RelatedProjectID int
-	Message          *string
 }
 
 // SendOliveBranch validates and creates an olive branch record with quota management.
@@ -116,7 +115,6 @@ func (s *OliveBranchService) SendOliveBranch(ctx context.Context, userID int, re
 		ReceiverID:       req.ReceiverID,
 		RelatedProjectID: req.RelatedProjectID,
 		CostType:         costType,
-		Message:          req.Message,
 		Status:           0, // 待处理
 	}
 
