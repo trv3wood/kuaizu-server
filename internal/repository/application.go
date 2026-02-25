@@ -68,9 +68,6 @@ func (r *ApplicationRepository) List(ctx context.Context, params ApplicationList
 			pa.status, pa.reply_msg, pa.applied_at, pa.updated_at,
 			p.name as project_name,
 			u.id, u.openid, u.nickname, u.phone, u.email,
-			u.school_id, u.major_id, u.grade, u.olive_branch_count,
-			u.free_branch_used_today, u.last_active_date,
-			u.auth_status, u.auth_img_url, u.created_at
 		FROM project_application pa
 		LEFT JOIN project p ON pa.project_id = p.id
 		LEFT JOIN `+"`user`"+` u ON pa.user_id = u.id
@@ -95,9 +92,6 @@ func (r *ApplicationRepository) List(ctx context.Context, params ApplicationList
 			&app.Status, &app.ReplyMsg, &app.AppliedAt, &app.UpdatedAt,
 			&app.ProjectName,
 			&applicant.ID, &applicant.OpenID, &applicant.Nickname, &applicant.Phone, &applicant.Email,
-			&applicant.SchoolID, &applicant.MajorID, &applicant.Grade, &applicant.OliveBranchCount,
-			&applicant.FreeBranchUsedToday, &applicant.LastActiveDate,
-			&applicant.AuthStatus, &applicant.AuthImgUrl, &applicant.CreatedAt,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("scan application: %w", err)

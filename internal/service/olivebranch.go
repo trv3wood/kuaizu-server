@@ -79,17 +79,29 @@ func (s *OliveBranchService) SendOliveBranch(ctx context.Context, userID int, re
 
 	// Reset free quota if last active date is not today
 	if sender.LastActiveDate == nil || sender.LastActiveDate.Truncate(24*time.Hour).Before(today) {
-		sender.FreeBranchUsedToday = 0
+		zero := 0
+		sender.FreeBranchUsedToday = &zero
 		sender.LastActiveDate = &today
 	}
 
 	// Check quota: free first, then paid
-	if sender.FreeBranchUsedToday < dailyFreeQuota {
+	freeBranchUsedToday := 0
+	if sender.FreeBranchUsedToday != nil {
+		freeBranchUsedToday = *sender.FreeBranchUsedToday
+	}
+	oliveBranchCount := 0
+	if sender.OliveBranchCount != nil {
+		oliveBranchCount = *sender.OliveBranchCount
+	}
+
+	if freeBranchUsedToday < dailyFreeQuota {
 		costType = 1 // Free quota
-		sender.FreeBranchUsedToday++
-	} else if sender.OliveBranchCount > 0 {
+		freeBranchUsedToday++
+		sender.FreeBranchUsedToday = &freeBranchUsedToday
+	} else if oliveBranchCount > 0 {
 		costType = 2 // Paid quota
-		sender.OliveBranchCount--
+		oliveBranchCount--
+		sender.OliveBranchCount = &oliveBranchCount
 	} else {
 		return nil, &ServiceError{Code: ErrorCode(4002), Message: "橄榄枝额度不足，今日免费额度已用完且无付费余额"}
 	}
