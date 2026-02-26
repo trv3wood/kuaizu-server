@@ -417,6 +417,28 @@ func (r *UserRepository) UpdateAuthImgUrl(ctx context.Context, userID int, authI
 	return nil
 }
 
+// UpdateAvatarUrl updates user's avatar URL
+func (r *UserRepository) UpdateAvatarUrl(ctx context.Context, userID int, avatarUrl string) error {
+	query := `UPDATE ` + "`user`" + ` SET avatar_url = ? WHERE id = ?`
+
+	_, err := r.db.ExecContext(ctx, query, avatarUrl, userID)
+	if err != nil {
+		return fmt.Errorf("update user avatar url: %w", err)
+	}
+	return nil
+}
+
+// UpdateCoverImage updates user's cover image URL
+func (r *UserRepository) UpdateCoverImage(ctx context.Context, userID int, coverImage string) error {
+	query := `UPDATE ` + "`user`" + ` SET cover_image = ? WHERE id = ?`
+
+	_, err := r.db.ExecContext(ctx, query, coverImage, userID)
+	if err != nil {
+		return fmt.Errorf("update user cover image: %w", err)
+	}
+	return nil
+}
+
 type CertInfo struct {
 	Status     int
 	AuthImgUrl string

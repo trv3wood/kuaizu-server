@@ -37,6 +37,7 @@ type User struct {
 // ToVO converts User to API UserVO
 func (u *User) ToVO() *api.UserVO {
 	authStatus := api.AuthStatus(*u.AuthStatus)
+	// TODO 从环境变量获取oss域名，拼接成完整的url
 
 	vo := &api.UserVO{
 		Id:                  &u.ID,
