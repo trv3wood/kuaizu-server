@@ -53,7 +53,8 @@ func (r *OliveBranchRepository) ListByReceiverID(ctx context.Context, params Oli
 			ob.type, ob.cost_type, ob.status,
 			ob.created_at, ob.updated_at,
 			p.name AS project_name,
-			s.id, s.nickname, s.phone, s.email, s.auth_status
+			s.id, s.nickname, s.phone, s.email, s.auth_status,
+			s.avatar_url
 		FROM olive_branch_record ob
 		LEFT JOIN project p ON ob.related_project_id = p.id
 		LEFT JOIN ` + "`user`" + ` s ON ob.sender_id = s.id
@@ -83,6 +84,7 @@ func (r *OliveBranchRepository) ListByReceiverID(ctx context.Context, params Oli
 			&ob.CreatedAt, &ob.UpdatedAt,
 			&ob.ProjectName,
 			&sender.ID, &sender.Nickname, &sender.Phone, &sender.Email, &sender.AuthStatus,
+			&sender.AvatarUrl,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("scan olive branch: %w", err)
@@ -202,7 +204,8 @@ func (r *OliveBranchRepository) ListBySenderID(ctx context.Context, params Olive
 			ob.type, ob.cost_type, ob.status,
 			ob.created_at, ob.updated_at,
 			p.name AS project_name,
-			r.id, r.nickname, r.phone, r.email, r.auth_status
+			r.id, r.nickname, r.phone, r.email, r.auth_status,
+			r.avatar_url
 		FROM olive_branch_record ob
 		LEFT JOIN project p ON ob.related_project_id = p.id
 		LEFT JOIN ` + "`user`" + ` r ON ob.receiver_id = r.id
@@ -232,6 +235,7 @@ func (r *OliveBranchRepository) ListBySenderID(ctx context.Context, params Olive
 			&ob.CreatedAt, &ob.UpdatedAt,
 			&ob.ProjectName,
 			&receiver.ID, &receiver.Nickname, &receiver.Phone, &receiver.Email, &receiver.AuthStatus,
+			&receiver.AvatarUrl,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("scan olive branch: %w", err)
