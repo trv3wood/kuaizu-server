@@ -37,8 +37,6 @@ type User struct {
 
 // ToVO converts User to API UserVO
 func (u *User) ToVO() *api.UserVO {
-	authStatus := api.AuthStatus(*u.AuthStatus)
-
 	vo := &api.UserVO{
 		Id:                  &u.ID,
 		Nickname:            u.Nickname,
@@ -47,11 +45,15 @@ func (u *User) ToVO() *api.UserVO {
 		Grade:               u.Grade,
 		OliveBranchCount:    u.OliveBranchCount,
 		FreeBranchUsedToday: u.FreeBranchUsedToday,
-		AuthStatus:          &authStatus,
 		AuthImgUrl:          ptrFullURL(u.AuthImgUrl),
 		AvatarUrl:           ptrFullURL(u.AvatarUrl),
 		CoverImage:          ptrFullURL(u.CoverImage),
 		CreatedAt:           u.CreatedAt,
+	}
+
+	if u.AuthStatus != nil {
+		authStatus := api.AuthStatus(*u.AuthStatus)
+		vo.AuthStatus = &authStatus
 	}
 
 	// Add LastActiveDate if available
