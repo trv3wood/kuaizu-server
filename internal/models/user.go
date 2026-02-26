@@ -22,6 +22,8 @@ type User struct {
 	LastActiveDate      *time.Time // 最后活跃日期(用于重置免费次数)
 	AuthStatus          *int       // 0-未认证, 1-已认证, 2-认证失败
 	AuthImgUrl          *string    // 学生证认证图
+	AvatarUrl           *string    // 头像
+	CoverImage          *string    // 封面图
 	EmailOptOut         *bool      // 是否退订邮件推广
 	CreatedAt           *time.Time
 
@@ -46,6 +48,8 @@ func (u *User) ToVO() *api.UserVO {
 		FreeBranchUsedToday: u.FreeBranchUsedToday,
 		AuthStatus:          &authStatus,
 		AuthImgUrl:          u.AuthImgUrl,
+		AvatarUrl:           u.AvatarUrl,
+		CoverImage:          u.CoverImage,
 		CreatedAt:           u.CreatedAt,
 	}
 
