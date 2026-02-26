@@ -5,6 +5,7 @@ import (
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/trv3wood/kuaizu-server/api"
+	"github.com/trv3wood/kuaizu-server/internal/oss"
 )
 
 // User represents a user in the database
@@ -37,7 +38,6 @@ type User struct {
 // ToVO converts User to API UserVO
 func (u *User) ToVO() *api.UserVO {
 	authStatus := api.AuthStatus(*u.AuthStatus)
-	// TODO 从环境变量获取oss域名，拼接成完整的url
 
 	vo := &api.UserVO{
 		Id:                  &u.ID,
@@ -48,9 +48,9 @@ func (u *User) ToVO() *api.UserVO {
 		OliveBranchCount:    u.OliveBranchCount,
 		FreeBranchUsedToday: u.FreeBranchUsedToday,
 		AuthStatus:          &authStatus,
-		AuthImgUrl:          u.AuthImgUrl,
-		AvatarUrl:           u.AvatarUrl,
-		CoverImage:          u.CoverImage,
+		AuthImgUrl:          ptrFullURL(u.AuthImgUrl),
+		AvatarUrl:           ptrFullURL(u.AvatarUrl),
+		CoverImage:          ptrFullURL(u.CoverImage),
 		CreatedAt:           u.CreatedAt,
 	}
 
@@ -79,4 +79,14 @@ func (u *User) ToVO() *api.UserVO {
 	}
 
 	return vo
+}
+
+// ptrFullURL takes a nullable relative OSS path and returns a pointer to the full URL.
+// Returns nil when the input is nil.
+func ptrFullURL(rel *string) *string {
+	if rel == nil {
+		return nil
+	}
+	v := oss.FullURL(*rel)
+	return &v
 }

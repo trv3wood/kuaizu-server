@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/trv3wood/kuaizu-server/internal/models"
+	"github.com/trv3wood/kuaizu-server/internal/oss"
 )
 
 func intPtr(v int) *int { return &v }
@@ -111,7 +112,7 @@ func NewAdminUserVO(u *models.User) *AdminUserVO {
 		MajorID:        u.MajorID,
 		Grade:          u.Grade,
 		LastActiveDate: u.LastActiveDate,
-		AuthImgUrl:     u.AuthImgUrl,
+		AuthImgUrl:     ossFullURLPtr(u.AuthImgUrl),
 		EmailOptOut:    u.EmailOptOut,
 		CreatedAt:      u.CreatedAt,
 		SchoolName:     u.SchoolName,
@@ -137,11 +138,20 @@ func NewAdminFeedbackVO(f *models.Feedback) *AdminFeedbackVO {
 		ID:           f.ID,
 		UserID:       f.UserID,
 		Content:      f.Content,
-		ContactImage: f.ContactImage,
+		ContactImage: ossFullURLPtr(f.ContactImage),
 		Status:       f.Status,
 		AdminReply:   f.AdminReply,
 		CreatedAt:    f.CreatedAt,
 		UpdatedAt:    f.UpdatedAt,
 		UserNickname: f.UserNickname,
 	}
+}
+
+// ossFullURLPtr resolves a nullable relative OSS path to a full URL pointer.
+func ossFullURLPtr(rel *string) *string {
+	if rel == nil {
+		return nil
+	}
+	v := oss.FullURL(*rel)
+	return &v
 }
