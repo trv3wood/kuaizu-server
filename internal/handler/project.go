@@ -104,7 +104,7 @@ func (s *Server) CreateProject(ctx echo.Context) error {
 		Status:               0, // 待审核
 		PromotionStatus:      0, // 无推广
 		ViewCount:            0,
-		IsCrossSchool:        req.IsCrossSchool,
+		IsCrossSchool:        &req.IsCrossSchool,
 		EducationRequirement: req.EducationRequirement,
 		SkillRequirement:     req.SkillRequirement,
 	}
@@ -231,8 +231,7 @@ func (s *Server) UpdateProject(ctx echo.Context, id int) error {
 		project.Description = req.Description
 	}
 	if req.Direction != nil {
-		direction := int(*req.Direction)
-		project.Direction = &direction
+		project.Direction = (*int)(req.Direction)
 	}
 	if req.MemberCount != nil {
 		project.MemberCount = req.MemberCount
