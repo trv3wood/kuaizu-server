@@ -38,16 +38,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id int) (*models.User, err
 	`
 
 	var user models.User
-	err := r.db.QueryRowxContext(ctx, query, id).Scan(
-		&user.ID, &user.OpenID, &user.Nickname, &user.Phone, &user.Email,
-		&user.SchoolID, &user.MajorID, &user.Grade, &user.OliveBranchCount,
-		&user.FreeBranchUsedToday, &user.LastActiveDate,
-		&user.AuthStatus, &user.AuthImgUrl, &user.AvatarUrl, &user.CoverImage,
-		&user.CreatedAt,
-		&user.SchoolName, &user.SchoolCode,
-		&user.MajorName, &user.ClassID,
-	)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, query, id).StructScan(&user); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -75,16 +66,7 @@ func (r *UserRepository) GetByOpenID(ctx context.Context, openid string) (*model
 	`
 
 	var user models.User
-	err := r.db.QueryRowxContext(ctx, query, openid).Scan(
-		&user.ID, &user.OpenID, &user.Nickname, &user.Phone, &user.Email,
-		&user.SchoolID, &user.MajorID, &user.Grade, &user.OliveBranchCount,
-		&user.FreeBranchUsedToday, &user.LastActiveDate,
-		&user.AuthStatus, &user.AuthImgUrl, &user.AvatarUrl, &user.CoverImage,
-		&user.CreatedAt,
-		&user.SchoolName, &user.SchoolCode,
-		&user.MajorName, &user.ClassID,
-	)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, query, openid).StructScan(&user); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -138,26 +120,17 @@ func (r *UserRepository) CreateWithPhone(ctx context.Context, openid string, pho
 func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 	query := `
 		UPDATE ` + "`user`" + ` SET
-			nickname = ?,
-			phone = ?,
-			email = ?,
-			school_id = ?,
-			major_id = ?,
-			grade = ?,
-			auth_status = ?
-		WHERE id = ?
+			nickname = :nickname,
+			phone = :phone,
+			email = :email,
+			school_id = :school_id,
+			major_id = :major_id,
+			grade = :grade,
+			auth_status = :auth_status
+		WHERE id = :id
 	`
 
-	_, err := r.db.ExecContext(ctx, query,
-		user.Nickname,
-		user.Phone,
-		user.Email,
-		user.SchoolID,
-		user.MajorID,
-		user.Grade,
-		user.AuthStatus,
-		user.ID,
-	)
+	_, err := r.db.NamedExecContext(ctx, query, user)
 	if err != nil {
 		return fmt.Errorf("update user: %w", err)
 	}
@@ -186,18 +159,13 @@ func (r *UserRepository) UpdatePhone(ctx context.Context, userID int, phone stri
 func (r *UserRepository) UpdateQuota(ctx context.Context, user *models.User) error {
 	query := `
 		UPDATE ` + "`user`" + ` SET
-			olive_branch_count = ?,
-			free_branch_used_today = ?,
-			last_active_date = ?
-		WHERE id = ?
+			olive_branch_count = :olive_branch_count,
+			free_branch_used_today = :free_branch_used_today,
+			last_active_date = :last_active_date
+		WHERE id = :id
 	`
 
-	_, err := r.db.ExecContext(ctx, query,
-		user.OliveBranchCount,
-		user.FreeBranchUsedToday,
-		user.LastActiveDate,
-		user.ID,
-	)
+	_, err := r.db.NamedExecContext(ctx, query, user)
 	if err != nil {
 		return fmt.Errorf("update user quota: %w", err)
 	}
@@ -297,8 +265,7 @@ func (r *UserRepository) ListUsers(ctx context.Context, params UserListParams) (
 	// Count total
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM `user` u WHERE %s", whereClause)
 	var total int64
-	err := r.db.QueryRowxContext(ctx, countQuery, args...).Scan(&total)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count users: %w", err)
 	}
 
@@ -321,27 +288,9 @@ func (r *UserRepository) ListUsers(ctx context.Context, params UserListParams) (
 	`, whereClause)
 	args = append(args, params.Size, offset)
 
-	rows, err := r.db.QueryxContext(ctx, query, args...)
-	if err != nil {
-		return nil, 0, fmt.Errorf("query users: %w", err)
-	}
-	defer rows.Close()
-
 	var users []models.User
-	for rows.Next() {
-		var u models.User
-		err := rows.Scan(
-			&u.ID, &u.OpenID, &u.Nickname, &u.Phone, &u.Email,
-			&u.SchoolID, &u.MajorID, &u.Grade, &u.OliveBranchCount,
-			&u.FreeBranchUsedToday, &u.LastActiveDate,
-			&u.AuthStatus, &u.AuthImgUrl, &u.AvatarUrl, &u.CoverImage, &u.CreatedAt,
-			&u.SchoolName, &u.SchoolCode,
-			&u.MajorName, &u.ClassID,
-		)
-		if err != nil {
-			return nil, 0, fmt.Errorf("scan user: %w", err)
-		}
-		users = append(users, u)
+	if err := r.db.SelectContext(ctx, &users, query, args...); err != nil {
+		return nil, 0, fmt.Errorf("query users: %w", err)
 	}
 
 	return users, total, nil
@@ -349,9 +298,9 @@ func (r *UserRepository) ListUsers(ctx context.Context, params UserListParams) (
 
 // EmailRecipient 邮件接收者
 type EmailRecipient struct {
-	ID       int
-	Email    string
-	Nickname *string
+	ID       int     `db:"id"`
+	Email    string  `db:"email"`
+	Nickname *string `db:"nickname"`
 }
 
 // FindEmailRecipients 查找邮件发送对象
@@ -368,19 +317,9 @@ func (r *UserRepository) FindEmailRecipients(ctx context.Context, excludeUserID 
 		LIMIT ?
 	`
 
-	rows, err := r.db.QueryxContext(ctx, query, excludeUserID, limit)
-	if err != nil {
-		return nil, fmt.Errorf("query email recipients: %w", err)
-	}
-	defer rows.Close()
-
 	var recipients []*EmailRecipient
-	for rows.Next() {
-		var r EmailRecipient
-		if err := rows.Scan(&r.ID, &r.Email, &r.Nickname); err != nil {
-			return nil, fmt.Errorf("scan email recipient: %w", err)
-		}
-		recipients = append(recipients, &r)
+	if err := r.db.SelectContext(ctx, &recipients, query, excludeUserID, limit); err != nil {
+		return nil, fmt.Errorf("query email recipients: %w", err)
 	}
 
 	return recipients, nil
@@ -440,8 +379,8 @@ func (r *UserRepository) UpdateCoverImage(ctx context.Context, userID int, cover
 }
 
 type CertInfo struct {
-	Status     int
-	AuthImgUrl string
+	Status     int    `db:"auth_status"`
+	AuthImgUrl string `db:"auth_img_url"`
 }
 
 func (r *UserRepository) GetEduCertInfoByID(ctx context.Context, userID int) (CertInfo, error) {
@@ -451,12 +390,10 @@ func (r *UserRepository) GetEduCertInfoByID(ctx context.Context, userID int) (Ce
 		WHERE id = ?
 	`
 
-	var authStatus int
-	var authImgUrl string
-	err := r.db.QueryRowxContext(ctx, query, userID).Scan(&authStatus, &authImgUrl)
-	if err != nil {
+	var info CertInfo
+	if err := r.db.QueryRowxContext(ctx, query, userID).StructScan(&info); err != nil {
 		return CertInfo{0, ""}, fmt.Errorf("get auth status: %w", err)
 	}
 
-	return CertInfo{authStatus, authImgUrl}, nil
+	return info, nil
 }

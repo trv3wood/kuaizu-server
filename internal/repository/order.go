@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -41,8 +42,7 @@ func (r *OrderRepository) ListByUserID(ctx context.Context, params OrderListPara
 	// Count total
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM `order` o %s", where)
 	var total int64
-	err := r.db.QueryRowxContext(ctx, countQuery, args...).Scan(&total)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count orders: %w", err)
 	}
 
@@ -60,23 +60,9 @@ func (r *OrderRepository) ListByUserID(ctx context.Context, params OrderListPara
 
 	args = append(args, params.Size, offset)
 
-	rows, err := r.db.QueryxContext(ctx, query, args...)
-	if err != nil {
-		return nil, 0, fmt.Errorf("query orders: %w", err)
-	}
-	defer rows.Close()
-
 	var orders []*models.Order
-	for rows.Next() {
-		var o models.Order
-		err := rows.Scan(
-			&o.ID, &o.UserID, &o.ActualPaid, &o.Status,
-			&o.WxPayNo, &o.PayTime, &o.CreatedAt, &o.UpdatedAt,
-		)
-		if err != nil {
-			return nil, 0, fmt.Errorf("scan order: %w", err)
-		}
-		orders = append(orders, &o)
+	if err := r.db.SelectContext(ctx, &orders, query, args...); err != nil {
+		return nil, 0, fmt.Errorf("query orders: %w", err)
 	}
 
 	// Load order items for each order
@@ -152,12 +138,8 @@ func (r *OrderRepository) GetByID(ctx context.Context, id int) (*models.Order, e
 	`
 
 	var o models.Order
-	err := r.db.QueryRowxContext(ctx, query, id).Scan(
-		&o.ID, &o.UserID, &o.ActualPaid, &o.Status,
-		&o.WxPayNo, &o.PayTime, &o.CreatedAt, &o.UpdatedAt,
-	)
-	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
+	if err := r.db.QueryRowxContext(ctx, query, id).StructScan(&o); err != nil {
+		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("get order by id: %w", err)
@@ -184,23 +166,9 @@ func (r *OrderRepository) GetOrderItems(ctx context.Context, orderID int) ([]*mo
 		WHERE oi.order_id = ?
 	`
 
-	rows, err := r.db.QueryxContext(ctx, query, orderID)
-	if err != nil {
-		return nil, fmt.Errorf("query order items: %w", err)
-	}
-	defer rows.Close()
-
 	var items []*models.OrderItem
-	for rows.Next() {
-		var item models.OrderItem
-		err := rows.Scan(
-			&item.ID, &item.OrderID, &item.ProductID, &item.Price, &item.Quantity,
-			&item.ProductName,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("scan order item: %w", err)
-		}
-		items = append(items, &item)
+	if err := r.db.SelectContext(ctx, &items, query, orderID); err != nil {
+		return nil, fmt.Errorf("query order items: %w", err)
 	}
 
 	return items, nil

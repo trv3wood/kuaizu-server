@@ -29,6 +29,22 @@ type ApplicationListParams struct {
 	Status    *int
 }
 
+// applicantRow holds the JOIN-ed applicant columns for List.
+type applicantRow struct {
+	UID        int     `db:"u_id"`
+	UOpenID    string  `db:"u_openid"`
+	UNickname  *string `db:"u_nickname"`
+	UPhone     *string `db:"u_phone"`
+	UEmail     *string `db:"u_email"`
+	UAvatarUrl *string `db:"u_avatar_url"`
+}
+
+// applicationRow is the flat scan target for List (application + applicant columns).
+type applicationRow struct {
+	models.ProjectApplication
+	applicantRow
+}
+
 // List retrieves paginated applications for a project with applicant info
 func (r *ApplicationRepository) List(ctx context.Context, params ApplicationListParams) ([]models.ProjectApplication, int64, error) {
 	// Build WHERE clause
@@ -55,8 +71,7 @@ func (r *ApplicationRepository) List(ctx context.Context, params ApplicationList
 	// Count total
 	countQuery := fmt.Sprintf(`SELECT COUNT(*) FROM project_application pa WHERE %s`, whereClause)
 	var total int64
-	err := r.db.QueryRowxContext(ctx, countQuery, args...).Scan(&total)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count applications: %w", err)
 	}
 
@@ -66,8 +81,13 @@ func (r *ApplicationRepository) List(ctx context.Context, params ApplicationList
 		SELECT
 			pa.id, pa.project_id, pa.user_id, pa.contact,
 			pa.status, pa.applied_at, pa.updated_at,
-			p.name as project_name,
-			u.id, u.openid, u.nickname, u.phone, u.email, u.avatar_url
+			p.name AS project_name,
+			u.id       AS u_id,
+			u.openid   AS u_openid,
+			u.nickname AS u_nickname,
+			u.phone    AS u_phone,
+			u.email    AS u_email,
+			u.avatar_url AS u_avatar_url
 		FROM project_application pa
 		LEFT JOIN project p ON pa.project_id = p.id
 		LEFT JOIN `+"`user`"+` u ON pa.user_id = u.id
@@ -85,18 +105,19 @@ func (r *ApplicationRepository) List(ctx context.Context, params ApplicationList
 
 	var applications []models.ProjectApplication
 	for rows.Next() {
-		var app models.ProjectApplication
-		var applicant models.User
-		err := rows.Scan(
-			&app.ID, &app.ProjectID, &app.UserID, &app.Contact,
-			&app.Status, &app.AppliedAt, &app.UpdatedAt,
-			&app.ProjectName,
-			&applicant.ID, &applicant.OpenID, &applicant.Nickname, &applicant.Phone, &applicant.Email, &applicant.AvatarUrl,
-		)
-		if err != nil {
+		var row applicationRow
+		if err := rows.StructScan(&row); err != nil {
 			return nil, 0, fmt.Errorf("scan application: %w", err)
 		}
-		app.Applicant = &applicant
+		app := row.ProjectApplication
+		app.Applicant = &models.User{
+			ID:        row.UID,
+			OpenID:    row.UOpenID,
+			Nickname:  row.UNickname,
+			Phone:     row.UPhone,
+			Email:     row.UEmail,
+			AvatarUrl: row.UAvatarUrl,
+		}
 		applications = append(applications, app)
 	}
 
@@ -108,12 +129,12 @@ func (r *ApplicationRepository) Create(ctx context.Context, app *models.ProjectA
 	query := `
 		INSERT INTO project_application (
 			project_id, user_id, contact, status
-		) VALUES (?, ?, ?, ?)
+		) VALUES (
+			:project_id, :user_id, :contact, :status
+		)
 	`
 
-	result, err := r.db.ExecContext(ctx, query,
-		app.ProjectID, app.UserID, app.Contact, app.Status,
-	)
+	result, err := r.db.NamedExecContext(ctx, query, app)
 	if err != nil {
 		return fmt.Errorf("create application: %w", err)
 	}
@@ -138,11 +159,7 @@ func (r *ApplicationRepository) GetByID(ctx context.Context, id int) (*models.Pr
 	`
 
 	var app models.ProjectApplication
-	err := r.db.QueryRowxContext(ctx, query, id).Scan(
-		&app.ID, &app.ProjectID, &app.UserID, &app.Contact,
-		&app.Status, &app.AppliedAt, &app.UpdatedAt,
-	)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, query, id).StructScan(&app); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -156,8 +173,7 @@ func (r *ApplicationRepository) GetByID(ctx context.Context, id int) (*models.Pr
 func (r *ApplicationRepository) CheckDuplicate(ctx context.Context, projectID, userID int) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM project_application WHERE project_id = ? AND user_id = ?)`
 	var exists bool
-	err := r.db.QueryRowxContext(ctx, query, projectID, userID).Scan(&exists)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, query, projectID, userID).Scan(&exists); err != nil {
 		return false, fmt.Errorf("check duplicate application: %w", err)
 	}
 	return exists, nil

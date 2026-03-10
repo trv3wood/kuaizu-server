@@ -28,12 +28,7 @@ func (r *AdminUserRepository) GetByUsername(ctx context.Context, username string
 	`
 
 	var admin models.AdminUser
-	err := r.db.QueryRowxContext(ctx, query, username).Scan(
-		&admin.ID, &admin.Username, &admin.PasswordHash,
-		&admin.Nickname, &admin.Status,
-		&admin.CreatedAt, &admin.UpdatedAt,
-	)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, query, username).StructScan(&admin); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -52,12 +47,7 @@ func (r *AdminUserRepository) GetByID(ctx context.Context, id int) (*models.Admi
 	`
 
 	var admin models.AdminUser
-	err := r.db.QueryRowxContext(ctx, query, id).Scan(
-		&admin.ID, &admin.Username, &admin.PasswordHash,
-		&admin.Nickname, &admin.Status,
-		&admin.CreatedAt, &admin.UpdatedAt,
-	)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, query, id).StructScan(&admin); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}

@@ -89,25 +89,9 @@ func (r *TalentProfileRepository) List(ctx context.Context, params TalentProfile
 	`, whereClause)
 	args = append(args, params.Size, offset)
 
-	rows, err := r.db.QueryxContext(ctx, query, args...)
-	if err != nil {
-		return nil, 0, fmt.Errorf("query talent profiles: %w", err)
-	}
-	defer rows.Close()
-
 	var profiles []models.TalentProfile
-	for rows.Next() {
-		var p models.TalentProfile
-		err := rows.Scan(
-			&p.ID, &p.UserID, &p.SelfEvaluation, &p.SkillSummary,
-			&p.ProjectExperience, &p.MBTI, &p.Status, &p.IsPublicContact,
-			&p.CreatedAt, &p.UpdatedAt,
-			&p.Nickname, &p.SchoolName, &p.MajorName, &p.Phone, &p.Email, &p.AvatarUrl,
-		)
-		if err != nil {
-			return nil, 0, fmt.Errorf("scan talent profile: %w", err)
-		}
-		profiles = append(profiles, p)
+	if err := r.db.SelectContext(ctx, &profiles, query, args...); err != nil {
+		return nil, 0, fmt.Errorf("query talent profiles: %w", err)
 	}
 
 	return profiles, total, nil
@@ -129,13 +113,7 @@ func (r *TalentProfileRepository) GetByID(ctx context.Context, id int) (*models.
 	`
 
 	var p models.TalentProfile
-	err := r.db.QueryRowxContext(ctx, query, id).Scan(
-		&p.ID, &p.UserID, &p.SelfEvaluation, &p.SkillSummary,
-		&p.ProjectExperience, &p.MBTI, &p.Status, &p.IsPublicContact,
-		&p.CreatedAt, &p.UpdatedAt,
-		&p.Nickname, &p.SchoolName, &p.MajorName, &p.Phone, &p.Email,
-	)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, query, id).StructScan(&p); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -161,13 +139,7 @@ func (r *TalentProfileRepository) GetByUserID(ctx context.Context, userID int) (
 	`
 
 	var p models.TalentProfile
-	err := r.db.QueryRowxContext(ctx, query, userID).Scan(
-		&p.ID, &p.UserID, &p.SelfEvaluation, &p.SkillSummary,
-		&p.ProjectExperience, &p.MBTI, &p.Status, &p.IsPublicContact,
-		&p.CreatedAt, &p.UpdatedAt,
-		&p.Nickname, &p.SchoolName, &p.MajorName, &p.Phone, &p.Email,
-	)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, query, userID).StructScan(&p); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -191,12 +163,12 @@ func (r *TalentProfileRepository) Upsert(ctx context.Context, p *models.TalentPr
 			INSERT INTO talent_profile (
 				user_id, self_evaluation, skill_summary, project_experience,
 				mbti, status, is_public_contact
-			) VALUES (?, ?, ?, ?, ?, ?, ?)
+			) VALUES (
+				:user_id, :self_evaluation, :skill_summary, :project_experience,
+				:mbti, :status, :is_public_contact
+			)
 		`
-		result, err := r.db.ExecContext(ctx, query,
-			p.UserID, p.SelfEvaluation, p.SkillSummary, p.ProjectExperience,
-			p.MBTI, p.Status, p.IsPublicContact,
-		)
+		result, err := r.db.NamedExecContext(ctx, query, p)
 		if err != nil {
 			return fmt.Errorf("insert talent profile: %w", err)
 		}
@@ -206,19 +178,16 @@ func (r *TalentProfileRepository) Upsert(ctx context.Context, p *models.TalentPr
 		// Update
 		query := `
 			UPDATE talent_profile SET
-				self_evaluation = ?,
-				skill_summary = ?,
-				project_experience = ?,
-				mbti = ?,
-				status = ?,
-				is_public_contact = ?,
+				self_evaluation = :self_evaluation,
+				skill_summary = :skill_summary,
+				project_experience = :project_experience,
+				mbti = :mbti,
+				status = :status,
+				is_public_contact = :is_public_contact,
 				updated_at = CURRENT_TIMESTAMP
-			WHERE user_id = ?
+			WHERE user_id = :user_id
 		`
-		_, err := r.db.ExecContext(ctx, query,
-			p.SelfEvaluation, p.SkillSummary, p.ProjectExperience,
-			p.MBTI, p.Status, p.IsPublicContact, p.UserID,
-		)
+		_, err := r.db.NamedExecContext(ctx, query, p)
 		if err != nil {
 			return fmt.Errorf("update talent profile: %w", err)
 		}

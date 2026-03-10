@@ -8,17 +8,17 @@ import (
 
 // ProjectApplication represents a project application in the database
 type ProjectApplication struct {
-	ID        int
-	ProjectID int
-	UserID    int
-	Contact   *string
-	Status    int // 0-待审核, 1-已通过, 2-已拒绝
-	AppliedAt time.Time
-	UpdatedAt time.Time
+	ID        int       `db:"id"`
+	ProjectID int       `db:"project_id"`
+	UserID    int       `db:"user_id"`
+	Contact   *string   `db:"contact"`
+	Status    int       `db:"status"` // 0-待审核, 1-已通过, 2-已拒绝
+	AppliedAt time.Time `db:"applied_at"`
+	UpdatedAt time.Time `db:"updated_at"`
 
 	// Joined fields
-	ProjectName *string
-	Applicant   *User
+	ProjectName *string `db:"project_name"`
+	Applicant   *User   `db:"-"`
 }
 
 // ToVO converts ProjectApplication to API ProjectApplicationVO

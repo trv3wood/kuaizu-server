@@ -8,29 +8,29 @@ import (
 
 // Order represents an order in the database
 type Order struct {
-	ID         int
-	UserID     int
-	ActualPaid float64
-	Status     int // 0-待支付, 1-已支付, 2-已取消, 3-已退款
-	WxPayNo    *string
-	PayTime    *time.Time
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ID         int        `db:"id"`
+	UserID     int        `db:"user_id"`
+	ActualPaid float64    `db:"actual_paid"`
+	Status     int        `db:"status"` // 0-待支付, 1-已支付, 2-已取消, 3-已退款
+	WxPayNo    *string    `db:"wx_pay_no"`
+	PayTime    *time.Time `db:"pay_time"`
+	CreatedAt  time.Time  `db:"created_at"`
+	UpdatedAt  time.Time  `db:"updated_at"`
 
 	// Joined/computed fields
-	Items []*OrderItem
+	Items []*OrderItem `db:"-"`
 }
 
 // OrderItem represents an order item in the database
 type OrderItem struct {
-	ID        int
-	OrderID   int
-	ProductID int
-	Price     float64
-	Quantity  int
+	ID        int     `db:"id"`
+	OrderID   int     `db:"order_id"`
+	ProductID int     `db:"product_id"`
+	Price     float64 `db:"price"`
+	Quantity  int     `db:"quantity"`
 
 	// Joined fields
-	ProductName *string
+	ProductName *string `db:"product_name"`
 }
 
 // ToVO converts Order to API OrderVO
