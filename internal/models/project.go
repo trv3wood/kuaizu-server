@@ -44,9 +44,7 @@ func (p *Project) ToVO() *api.ProjectVO {
 		MemberCount:         p.MemberCount,
 		Status:              &status,
 		PromotionStatus:     &p.PromotionStatus,
-		ViewCount:           &p.ViewCount,
-		CreatedAt:           &p.CreatedAt,
-		PromotionExpireTime: p.PromotionExpireTime,
+		IsCrossSchool:       p.IsCrossSchool,
 	}
 
 	return vo
