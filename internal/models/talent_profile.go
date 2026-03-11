@@ -21,12 +21,16 @@ type TalentProfile struct {
 	UpdatedAt         time.Time `db:"updated_at"`
 
 	// Joined fields from user table
-	Nickname   *string `db:"nickname"`
-	SchoolName *string `db:"school_name"`
-	MajorName  *string `db:"major_name"`
-	Phone      *string `db:"phone"`
-	Email      *string `db:"email"`
-	AvatarUrl  *string `db:"avatar_url"`
+	Nickname  *string `db:"nickname"`
+	Phone     *string `db:"phone"`
+	Email     *string `db:"email"`
+	AvatarUrl *string `db:"avatar_url"`
+	// SchoolID/MajorID are fetched from user table and used for follow-up lookups
+	SchoolID *int `db:"school_id"`
+	MajorID  *int `db:"major_id"`
+	// Populated after follow-up queries
+	SchoolName *string `db:"-"`
+	MajorName  *string `db:"-"`
 }
 
 // parseSkills parses the skill_summary JSON string into a string slice

@@ -318,7 +318,6 @@ func (s *ProjectService) ListMyApplications(ctx context.Context, userID int, par
 type ApplyToProjectInput struct {
 	ProjectID int
 	UserID    int
-	Contact   *string
 }
 
 // ApplyToProject validates and creates a project application.
@@ -350,7 +349,6 @@ func (s *ProjectService) ApplyToProject(ctx context.Context, input ApplyToProjec
 	application := &models.ProjectApplication{
 		ProjectID: input.ProjectID,
 		UserID:    input.UserID,
-		Contact:   input.Contact,
 		Status:    0, // 待审核
 	}
 
