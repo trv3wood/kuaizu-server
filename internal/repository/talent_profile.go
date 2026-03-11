@@ -186,7 +186,7 @@ func (r *TalentProfileRepository) List(ctx context.Context, params TalentProfile
 			u.nickname, u.phone, u.email, u.avatar_url,
 			u.school_id, u.major_id
 		FROM talent_profile tp
-		LEFT  `+"`user`"+` u ON tp.user_id = u.id
+		LEFT JOIN `+"`user`"+` u ON tp.user_id = u.id
 		WHERE %s
 		ORDER BY tp.updated_at DESC
 		LIMIT ? OFFSET ?

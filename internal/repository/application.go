@@ -29,20 +29,15 @@ type ApplicationListParams struct {
 	Status    *int
 }
 
-// applicantRow holds the JOIN-ed applicant columns for List.
-type applicantRow struct {
-	UID        int     `db:"u_id"`
-	UOpenID    string  `db:"u_openid"`
-	UNickname  *string `db:"u_nickname"`
-	UPhone     *string `db:"u_phone"`
-	UEmail     *string `db:"u_email"`
-	UAvatarUrl *string `db:"u_avatar_url"`
-}
-
-// applicationRow is the flat scan target for List (application + applicant columns).
-type applicationRow struct {
-	models.ProjectApplication
-	applicantRow
+// userWithTalent holds user + talent_profile columns for the second batch query.
+type userWithTalent struct {
+	ID           int     `db:"id"`
+	OpenID       string  `db:"openid"`
+	Nickname     *string `db:"nickname"`
+	Phone        *string `db:"phone"`
+	Email        *string `db:"email"`
+	AvatarUrl    *string `db:"avatar_url"`
+	SkillSummary *string `db:"skill_summary"`
 }
 
 // List retrieves paginated applications for a project with applicant info
@@ -75,50 +70,83 @@ func (r *ApplicationRepository) List(ctx context.Context, params ApplicationList
 		return nil, 0, fmt.Errorf("count applications: %w", err)
 	}
 
-	// Query with pagination
+	// 1st query: project_application + project (2 tables)
 	offset := (params.Page - 1) * params.Size
 	query := fmt.Sprintf(`
 		SELECT
-			pa.id, pa.project_id, pa.user_id, pa.contact,
+			pa.id, pa.project_id, pa.user_id,
 			pa.status, pa.applied_at, pa.updated_at,
-			p.name AS project_name,
-			u.id       AS u_id,
-			u.openid   AS u_openid,
-			u.nickname AS u_nickname,
-			u.phone    AS u_phone,
-			u.email    AS u_email,
-			u.avatar_url AS u_avatar_url
+			p.name AS project_name
 		FROM project_application pa
 		LEFT JOIN project p ON pa.project_id = p.id
-		LEFT JOIN `+"`user`"+` u ON pa.user_id = u.id
 		WHERE %s
 		ORDER BY pa.applied_at DESC
 		LIMIT ? OFFSET ?
 	`, whereClause)
 	args = append(args, params.Size, offset)
 
-	rows, err := r.db.QueryxContext(ctx, query, args...)
-	if err != nil {
+	var applications []models.ProjectApplication
+	if err := r.db.SelectContext(ctx, &applications, query, args...); err != nil {
 		return nil, 0, fmt.Errorf("query applications: %w", err)
 	}
-	defer rows.Close()
 
-	var applications []models.ProjectApplication
-	for rows.Next() {
-		var row applicationRow
-		if err := rows.StructScan(&row); err != nil {
-			return nil, 0, fmt.Errorf("scan application: %w", err)
+	if len(applications) == 0 {
+		return applications, total, nil
+	}
+
+	// 2nd query: user + talent_profile (2 tables), batch by user_id
+	userIDs := make([]int, 0, len(applications))
+	for _, a := range applications {
+		userIDs = append(userIDs, a.UserID)
+	}
+	utQuery, utArgs, err := sqlx.In(`
+		SELECT
+			u.id, u.openid, u.nickname, u.phone, u.email, u.avatar_url,
+			tp.skill_summary
+		FROM `+"`user`"+` u
+		LEFT JOIN talent_profile tp ON u.id = tp.user_id AND tp.status = 1
+		WHERE u.id IN (?)
+	`, userIDs)
+	if err != nil {
+		return nil, 0, fmt.Errorf("build user+talent IN query: %w", err)
+	}
+	utQuery = r.db.Rebind(utQuery)
+
+	var utRows []userWithTalent
+	if err := r.db.SelectContext(ctx, &utRows, utQuery, utArgs...); err != nil {
+		return nil, 0, fmt.Errorf("batch query user+talent: %w", err)
+	}
+
+	// Build lookup map and fill back in one pass
+	type userAndTP struct {
+		User          *models.User
+		TalentProfile *models.TalentProfile
+	}
+	utMap := make(map[int]userAndTP, len(utRows))
+	for _, row := range utRows {
+		entry := userAndTP{
+			User: &models.User{
+				ID:        row.ID,
+				OpenID:    row.OpenID,
+				Nickname:  row.Nickname,
+				Phone:     row.Phone,
+				Email:     row.Email,
+				AvatarUrl: row.AvatarUrl,
+			},
 		}
-		app := row.ProjectApplication
-		app.Applicant = &models.User{
-			ID:        row.UID,
-			OpenID:    row.UOpenID,
-			Nickname:  row.UNickname,
-			Phone:     row.UPhone,
-			Email:     row.UEmail,
-			AvatarUrl: row.UAvatarUrl,
+		if row.SkillSummary != nil {
+			entry.TalentProfile = &models.TalentProfile{
+				UserID:       row.ID,
+				SkillSummary: row.SkillSummary,
+			}
 		}
-		applications = append(applications, app)
+		utMap[row.ID] = entry
+	}
+	for i := range applications {
+		if entry, ok := utMap[applications[i].UserID]; ok {
+			applications[i].Applicant = entry.User
+			applications[i].TalentProfile = entry.TalentProfile
+		}
 	}
 
 	return applications, total, nil

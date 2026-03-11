@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/labstack/gommon/log"
 	"github.com/trv3wood/kuaizu-server/api"
 	"github.com/trv3wood/kuaizu-server/internal/models"
 	"github.com/trv3wood/kuaizu-server/internal/repository"
@@ -281,6 +282,7 @@ func (s *ProjectService) ListProjectApplications(ctx context.Context, projectID,
 
 	applications, total, err := s.repo.Application.List(ctx, params)
 	if err != nil {
+		log.Error(err)
 		return nil, ErrInternal("获取申请列表失败")
 	}
 
