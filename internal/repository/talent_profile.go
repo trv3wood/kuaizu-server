@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/labstack/gommon/log"
 	"github.com/trv3wood/kuaizu-server/internal/models"
 )
 
@@ -181,7 +182,7 @@ func (r *TalentProfileRepository) List(ctx context.Context, params TalentProfile
 	query := fmt.Sprintf(`
 		SELECT 
 			tp.id, tp.user_id, tp.self_evaluation, tp.skill_summary,
-			tp.project_experience, tp.mbti, tp.status, tp.is_public_contact,
+			tp.project_experience, tp.mbti, tp.status,
 			tp.created_at, tp.updated_at,
 			u.nickname, u.phone, u.email, u.avatar_url,
 			u.school_id, u.major_id
@@ -195,11 +196,13 @@ func (r *TalentProfileRepository) List(ctx context.Context, params TalentProfile
 
 	var profiles []models.TalentProfile
 	if err := r.db.SelectContext(ctx, &profiles, query, args...); err != nil {
+		log.Error("query talent profiles: ", err)
 		return nil, 0, fmt.Errorf("query talent profiles: %w", err)
 	}
 
 	// Enrich school_name / major_name via batch follow-up queries (single-table each)
 	if err := r.enrichSchoolMajorBatch(ctx, profiles); err != nil {
+		log.Error("enrich school major batch: ", err)
 		return nil, 0, err
 	}
 
@@ -212,9 +215,9 @@ func (r *TalentProfileRepository) GetByID(ctx context.Context, id int) (*models.
 	query := `
 		SELECT 
 			tp.id, tp.user_id, tp.self_evaluation, tp.skill_summary,
-			tp.project_experience, tp.mbti, tp.status, tp.is_public_contact,
+			tp.project_experience, tp.mbti, tp.status,
 			tp.created_at, tp.updated_at,
-			u.nickname, u.phone, u.email,
+			u.nickname, u.phone, u.email, u.avatar_url,
 			u.school_id, u.major_id
 		FROM talent_profile tp
 		LEFT JOIN ` + "`user`" + ` u ON tp.user_id = u.id
@@ -243,7 +246,7 @@ func (r *TalentProfileRepository) GetByUserID(ctx context.Context, userID int) (
 	query := `
 		SELECT 
 			tp.id, tp.user_id, tp.self_evaluation, tp.skill_summary,
-			tp.project_experience, tp.mbti, tp.status, tp.is_public_contact,
+			tp.project_experience, tp.mbti, tp.status,
 			tp.created_at, tp.updated_at,
 			u.nickname, u.phone, u.email,
 			u.school_id, u.major_id
@@ -257,11 +260,13 @@ func (r *TalentProfileRepository) GetByUserID(ctx context.Context, userID int) (
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
+		log.Error("query talent profile by user id: ", err)
 		return nil, fmt.Errorf("query talent profile by user id: %w", err)
 	}
 
 	// Follow-up: school and major (single-table each)
 	if err := r.enrichSchoolMajor(ctx, &p); err != nil {
+		log.Error("enrich school major: ", err)
 		return nil, err
 	}
 
@@ -302,7 +307,6 @@ func (r *TalentProfileRepository) Upsert(ctx context.Context, p *models.TalentPr
 				project_experience = :project_experience,
 				mbti = :mbti,
 				status = :status,
-				is_public_contact = :is_public_contact,
 				updated_at = CURRENT_TIMESTAMP
 			WHERE user_id = :user_id
 		`

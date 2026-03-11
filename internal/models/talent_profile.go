@@ -47,15 +47,15 @@ func (t *TalentProfile) parseSkills() *[]string {
 // ToVO converts TalentProfile to API TalentProfileVO (list view)
 func (t *TalentProfile) ToVO() *api.TalentProfileVO {
 	return &api.TalentProfileVO{
-		Id:              &t.ID,
-		UserId:          &t.UserID,
-		Nickname:        t.Nickname,
-		SchoolName:      t.SchoolName,
-		MajorName:       t.MajorName,
-		Mbti:            t.MBTI,
-		Skills:          t.parseSkills(),
-		Status:          (*api.TalentStatus)(t.Status),
-		AvatarUrl:       ptrFullURL(t.AvatarUrl),
+		Id:         &t.ID,
+		UserId:     &t.UserID,
+		Nickname:   t.Nickname,
+		SchoolName: t.SchoolName,
+		MajorName:  t.MajorName,
+		Mbti:       t.MBTI,
+		Skills:     t.parseSkills(),
+		Status:     (*api.TalentStatus)(t.Status),
+		AvatarUrl:  ptrFullURL(t.AvatarUrl),
 	}
 }
 
