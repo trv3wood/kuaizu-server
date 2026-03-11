@@ -32,6 +32,7 @@ type ApplicationListParams struct {
 // userWithTalent holds user + talent_profile columns for the second batch query.
 type userWithTalent struct {
 	ID           int     `db:"id"`
+	TalentID     int     `db:"talent_id"`
 	OpenID       string  `db:"openid"`
 	Nickname     *string `db:"nickname"`
 	Phone        *string `db:"phone"`
@@ -102,7 +103,7 @@ func (r *ApplicationRepository) List(ctx context.Context, params ApplicationList
 	utQuery, utArgs, err := sqlx.In(`
 		SELECT
 			u.id, u.openid, u.nickname, u.phone, u.email, u.avatar_url,
-			tp.skill_summary
+			tp.skill_summary, tp.id AS talent_id
 		FROM `+"`user`"+` u
 		LEFT JOIN talent_profile tp ON u.id = tp.user_id AND tp.status = 1
 		WHERE u.id IN (?)
@@ -136,6 +137,7 @@ func (r *ApplicationRepository) List(ctx context.Context, params ApplicationList
 		}
 		if row.SkillSummary != nil {
 			entry.TalentProfile = &models.TalentProfile{
+				ID:           row.TalentID,
 				UserID:       row.ID,
 				SkillSummary: row.SkillSummary,
 			}
