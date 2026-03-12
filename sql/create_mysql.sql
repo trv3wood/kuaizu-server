@@ -21,7 +21,7 @@ SET @@SESSION.SQL_LOG_BIN= 0;
 -- GTID state at the beginning of the backup 
 --
 
-SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '09c0ed11-3a14-11f0-9fc2-00163e0c6f4a:1-15924';
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '09c0ed11-3a14-11f0-9fc2-00163e0c6f4a:1-16257';
 
 --
 -- Table structure for table `admin_user`
@@ -67,7 +67,7 @@ CREATE TABLE `email_promotion` (
   KEY `fk_email_promotion_order` (`order_id`),
   KEY `idx_project` (`project_id`),
   KEY `idx_status` (`status`),
-  CONSTRAINT `fk_email_promotion_order` FOREIGN KEY (`order_id`) REFERENCES `order` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `email_promotion_order_fk` FOREIGN KEY (`order_id`) REFERENCES `order` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `fk_email_promotion_project` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='邮件推广记录表';
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -156,7 +156,7 @@ CREATE TABLE `olive_branch_record` (
   CONSTRAINT `fk_olive_project` FOREIGN KEY (`related_project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_olive_receiver` FOREIGN KEY (`receiver_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_olive_sender` FOREIGN KEY (`sender_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='橄榄枝/联系记录表';
+) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='橄榄枝/联系记录表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -169,38 +169,23 @@ DROP TABLE IF EXISTS `order`;
 CREATE TABLE `order` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'ID',
   `user_id` int(11) NOT NULL COMMENT '用户ID',
+  `product_id` int(11) NOT NULL COMMENT '商品ID',
+  `price` decimal(10,2) NOT NULL COMMENT '下单时的单价快照',
+  `quantity` int(11) NOT NULL COMMENT '数量',
   `actual_paid` decimal(10,2) NOT NULL COMMENT '实付金额',
   `status` int(11) DEFAULT '0' COMMENT '支付状态:0-待支付,1-已支付,2-已取消,3-已退款',
   `wx_pay_no` varchar(100) DEFAULT NULL COMMENT '微信支付订单号',
+  `out_trade_no` varchar(32) NOT NULL COMMENT '商户单号',
   `pay_time` timestamp NULL DEFAULT NULL COMMENT '支付时间',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `unq_order_wx_pay_no` (`wx_pay_no`),
-  KEY `fk_order_user` (`user_id`),
-  CONSTRAINT `fk_order_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='订单表';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `order_item`
---
-
-DROP TABLE IF EXISTS `order_item`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `order_item` (
-  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'ID',
-  `order_id` int(11) NOT NULL COMMENT '订单ID',
-  `product_id` int(11) NOT NULL COMMENT '商品ID',
-  `price` decimal(10,2) NOT NULL COMMENT '下单时的单价快照',
-  `quantity` int(11) NOT NULL COMMENT '数量',
-  PRIMARY KEY (`id`),
-  KEY `fk_order_item_order` (`order_id`),
-  KEY `fk_order_item_product` (`product_id`),
-  CONSTRAINT `fk_order_item_order` FOREIGN KEY (`order_id`) REFERENCES `order` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_order_item_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='订单详情表';
+  KEY `idx_wx_pay_no` (`wx_pay_no`),
+  KEY `fk_order_merged_user` (`user_id`),
+  KEY `fk_order_merged_product` (`product_id`),
+  CONSTRAINT `fk_order_merged_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `fk_order_merged_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='订单总表(合并主表与详情)';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -254,7 +239,7 @@ CREATE TABLE `project` (
   KEY `idx_project_created` (`created_at`),
   CONSTRAINT `fk_project_creator` FOREIGN KEY (`creator_id`) REFERENCES `user` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_project_school` FOREIGN KEY (`school_id`) REFERENCES `school` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=336 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='项目表';
+) ENGINE=InnoDB AUTO_INCREMENT=342 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='项目表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -268,10 +253,10 @@ CREATE TABLE `project_application` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'ID',
   `project_id` int(11) NOT NULL COMMENT '项目ID',
   `user_id` int(11) NOT NULL COMMENT '申请人',
-  `apply_reason` text COMMENT '申请理由/留言(已弃用)',
+  `apply_reason` text COMMENT '申请理由/留言',
   `contact` text COMMENT '联系方式',
   `status` int(11) DEFAULT '0' COMMENT '状态:0-待审核,1-已通过,2-已拒绝',
-  `reply_msg` text COMMENT '队长回复(已弃用)',
+  `reply_msg` text COMMENT '队长回复',
   `applied_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '申请时间',
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
@@ -281,7 +266,7 @@ CREATE TABLE `project_application` (
   KEY `idx_application_status` (`status`),
   CONSTRAINT `fk_app_project` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_app_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=556 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='项目申请表';
+) ENGINE=InnoDB AUTO_INCREMENT=562 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='项目申请表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -385,7 +370,7 @@ CREATE TABLE `user` (
   KEY `idx_user_major` (`major_id`),
   CONSTRAINT `fk_user_major` FOREIGN KEY (`major_id`) REFERENCES `major` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_user_school` FOREIGN KEY (`school_id`) REFERENCES `school` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=2151 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户表';
+) ENGINE=InnoDB AUTO_INCREMENT=2153 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -402,4 +387,4 @@ SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-02-25 14:13:48
+-- Dump completed on 2026-03-12 23:59:36

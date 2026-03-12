@@ -49,23 +49,22 @@ func (s *PaymentService) ProcessPayment(ctx context.Context, order *models.Order
 	}
 
 	// Distribute benefits
-	for _, item := range order.Items {
-		product, err := s.repo.Product.GetByID(ctx, item.ProductID)
-		if err != nil || product == nil {
-			continue
-		}
+	product, err := s.repo.Product.GetByID(ctx, order.ProductID)
+	if err != nil || product == nil {
+		log.Printf("Failed to get product: %v", err)
+		return ErrInternal("处理支付失败")
+	}
 
-		switch product.Type {
-		case 1: // 橄榄枝
-			if err := s.repo.User.AddOliveBranchCountTx(ctx, tx, order.UserID, item.Quantity); err != nil {
-				log.Printf("Failed to add olive branch count: %v", err)
-				return ErrInternal("处理支付失败")
-			}
-		case 2:
-			// 权益需要凭订单和参数手动兑换
-		default:
-			log.Printf("Unknown product type: %d", product.Type)
+	switch product.Type {
+	case 1: // 橄榄枝
+		if err := s.repo.User.AddOliveBranchCountTx(ctx, tx, order.UserID, order.Quantity); err != nil {
+			log.Printf("Failed to add olive branch count: %v", err)
+			return ErrInternal("处理支付失败")
 		}
+	case 2:
+		// 权益需要凭订单和参数手动兑换
+	default:
+		log.Printf("Unknown product type: %d", product.Type)
 	}
 
 	if err := tx.Commit(); err != nil {

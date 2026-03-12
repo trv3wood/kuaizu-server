@@ -93,21 +93,16 @@ func (s *EmailPromotionService) TriggerPromotion(ctx context.Context, userID, or
 }
 
 func (s *EmailPromotionService) calculateMaxRecipients(ctx context.Context, order *models.Order) (int, error) {
-	var maxRecipients int
-	for _, item := range order.Items {
-		product, err := s.repo.Product.GetByID(ctx, item.ProductID)
-		if err != nil || product == nil {
-			continue
-		}
-		if product.Type == 2 { // 服务权益 - 邮件推广
-			maxRecipients += item.Quantity
-		}
+	product, err := s.repo.Product.GetByID(ctx, order.ProductID)
+	if err != nil || product == nil {
+		return 0, ErrBadRequest("无法获取商品信息")
 	}
 
-	if maxRecipients <= 0 {
-		return 0, ErrBadRequest("订单中没有邮件推广商品")
+	if product.Type == 2 { // 服务权益 - 邮件推广
+		return order.Quantity, nil
 	}
-	return maxRecipients, nil
+
+	return 0, ErrBadRequest("订单中没有邮件推广商品")
 }
 
 func (s *EmailPromotionService) startAsyncEmailSending(promotion *models.EmailPromotion) {
