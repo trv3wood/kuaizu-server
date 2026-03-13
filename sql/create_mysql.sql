@@ -229,7 +229,7 @@ CREATE TABLE `project` (
   `view_count` int(11) DEFAULT '0' COMMENT '浏览量',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  `is_cross_school` tinyint(4) DEFAULT '1' COMMENT '是否跨校: 1-可以,2-不可以',
+  `is_cross_school` tinyint(4) DEFAULT '1' COMMENT '是否跨校: 1-可以,0-不可以',
   `education_requirement` tinyint(4) DEFAULT '1' COMMENT '学历要求1-大专2-本科',
   `skill_requirement` text COMMENT '技能要求',
   PRIMARY KEY (`id`),
