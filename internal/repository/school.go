@@ -32,7 +32,7 @@ func (r *SchoolRepository) List(ctx context.Context, keyword *string) ([]*models
 		args = append(args, searchPattern, searchPattern)
 	}
 
-	query += ` ORDER BY school_name ASC`
+	query += ` ORDER BY school_name ASC LIMIT 20`
 
 	var schools []*models.School
 	err := r.db.SelectContext(ctx, &schools, query, args...)

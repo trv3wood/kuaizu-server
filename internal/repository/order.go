@@ -134,7 +134,6 @@ func (r *OrderRepository) GetByID(ctx context.Context, id int) (*models.Order, e
 	return &o, nil
 }
 
-
 // UpdatePaymentStatus updates order payment status
 func (r *OrderRepository) UpdatePaymentStatus(ctx context.Context, id int, status int, wxPayNo string, payTime time.Time) error {
 	query := `

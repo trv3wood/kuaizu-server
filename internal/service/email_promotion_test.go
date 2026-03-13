@@ -54,7 +54,6 @@ func (m *MockOrderRepo) UpdatePaymentStatusTx(ctx context.Context, tx *sqlx.Tx, 
 	return args.Error(0)
 }
 
-
 func (m *MockOrderRepo) UpdateStatus(ctx context.Context, id int, status int) error {
 	args := m.Called(ctx, id, status)
 	return args.Error(0)
