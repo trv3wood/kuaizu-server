@@ -67,8 +67,39 @@ func NewRequestLogger() echo.MiddlewareFunc {
 				gray, v.Latency, reset,
 			)
 
-			if v.Error != nil {
-				fmt.Printf("%sError: %v%s\n", red, v.Error, reset)
+			// Print detailed error information for error responses
+			if v.Status >= 400 {
+				// Print request details
+				fmt.Printf("%s[ERROR DETAILS]%s\n", red, reset)
+				fmt.Printf("  %sRequest:%s %s %s\n", yellow, reset, v.Method, v.URI)
+
+				// Print request headers (excluding sensitive ones)
+				if c.Request() != nil {
+					fmt.Printf("  %sHeaders:%s\n", yellow, reset)
+					for key, values := range c.Request().Header {
+						// Skip sensitive headers
+						if key == "Authorization" || key == "Cookie" {
+							fmt.Printf("    %s: %s[REDACTED]%s\n", key, gray, reset)
+							continue
+						}
+						for _, value := range values {
+							fmt.Printf("    %s: %s\n", key, value)
+						}
+					}
+				}
+
+				// Print user info if available
+				if userID := c.Get("user_id"); userID != nil {
+					fmt.Printf("  %sUser ID:%s %v\n", yellow, reset, userID)
+				}
+				if openID := c.Get("open_id"); openID != nil {
+					fmt.Printf("  %sOpen ID:%s %v\n", yellow, reset, openID)
+				}
+
+				// Print error if present
+				if v.Error != nil {
+					fmt.Printf("  %sError:%s %v\n", red, reset, v.Error)
+				}
 			}
 
 			return nil
