@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/labstack/echo/v4"
 	adminauth "github.com/trv3wood/kuaizu-server/internal/admin/auth"
+	"github.com/trv3wood/kuaizu-server/internal/models"
 	"github.com/trv3wood/kuaizu-server/internal/response"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -31,7 +32,7 @@ func (s *AdminServer) Login(ctx echo.Context) error {
 		return response.Unauthorized(ctx, "invalid username or password")
 	}
 
-	if admin.Status == 0 {
+	if admin.Status == models.AdminUserStatusDisabled {
 		return response.Forbidden(ctx, "account is disabled")
 	}
 

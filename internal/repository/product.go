@@ -28,8 +28,7 @@ func (r *ProductRepository) GetAll(ctx context.Context) ([]*models.Product, erro
 	`
 
 	var products []*models.Product
-	err := r.db.SelectContext(ctx, &products, query)
-	if err != nil {
+	if err := r.db.SelectContext(ctx, &products, query); err != nil {
 		return nil, fmt.Errorf("query products: %w", err)
 	}
 
@@ -45,16 +44,7 @@ func (r *ProductRepository) GetByID(ctx context.Context, id int) (*models.Produc
 	`
 
 	var product models.Product
-	err := r.db.QueryRowxContext(ctx, query, id).Scan(
-		&product.ID,
-		&product.Name,
-		&product.Type,
-		&product.Description,
-		&product.Price,
-		&product.CreatedAt,
-		&product.UpdatedAt,
-	)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, query, id).StructScan(&product); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}

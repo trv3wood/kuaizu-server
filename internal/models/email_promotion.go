@@ -5,12 +5,6 @@ import "time"
 // EmailPromotionStatus 邮件推广状态
 type EmailPromotionStatus int
 
-const (
-	EmailPromotionStatusPending   EmailPromotionStatus = 0 // 待发送
-	EmailPromotionStatusSending   EmailPromotionStatus = 1 // 发送中
-	EmailPromotionStatusCompleted EmailPromotionStatus = 2 // 已完成
-	EmailPromotionStatusFailed    EmailPromotionStatus = 3 // 失败
-)
 
 // EmailPromotion 邮件推广记录
 type EmailPromotion struct {

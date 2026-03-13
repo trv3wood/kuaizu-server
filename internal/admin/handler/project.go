@@ -6,6 +6,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	adminvo "github.com/trv3wood/kuaizu-server/internal/admin/vo"
+	"github.com/trv3wood/kuaizu-server/internal/models"
 	"github.com/trv3wood/kuaizu-server/internal/repository"
 	"github.com/trv3wood/kuaizu-server/internal/response"
 )
@@ -90,8 +91,8 @@ func (s *AdminServer) ReviewProject(ctx echo.Context) error {
 		return response.BadRequest(ctx, "invalid request body")
 	}
 
-	if req.Status != 1 && req.Status != 2 {
-		return response.BadRequest(ctx, fmt.Sprintf("invalid status %d, must be 1 (approve) or 2 (reject)", req.Status))
+	if req.Status != models.ProjectStatusApproved && req.Status != models.ProjectStatusRejected {
+		return response.BadRequest(ctx, fmt.Sprintf("invalid status %d, must be %d (approve) or %d (reject)", req.Status, models.ProjectStatusApproved, models.ProjectStatusRejected))
 	}
 
 	if err := s.repo.Project.UpdateStatus(ctx.Request().Context(), id, req.Status); err != nil {

@@ -28,6 +28,22 @@ type OliveBranchListParams struct {
 	Status     *int
 }
 
+// obUserRow holds JOIN-ed user columns for olive branch queries.
+type obUserRow struct {
+	UID         int     `db:"u_id"`
+	UNickname   *string `db:"u_nickname"`
+	UPhone      *string `db:"u_phone"`
+	UEmail      *string `db:"u_email"`
+	UAuthStatus *int    `db:"u_auth_status"`
+	UAvatarUrl  *string `db:"u_avatar_url"`
+}
+
+// obRow is the flat scan target (olive branch + user columns).
+type obRow struct {
+	models.OliveBranch
+	obUserRow
+}
+
 // ListByReceiverID retrieves paginated olive branches received by a user
 func (r *OliveBranchRepository) ListByReceiverID(ctx context.Context, params OliveBranchListParams) ([]models.OliveBranch, int64, error) {
 	// Count total
@@ -53,8 +69,12 @@ func (r *OliveBranchRepository) ListByReceiverID(ctx context.Context, params Oli
 			ob.type, ob.cost_type, ob.status,
 			ob.created_at, ob.updated_at,
 			p.name AS project_name,
-			s.id, s.nickname, s.phone, s.email, s.auth_status,
-			s.avatar_url
+			s.id          AS u_id,
+			s.nickname    AS u_nickname,
+			s.phone       AS u_phone,
+			s.email       AS u_email,
+			s.auth_status AS u_auth_status,
+			s.avatar_url  AS u_avatar_url
 		FROM olive_branch_record ob
 		LEFT JOIN project p ON ob.related_project_id = p.id
 		LEFT JOIN ` + "`user`" + ` s ON ob.sender_id = s.id
@@ -75,21 +95,19 @@ func (r *OliveBranchRepository) ListByReceiverID(ctx context.Context, params Oli
 
 	var records []models.OliveBranch
 	for rows.Next() {
-		var ob models.OliveBranch
-		var sender models.User
-
-		err := rows.Scan(
-			&ob.ID, &ob.SenderID, &ob.ReceiverID, &ob.RelatedProjectID,
-			&ob.Type, &ob.CostType, &ob.Status,
-			&ob.CreatedAt, &ob.UpdatedAt,
-			&ob.ProjectName,
-			&sender.ID, &sender.Nickname, &sender.Phone, &sender.Email, &sender.AuthStatus,
-			&sender.AvatarUrl,
-		)
-		if err != nil {
+		var row obRow
+		if err := rows.StructScan(&row); err != nil {
 			return nil, 0, fmt.Errorf("scan olive branch: %w", err)
 		}
-		ob.Sender = &sender
+		ob := row.OliveBranch
+		ob.Sender = &models.User{
+			ID:         row.UID,
+			Nickname:   row.UNickname,
+			Phone:      row.UPhone,
+			Email:      row.UEmail,
+			AuthStatus: row.UAuthStatus,
+			AvatarUrl:  row.UAvatarUrl,
+		}
 		records = append(records, ob)
 	}
 
@@ -110,13 +128,7 @@ func (r *OliveBranchRepository) GetByID(ctx context.Context, id int) (*models.Ol
 	`
 
 	var ob models.OliveBranch
-	err := r.db.QueryRowxContext(ctx, query, id).Scan(
-		&ob.ID, &ob.SenderID, &ob.ReceiverID, &ob.RelatedProjectID,
-		&ob.Type, &ob.CostType, &ob.Status,
-		&ob.CreatedAt, &ob.UpdatedAt,
-		&ob.ProjectName,
-	)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, query, id).StructScan(&ob); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -132,13 +144,13 @@ func (r *OliveBranchRepository) Create(ctx context.Context, ob *models.OliveBran
 		INSERT INTO olive_branch_record (
 			sender_id, receiver_id, related_project_id,
 			type, cost_type, status
-		) VALUES (?, ?, ?, ?, ?, ?)
+		) VALUES (
+			:sender_id, :receiver_id, :related_project_id,
+			:type, :cost_type, :status
+		)
 	`
 
-	result, err := r.db.ExecContext(ctx, query,
-		ob.SenderID, ob.ReceiverID, ob.RelatedProjectID,
-		ob.Type, ob.CostType, ob.Status,
-	)
+	result, err := r.db.NamedExecContext(ctx, query, ob)
 	if err != nil {
 		return fmt.Errorf("create olive branch: %w", err)
 	}
@@ -204,11 +216,15 @@ func (r *OliveBranchRepository) ListBySenderID(ctx context.Context, params Olive
 			ob.type, ob.cost_type, ob.status,
 			ob.created_at, ob.updated_at,
 			p.name AS project_name,
-			r.id, r.nickname, r.phone, r.email, r.auth_status,
-			r.avatar_url
+			recv.id          AS u_id,
+			recv.nickname    AS u_nickname,
+			recv.phone       AS u_phone,
+			recv.email       AS u_email,
+			recv.auth_status AS u_auth_status,
+			recv.avatar_url  AS u_avatar_url
 		FROM olive_branch_record ob
 		LEFT JOIN project p ON ob.related_project_id = p.id
-		LEFT JOIN ` + "`user`" + ` r ON ob.receiver_id = r.id
+		LEFT JOIN ` + "`user`" + ` recv ON ob.receiver_id = recv.id
 		WHERE ob.sender_id = ?
 	`
 	if params.Status != nil {
@@ -226,21 +242,19 @@ func (r *OliveBranchRepository) ListBySenderID(ctx context.Context, params Olive
 
 	var records []models.OliveBranch
 	for rows.Next() {
-		var ob models.OliveBranch
-		var receiver models.User
-
-		err := rows.Scan(
-			&ob.ID, &ob.SenderID, &ob.ReceiverID, &ob.RelatedProjectID,
-			&ob.Type, &ob.CostType, &ob.Status,
-			&ob.CreatedAt, &ob.UpdatedAt,
-			&ob.ProjectName,
-			&receiver.ID, &receiver.Nickname, &receiver.Phone, &receiver.Email, &receiver.AuthStatus,
-			&receiver.AvatarUrl,
-		)
-		if err != nil {
+		var row obRow
+		if err := rows.StructScan(&row); err != nil {
 			return nil, 0, fmt.Errorf("scan olive branch: %w", err)
 		}
-		ob.Receiver = &receiver
+		ob := row.OliveBranch
+		ob.Receiver = &models.User{
+			ID:         row.UID,
+			Nickname:   row.UNickname,
+			Phone:      row.UPhone,
+			Email:      row.UEmail,
+			AuthStatus: row.UAuthStatus,
+			AvatarUrl:  row.UAvatarUrl,
+		}
 		records = append(records, ob)
 	}
 

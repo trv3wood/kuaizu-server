@@ -8,9 +8,7 @@ post:
     content:
       application/json:
         schema:
-          type: array
-          items:
-            $ref: ../components/schemas/CreateOrderDTO.yaml
+          $ref: ../components/schemas/CreateOrderDTO.yaml
   responses:
     '200':
       description: 创建成功

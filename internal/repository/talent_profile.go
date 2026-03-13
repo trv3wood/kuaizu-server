@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/labstack/gommon/log"
 	"github.com/trv3wood/kuaizu-server/internal/models"
 )
 
@@ -28,6 +29,111 @@ type TalentProfileListParams struct {
 	MajorID  *int
 	Keyword  *string
 	Status   *int
+}
+
+// enrichSchoolMajor 为单条 TalentProfile 分别查 school/major 并回填名称
+func (r *TalentProfileRepository) enrichSchoolMajor(ctx context.Context, p *models.TalentProfile) error {
+	if p.SchoolID != nil {
+		var name string
+		if err := r.db.QueryRowxContext(ctx,
+			"SELECT school_name FROM school WHERE id = ?", *p.SchoolID,
+		).Scan(&name); err != nil && err != sql.ErrNoRows {
+			return fmt.Errorf("query school name: %w", err)
+		} else if err == nil {
+			p.SchoolName = &name
+		}
+	}
+	if p.MajorID != nil {
+		var name string
+		if err := r.db.QueryRowxContext(ctx,
+			"SELECT major_name FROM major WHERE id = ?", *p.MajorID,
+		).Scan(&name); err != nil && err != sql.ErrNoRows {
+			return fmt.Errorf("query major name: %w", err)
+		} else if err == nil {
+			p.MajorName = &name
+		}
+	}
+	return nil
+}
+
+// queryNameByIDs 通用 IN 查询辅助：给定 query（含单个 ? 作为 IN 参数）和 id 集合，
+// 返回 id -> name 的映射。集合为空时直接返回空 map。
+// 使用 sqlx.In 展开占位符，db.Rebind 适配驱动方言。
+func (r *TalentProfileRepository) queryNameByIDs(
+	ctx context.Context,
+	query string,
+	ids map[int]struct{},
+) (map[int]string, error) {
+	result := map[int]string{}
+	if len(ids) == 0 {
+		return result, nil
+	}
+	args := make([]int, 0, len(ids))
+	for id := range ids {
+		args = append(args, id)
+	}
+	q, params, err := sqlx.In(query, args)
+	if err != nil {
+		return nil, err
+	}
+	q = r.db.Rebind(q)
+	rows, err := r.db.QueryxContext(ctx, q, params...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int
+		var name string
+		if err := rows.Scan(&id, &name); err != nil {
+			return nil, err
+		}
+		result[id] = name
+	}
+	return result, rows.Err()
+}
+
+// enrichSchoolMajorBatch 批量为多条 TalentProfile 回填 school_name / major_name
+// 收集所有唯一 school_id / major_id，各做一次 IN 查询，在内存中聚合
+func (r *TalentProfileRepository) enrichSchoolMajorBatch(ctx context.Context, profiles []models.TalentProfile) error {
+	// Collect unique IDs
+	schoolIDs := map[int]struct{}{}
+	majorIDs := map[int]struct{}{}
+	for _, p := range profiles {
+		if p.SchoolID != nil {
+			schoolIDs[*p.SchoolID] = struct{}{}
+		}
+		if p.MajorID != nil {
+			majorIDs[*p.MajorID] = struct{}{}
+		}
+	}
+
+	// Query school names
+	schoolNames, err := r.queryNameByIDs(ctx, "SELECT id, school_name FROM school WHERE id IN (?)", schoolIDs)
+	if err != nil {
+		return fmt.Errorf("batch query school names: %w", err)
+	}
+
+	// Query major names
+	majorNames, err := r.queryNameByIDs(ctx, "SELECT id, major_name FROM major WHERE id IN (?)", majorIDs)
+	if err != nil {
+		return fmt.Errorf("batch query major names: %w", err)
+	}
+
+	// Fill back
+	for i := range profiles {
+		if profiles[i].SchoolID != nil {
+			if name, ok := schoolNames[*profiles[i].SchoolID]; ok {
+				profiles[i].SchoolName = &name
+			}
+		}
+		if profiles[i].MajorID != nil {
+			if name, ok := majorNames[*profiles[i].MajorID]; ok {
+				profiles[i].MajorName = &name
+			}
+		}
+	}
+	return nil
 }
 
 // List retrieves paginated talent profiles with optional filters
@@ -59,7 +165,7 @@ func (r *TalentProfileRepository) List(ctx context.Context, params TalentProfile
 
 	whereClause := strings.Join(conditions, " AND ")
 
-	// Count total
+	// Count total — talent_profile + user (2 tables)
 	countQuery := fmt.Sprintf(`
 		SELECT COUNT(*) 
 		FROM talent_profile tp
@@ -71,43 +177,33 @@ func (r *TalentProfileRepository) List(ctx context.Context, params TalentProfile
 		return nil, 0, fmt.Errorf("count talent profiles: %w", err)
 	}
 
-	// Query with pagination
+	// Main query: talent_profile + user (2 tables), fetch school_id/major_id for follow-up
 	offset := (params.Page - 1) * params.Size
 	query := fmt.Sprintf(`
 		SELECT 
 			tp.id, tp.user_id, tp.self_evaluation, tp.skill_summary,
-			tp.project_experience, tp.mbti, tp.status, tp.is_public_contact,
+			tp.project_experience, tp.mbti, tp.status,
 			tp.created_at, tp.updated_at,
-			u.nickname, s.school_name, m.major_name, u.phone, u.email, u.avatar_url
+			u.nickname, u.phone, u.email, u.avatar_url,
+			u.school_id, u.major_id
 		FROM talent_profile tp
 		LEFT JOIN `+"`user`"+` u ON tp.user_id = u.id
-		LEFT JOIN school s ON u.school_id = s.id
-		LEFT JOIN major m ON u.major_id = m.id
 		WHERE %s
 		ORDER BY tp.updated_at DESC
 		LIMIT ? OFFSET ?
 	`, whereClause)
 	args = append(args, params.Size, offset)
 
-	rows, err := r.db.QueryxContext(ctx, query, args...)
-	if err != nil {
+	var profiles []models.TalentProfile
+	if err := r.db.SelectContext(ctx, &profiles, query, args...); err != nil {
+		log.Error("query talent profiles: ", err)
 		return nil, 0, fmt.Errorf("query talent profiles: %w", err)
 	}
-	defer rows.Close()
 
-	var profiles []models.TalentProfile
-	for rows.Next() {
-		var p models.TalentProfile
-		err := rows.Scan(
-			&p.ID, &p.UserID, &p.SelfEvaluation, &p.SkillSummary,
-			&p.ProjectExperience, &p.MBTI, &p.Status, &p.IsPublicContact,
-			&p.CreatedAt, &p.UpdatedAt,
-			&p.Nickname, &p.SchoolName, &p.MajorName, &p.Phone, &p.Email, &p.AvatarUrl,
-		)
-		if err != nil {
-			return nil, 0, fmt.Errorf("scan talent profile: %w", err)
-		}
-		profiles = append(profiles, p)
+	// Enrich school_name / major_name via batch follow-up queries (single-table each)
+	if err := r.enrichSchoolMajorBatch(ctx, profiles); err != nil {
+		log.Error("enrich school major batch: ", err)
+		return nil, 0, err
 	}
 
 	return profiles, total, nil
@@ -115,31 +211,30 @@ func (r *TalentProfileRepository) List(ctx context.Context, params TalentProfile
 
 // GetByID retrieves a talent profile by ID with user info
 func (r *TalentProfileRepository) GetByID(ctx context.Context, id int) (*models.TalentProfile, error) {
+	// talent_profile + user (2 tables)
 	query := `
 		SELECT 
 			tp.id, tp.user_id, tp.self_evaluation, tp.skill_summary,
-			tp.project_experience, tp.mbti, tp.status, tp.is_public_contact,
+			tp.project_experience, tp.mbti, tp.status,
 			tp.created_at, tp.updated_at,
-			u.nickname, s.school_name, m.major_name, u.phone, u.email
+			u.nickname, u.phone, u.email, u.avatar_url,
+			u.school_id, u.major_id
 		FROM talent_profile tp
 		LEFT JOIN ` + "`user`" + ` u ON tp.user_id = u.id
-		LEFT JOIN school s ON u.school_id = s.id
-		LEFT JOIN major m ON u.major_id = m.id
 		WHERE tp.id = ?
 	`
 
 	var p models.TalentProfile
-	err := r.db.QueryRowxContext(ctx, query, id).Scan(
-		&p.ID, &p.UserID, &p.SelfEvaluation, &p.SkillSummary,
-		&p.ProjectExperience, &p.MBTI, &p.Status, &p.IsPublicContact,
-		&p.CreatedAt, &p.UpdatedAt,
-		&p.Nickname, &p.SchoolName, &p.MajorName, &p.Phone, &p.Email,
-	)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, query, id).StructScan(&p); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("query talent profile by id: %w", err)
+	}
+
+	// Follow-up: school and major (single-table each)
+	if err := r.enrichSchoolMajor(ctx, &p); err != nil {
+		return nil, err
 	}
 
 	return &p, nil
@@ -147,31 +242,32 @@ func (r *TalentProfileRepository) GetByID(ctx context.Context, id int) (*models.
 
 // GetByUserID retrieves a talent profile by user ID
 func (r *TalentProfileRepository) GetByUserID(ctx context.Context, userID int) (*models.TalentProfile, error) {
+	// talent_profile + user (2 tables)
 	query := `
 		SELECT 
 			tp.id, tp.user_id, tp.self_evaluation, tp.skill_summary,
-			tp.project_experience, tp.mbti, tp.status, tp.is_public_contact,
+			tp.project_experience, tp.mbti, tp.status,
 			tp.created_at, tp.updated_at,
-			u.nickname, s.school_name, m.major_name, u.phone, u.email
+			u.nickname, u.phone, u.email,
+			u.school_id, u.major_id
 		FROM talent_profile tp
 		LEFT JOIN ` + "`user`" + ` u ON tp.user_id = u.id
-		LEFT JOIN school s ON u.school_id = s.id
-		LEFT JOIN major m ON u.major_id = m.id
 		WHERE tp.user_id = ?
 	`
 
 	var p models.TalentProfile
-	err := r.db.QueryRowxContext(ctx, query, userID).Scan(
-		&p.ID, &p.UserID, &p.SelfEvaluation, &p.SkillSummary,
-		&p.ProjectExperience, &p.MBTI, &p.Status, &p.IsPublicContact,
-		&p.CreatedAt, &p.UpdatedAt,
-		&p.Nickname, &p.SchoolName, &p.MajorName, &p.Phone, &p.Email,
-	)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, query, userID).StructScan(&p); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
+		log.Error("query talent profile by user id: ", err)
 		return nil, fmt.Errorf("query talent profile by user id: %w", err)
+	}
+
+	// Follow-up: school and major (single-table each)
+	if err := r.enrichSchoolMajor(ctx, &p); err != nil {
+		log.Error("enrich school major: ", err)
+		return nil, err
 	}
 
 	return &p, nil
@@ -191,12 +287,12 @@ func (r *TalentProfileRepository) Upsert(ctx context.Context, p *models.TalentPr
 			INSERT INTO talent_profile (
 				user_id, self_evaluation, skill_summary, project_experience,
 				mbti, status, is_public_contact
-			) VALUES (?, ?, ?, ?, ?, ?, ?)
+			) VALUES (
+				:user_id, :self_evaluation, :skill_summary, :project_experience,
+				:mbti, :status, :is_public_contact
+			)
 		`
-		result, err := r.db.ExecContext(ctx, query,
-			p.UserID, p.SelfEvaluation, p.SkillSummary, p.ProjectExperience,
-			p.MBTI, p.Status, p.IsPublicContact,
-		)
+		result, err := r.db.NamedExecContext(ctx, query, p)
 		if err != nil {
 			return fmt.Errorf("insert talent profile: %w", err)
 		}
@@ -206,19 +302,15 @@ func (r *TalentProfileRepository) Upsert(ctx context.Context, p *models.TalentPr
 		// Update
 		query := `
 			UPDATE talent_profile SET
-				self_evaluation = ?,
-				skill_summary = ?,
-				project_experience = ?,
-				mbti = ?,
-				status = ?,
-				is_public_contact = ?,
+				self_evaluation = :self_evaluation,
+				skill_summary = :skill_summary,
+				project_experience = :project_experience,
+				mbti = :mbti,
+				status = :status,
 				updated_at = CURRENT_TIMESTAMP
-			WHERE user_id = ?
+			WHERE user_id = :user_id
 		`
-		_, err := r.db.ExecContext(ctx, query,
-			p.SelfEvaluation, p.SkillSummary, p.ProjectExperience,
-			p.MBTI, p.Status, p.IsPublicContact, p.UserID,
-		)
+		_, err := r.db.NamedExecContext(ctx, query, p)
 		if err != nil {
 			return fmt.Errorf("update talent profile: %w", err)
 		}

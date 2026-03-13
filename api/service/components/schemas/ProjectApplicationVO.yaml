@@ -12,8 +12,6 @@ properties:
     type: string
     deprecated: true
     description: 申请理由/留言(已弃用)
-  contact:
-    type: string
   status:
     $ref: ./ApplicationStatus.yaml
   replyMsg:
@@ -23,3 +21,5 @@ properties:
   appliedAt:
     type: string
     format: date-time
+  talentProfile:
+    $ref: ./TalentProfileVO.yaml

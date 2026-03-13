@@ -48,8 +48,7 @@ func (r *FeedbackRepository) List(ctx context.Context, params FeedbackListParams
 	// Count total
 	countQuery := fmt.Sprintf(`SELECT COUNT(*) FROM feedback f WHERE %s`, whereClause)
 	var total int64
-	err := r.db.QueryRowxContext(ctx, countQuery, args...).Scan(&total)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count feedbacks: %w", err)
 	}
 
@@ -68,24 +67,9 @@ func (r *FeedbackRepository) List(ctx context.Context, params FeedbackListParams
 	`, whereClause)
 	args = append(args, params.Size, offset)
 
-	rows, err := r.db.QueryxContext(ctx, query, args...)
-	if err != nil {
-		return nil, 0, fmt.Errorf("query feedbacks: %w", err)
-	}
-	defer rows.Close()
-
 	var feedbacks []models.Feedback
-	for rows.Next() {
-		var f models.Feedback
-		err := rows.Scan(
-			&f.ID, &f.UserID, &f.Content, &f.ContactImage,
-			&f.Status, &f.AdminReply, &f.CreatedAt, &f.UpdatedAt,
-			&f.UserNickname,
-		)
-		if err != nil {
-			return nil, 0, fmt.Errorf("scan feedback: %w", err)
-		}
-		feedbacks = append(feedbacks, f)
+	if err := r.db.SelectContext(ctx, &feedbacks, query, args...); err != nil {
+		return nil, 0, fmt.Errorf("query feedbacks: %w", err)
 	}
 
 	return feedbacks, total, nil
@@ -104,12 +88,7 @@ func (r *FeedbackRepository) GetByID(ctx context.Context, id int) (*models.Feedb
 	`
 
 	var f models.Feedback
-	err := r.db.QueryRowxContext(ctx, query, id).Scan(
-		&f.ID, &f.UserID, &f.Content, &f.ContactImage,
-		&f.Status, &f.AdminReply, &f.CreatedAt, &f.UpdatedAt,
-		&f.UserNickname,
-	)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, query, id).StructScan(&f); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}

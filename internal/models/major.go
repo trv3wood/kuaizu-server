@@ -4,14 +4,14 @@ import (
 	"github.com/trv3wood/kuaizu-server/api"
 )
 
-// School represents a school in the database
+// Major represents a major in the database
 type Major struct {
-	Id        int
-	ClassId   int
-	MajorName string
+	Id        int    `db:"id"`
+	ClassId   int    `db:"class_id"`
+	MajorName string `db:"major_name"`
 }
 
-// ToVO converts School to API SchoolVO
+// ToVO converts Major to API MajorVO
 func (s *Major) ToVO() *api.MajorVO {
 	return &api.MajorVO{
 		Id:        &s.Id,
@@ -22,9 +22,9 @@ func (s *Major) ToVO() *api.MajorVO {
 
 // MajorClass represents a major category in the database
 type MajorClass struct {
-	Id        int
-	ClassName string
-	Majors    []Major
+	Id        int     `db:"id"`
+	ClassName string  `db:"class_name"`
+	Majors    []Major `db:"-"`
 }
 
 // ToVO converts MajorClass to API MajorClassVO

@@ -272,7 +272,6 @@ func (s *Server) ApplyToProject(ctx echo.Context, id int) error {
 	input := service.ApplyToProjectInput{
 		ProjectID: id,
 		UserID:    userID,
-		Contact:   req.Contact,
 	}
 
 	application, err := s.svc.Project.ApplyToProject(ctx.Request().Context(), input)

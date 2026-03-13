@@ -94,20 +94,13 @@ func (s *Server) UpsertTalentProfile(ctx echo.Context) error {
 		status = int(*req.Status)
 	}
 
-	// Default is_public_contact to false if not provided
-	isPublicContact := false
-	if req.IsPublicContact != nil {
-		isPublicContact = *req.IsPublicContact
-	}
-
 	profile := &models.TalentProfile{
 		UserID:            userID,
 		SelfEvaluation:    req.SelfEvaluation,
 		SkillSummary:      skillSummary,
 		ProjectExperience: req.ProjectExperience,
 		MBTI:              req.Mbti,
-		Status:            status,
-		IsPublicContact:   isPublicContact,
+		Status:            &status,
 	}
 
 	if err := s.repo.TalentProfile.Upsert(ctx.Request().Context(), profile); err != nil {
@@ -120,7 +113,7 @@ func (s *Server) UpsertTalentProfile(ctx echo.Context) error {
 		return InternalError(ctx, "获取人才档案失败")
 	}
 
-	return Success(ctx, updated.ToDetailVO(true))
+	return Success(ctx, updated.ToDetailVO())
 }
 
 // GetTalentProfile handles GET /talent-profiles/{id}
@@ -133,11 +126,7 @@ func (s *Server) GetTalentProfile(ctx echo.Context, id int) error {
 		return NotFound(ctx, "人才档案不存在")
 	}
 
-	// Check if current user has established contact (simplified: always show if public)
-	// In a real implementation, you would check olive_branch_record
-	showContact := profile.IsPublicContact
-
-	return Success(ctx, profile.ToDetailVO(showContact))
+	return Success(ctx, profile.ToDetailVO())
 }
 
 // GetMyTalentProfile handles GET /users/me/talent-profile
@@ -152,9 +141,7 @@ func (s *Server) GetMyTalentProfile(ctx echo.Context) error {
 		return NotFound(ctx, "人才档案不存在")
 	}
 
-	showContact := profile.IsPublicContact
-
-	return Success(ctx, profile.ToDetailVO(showContact))
+	return Success(ctx, profile.ToDetailVO())
 }
 
 // DeleteMyTalentProfile handles DELETE /talent-profiles/my

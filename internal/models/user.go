@@ -10,29 +10,29 @@ import (
 
 // User represents a user in the database
 type User struct {
-	ID                  int
-	OpenID              string
-	Nickname            *string
-	Phone               *string
-	Email               *string
-	SchoolID            *int
-	MajorID             *int
-	Grade               *int
-	OliveBranchCount    *int       // 付费橄榄枝余额
-	FreeBranchUsedToday *int       // 今日已用免费次数
-	LastActiveDate      *time.Time // 最后活跃日期(用于重置免费次数)
-	AuthStatus          *int       // 0-未认证, 1-已认证, 2-认证失败
-	AuthImgUrl          *string    // 学生证认证图
-	AvatarUrl           *string    // 头像
-	CoverImage          *string    // 封面图
-	EmailOptOut         *bool      // 是否退订邮件推广
-	CreatedAt           *time.Time
+	ID                  int        `db:"id"`
+	OpenID              string     `db:"openid"`
+	Nickname            *string    `db:"nickname"`
+	Phone               *string    `db:"phone"`
+	Email               *string    `db:"email"`
+	SchoolID            *int       `db:"school_id"`
+	MajorID             *int       `db:"major_id"`
+	Grade               *int       `db:"grade"`
+	OliveBranchCount    *int       `db:"olive_branch_count"`     // 付费橄榄枝余额
+	FreeBranchUsedToday *int       `db:"free_branch_used_today"` // 今日已用免费次数
+	LastActiveDate      *time.Time `db:"last_active_date"`       // 最后活跃日期(用于重置免费次数)
+	AuthStatus          *int       `db:"auth_status"`            // 0-未认证, 1-已认证, 2-认证失败
+	AuthImgUrl          *string    `db:"auth_img_url"`           // 学生证认证图
+	AvatarUrl           *string    `db:"avatar_url"`             // 头像
+	CoverImage          *string    `db:"cover_image"`            // 封面图
+	EmailOptOut         *bool      `db:"email_opt_out"`          // 是否退订邮件推广
+	CreatedAt           *time.Time `db:"created_at"`
 
 	// Joined fields (not always populated)
-	SchoolName *string
-	SchoolCode *string
-	MajorName  *string
-	ClassID    *int
+	SchoolName *string `db:"school_name"`
+	SchoolCode *string `db:"school_code"`
+	MajorName  *string `db:"major_name"`
+	ClassID    *int    `db:"class_id"`
 }
 
 // ToVO converts User to API UserVO

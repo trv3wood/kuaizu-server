@@ -26,19 +26,10 @@ func (r *MajorRepository) List(ctx context.Context, params *api.ListMajorsParams
 		FROM major
 		WHERE class_id = ?
 	`
-	rows, err := r.db.QueryxContext(ctx, query, params.ClassId)
-	if err != nil {
-		return nil, fmt.Errorf("query majors: %w", err)
-	}
-	defer rows.Close()
+
 	var majors []models.Major
-	for rows.Next() {
-		var major models.Major
-		err := rows.Scan(&major.Id, &major.MajorName, &major.ClassId)
-		if err != nil {
-			return nil, fmt.Errorf("scan majors: %w", err)
-		}
-		majors = append(majors, major)
+	if err := r.db.SelectContext(ctx, &majors, query, params.ClassId); err != nil {
+		return nil, fmt.Errorf("query majors: %w", err)
 	}
 	return majors, nil
 }
@@ -65,21 +56,9 @@ func (r *MajorRepository) ListWithMajors(ctx context.Context, params api.ListMaj
 	}
 	classQuery += " ORDER BY id"
 
-	rows, err := r.db.QueryxContext(ctx, classQuery, args...)
-	if err != nil {
-		return nil, fmt.Errorf("query major classes: %w", err)
-	}
-	defer rows.Close()
-
 	var classes []models.MajorClass
-	classIDMap := make(map[int]*models.MajorClass)
-
-	for rows.Next() {
-		var mc models.MajorClass
-		if err := rows.Scan(&mc.Id, &mc.ClassName); err != nil {
-			return nil, fmt.Errorf("scan major class: %w", err)
-		}
-		classes = append(classes, mc)
+	if err := r.db.SelectContext(ctx, &classes, classQuery, args...); err != nil {
+		return nil, fmt.Errorf("query major classes: %w", err)
 	}
 
 	if len(classes) == 0 {
@@ -102,29 +81,25 @@ func (r *MajorRepository) ListWithMajors(ctx context.Context, params api.ListMaj
 	}
 
 	// Expand IN clause
-	majorQuery, majorArgs, err = sqlx.In(majorQuery, majorArgs...)
+	majorQuery, majorArgs, err := sqlx.In(majorQuery, majorArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("expand IN clause: %w", err)
 	}
 	majorQuery = r.db.Rebind(majorQuery)
 	majorQuery += " ORDER BY class_id, id"
 
-	mRows, err := r.db.QueryxContext(ctx, majorQuery, majorArgs...)
-	if err != nil {
+	var majors []models.Major
+	if err := r.db.SelectContext(ctx, &majors, majorQuery, majorArgs...); err != nil {
 		return nil, fmt.Errorf("query majors: %w", err)
 	}
-	defer mRows.Close()
 
 	// Use map to easily append majors to classes
+	classIDMap := make(map[int]*models.MajorClass)
 	for i := range classes {
 		classIDMap[classes[i].Id] = &classes[i]
 	}
 
-	for mRows.Next() {
-		var m models.Major
-		if err := mRows.Scan(&m.Id, &m.MajorName, &m.ClassId); err != nil {
-			return nil, fmt.Errorf("scan major: %w", err)
-		}
+	for _, m := range majors {
 		if mc, ok := classIDMap[m.ClassId]; ok {
 			mc.Majors = append(mc.Majors, m)
 		}

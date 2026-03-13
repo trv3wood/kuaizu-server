@@ -16,7 +16,6 @@ type OrderRepo interface {
 	ListByUserID(ctx context.Context, params OrderListParams) ([]*models.Order, int64, error)
 	UpdatePaymentStatus(ctx context.Context, id int, status int, wxPayNo string, payTime time.Time) error
 	UpdatePaymentStatusTx(ctx context.Context, tx *sqlx.Tx, id int, status int, wxPayNo string, payTime time.Time) error
-	GetOrderItems(ctx context.Context, orderID int) ([]*models.OrderItem, error)
 	UpdateStatus(ctx context.Context, id int, status int) error
 }
 

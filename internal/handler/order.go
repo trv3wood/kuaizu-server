@@ -70,21 +70,18 @@ func (s *Server) ListMyOrders(ctx echo.Context, params api.ListMyOrdersParams) e
 func (s *Server) CreateOrder(ctx echo.Context) error {
 	userID := GetUserID(ctx)
 
-	var reqItems []api.CreateOrderDTO
-	if err := ctx.Bind(&reqItems); err != nil {
+	var reqItem api.CreateOrderDTO
+	if err := ctx.Bind(&reqItem); err != nil {
 		return BadRequest(ctx, "请求参数错误")
 	}
 
 	// Convert API DTO to service DTO
-	items := make([]service.CreateOrderItem, len(reqItems))
-	for i, item := range reqItems {
-		items[i] = service.CreateOrderItem{
-			ProductID: item.ProductId,
-			Quantity:  item.Quantity,
-		}
+	item := service.CreateOrderItem{
+		ProductID: reqItem.ProductId,
+		Quantity:  reqItem.Quantity,
 	}
 
-	createdOrder, err := s.svc.Order.CreateOrder(ctx.Request().Context(), userID, items)
+	createdOrder, err := s.svc.Order.CreateOrder(ctx.Request().Context(), userID, item)
 	if err != nil {
 		return mapServiceError(ctx, err)
 	}

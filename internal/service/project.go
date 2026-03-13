@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/labstack/gommon/log"
 	"github.com/trv3wood/kuaizu-server/api"
 	"github.com/trv3wood/kuaizu-server/internal/models"
 	"github.com/trv3wood/kuaizu-server/internal/repository"
@@ -134,8 +134,8 @@ func (s *ProjectService) CreateProject(ctx context.Context, input CreateProjectI
 		Description:          &input.Description,
 		SchoolID:             input.SchoolID,
 		MemberCount:          &input.MemberCount,
-		Status:               0, // 待审核
-		PromotionStatus:      0,
+		Status:               models.ProjectStatusPending,
+		PromotionStatus:      models.ProjectPromotionNone,
 		ViewCount:            0,
 		IsCrossSchool:        &input.IsCrossSchool,
 		EducationRequirement: input.EducationRequirement,
@@ -143,8 +143,24 @@ func (s *ProjectService) CreateProject(ctx context.Context, input CreateProjectI
 	}
 
 	if input.Direction != nil {
+		if err := IsValidStatus("project.direction", int(*input.Direction)); err != nil {
+			return nil, err
+		}
 		direction := int(*input.Direction)
 		project.Direction = &direction
+	}
+
+	if input.EducationRequirement != nil {
+		if err := IsValidStatus("project.education_requirement", *input.EducationRequirement); err != nil {
+			return nil, err
+		}
+	}
+
+	if input.IsCrossSchool != models.ProjectCrossSchoolNo && input.IsCrossSchool != models.ProjectCrossSchoolYes {
+		// Manual check since it's not a pointer in input but we check it in validation.go
+		if err := IsValidStatus("project.is_cross_school", input.IsCrossSchool); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := s.repo.Project.Create(ctx, project); err != nil {
@@ -210,15 +226,24 @@ func (s *ProjectService) UpdateProject(ctx context.Context, id, userID int, inpu
 		project.Description = input.Description
 	}
 	if input.Direction != nil {
+		if err := IsValidStatus("project.direction", int(*input.Direction)); err != nil {
+			return nil, err
+		}
 		project.Direction = (*int)(input.Direction)
 	}
 	if input.MemberCount != nil {
 		project.MemberCount = input.MemberCount
 	}
 	if input.IsCrossSchool != nil {
+		if err := IsValidStatus("project.is_cross_school", *input.IsCrossSchool); err != nil {
+			return nil, err
+		}
 		project.IsCrossSchool = input.IsCrossSchool
 	}
 	if input.EducationRequirement != nil {
+		if err := IsValidStatus("project.education_requirement", *input.EducationRequirement); err != nil {
+			return nil, err
+		}
 		project.EducationRequirement = input.EducationRequirement
 	}
 	if input.SkillRequirement != nil {
@@ -281,6 +306,7 @@ func (s *ProjectService) ListProjectApplications(ctx context.Context, projectID,
 
 	applications, total, err := s.repo.Application.List(ctx, params)
 	if err != nil {
+		log.Error(err)
 		return nil, ErrInternal("获取申请列表失败")
 	}
 
@@ -318,7 +344,6 @@ func (s *ProjectService) ListMyApplications(ctx context.Context, userID int, par
 type ApplyToProjectInput struct {
 	ProjectID int
 	UserID    int
-	Contact   *string
 }
 
 // ApplyToProject validates and creates a project application.
@@ -335,7 +360,7 @@ func (s *ProjectService) ApplyToProject(ctx context.Context, input ApplyToProjec
 		return nil, ErrBadRequest("不能申请加入自己的项目")
 	}
 
-	if project.Status != 1 {
+	if project.Status != models.ProjectStatusApproved {
 		return nil, ErrBadRequest("该项目当前不接受申请")
 	}
 
@@ -350,8 +375,7 @@ func (s *ProjectService) ApplyToProject(ctx context.Context, input ApplyToProjec
 	application := &models.ProjectApplication{
 		ProjectID: input.ProjectID,
 		UserID:    input.UserID,
-		Contact:   input.Contact,
-		Status:    0, // 待审核
+		Status:    models.ApplicationStatusPending,
 	}
 
 	if err := s.repo.Application.Create(ctx, application); err != nil {
@@ -363,8 +387,8 @@ func (s *ProjectService) ApplyToProject(ctx context.Context, input ApplyToProjec
 
 // ReviewApplication validates and updates the status of a project application.
 func (s *ProjectService) ReviewApplication(ctx context.Context, applicationID, userID int, status api.ApplicationStatus) error {
-	if status != api.ApplicationStatusN1 && status != api.ApplicationStatusN2 {
-		return ErrBadRequest(fmt.Sprintf("无效的审核状态: %d", status))
+	if err := IsValidStatus("application.status", int(status)); err != nil {
+		return err
 	}
 
 	app, err := s.repo.Application.GetByID(ctx, applicationID)

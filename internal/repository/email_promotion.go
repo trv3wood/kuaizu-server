@@ -22,18 +22,14 @@ func NewEmailPromotionRepository(db *sqlx.DB) *EmailPromotionRepository {
 // Create creates a new email promotion record
 func (r *EmailPromotionRepository) Create(ctx context.Context, promotion *models.EmailPromotion) error {
 	query := `
-		INSERT INTO email_promotion (order_id, project_id, creator_id, max_recipients, total_sent, status)
-		VALUES (?, ?, ?, ?, ?, ?)
+		INSERT INTO email_promotion (
+			order_id, project_id, creator_id, max_recipients, total_sent, status
+		) VALUES (
+			:order_id, :project_id, :creator_id, :max_recipients, :total_sent, :status
+		)
 	`
 
-	result, err := r.db.ExecContext(ctx, query,
-		promotion.OrderID,
-		promotion.ProjectID,
-		promotion.CreatorID,
-		promotion.MaxRecipients,
-		promotion.TotalSent,
-		promotion.Status,
-	)
+	result, err := r.db.NamedExecContext(ctx, query, promotion)
 	if err != nil {
 		return fmt.Errorf("create email promotion: %w", err)
 	}
@@ -61,13 +57,7 @@ func (r *EmailPromotionRepository) GetByID(ctx context.Context, id int) (*models
 	`
 
 	var promotion models.EmailPromotion
-	err := r.db.QueryRowxContext(ctx, query, id).Scan(
-		&promotion.ID, &promotion.OrderID, &promotion.ProjectID, &promotion.CreatorID,
-		&promotion.MaxRecipients, &promotion.TotalSent, &promotion.Status,
-		&promotion.ErrorMessage, &promotion.StartedAt, &promotion.CompletedAt, &promotion.CreatedAt,
-		&promotion.ProjectName,
-	)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, query, id).StructScan(&promotion); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -89,12 +79,7 @@ func (r *EmailPromotionRepository) GetByOrderID(ctx context.Context, orderID int
 	`
 
 	var promotion models.EmailPromotion
-	err := r.db.QueryRowxContext(ctx, query, orderID).Scan(
-		&promotion.ID, &promotion.OrderID, &promotion.ProjectID, &promotion.CreatorID,
-		&promotion.MaxRecipients, &promotion.TotalSent, &promotion.Status,
-		&promotion.ErrorMessage, &promotion.StartedAt, &promotion.CompletedAt, &promotion.CreatedAt,
-	)
-	if err != nil {
+	if err := r.db.QueryRowxContext(ctx, query, orderID).StructScan(&promotion); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -108,22 +93,15 @@ func (r *EmailPromotionRepository) GetByOrderID(ctx context.Context, orderID int
 func (r *EmailPromotionRepository) Update(ctx context.Context, promotion *models.EmailPromotion) error {
 	query := `
 		UPDATE email_promotion SET
-			total_sent = ?,
-			status = ?,
-			error_message = ?,
-			started_at = ?,
-			completed_at = ?
-		WHERE id = ?
+			total_sent = :total_sent,
+			status = :status,
+			error_message = :error_message,
+			started_at = :started_at,
+			completed_at = :completed_at
+		WHERE id = :id
 	`
 
-	_, err := r.db.ExecContext(ctx, query,
-		promotion.TotalSent,
-		promotion.Status,
-		promotion.ErrorMessage,
-		promotion.StartedAt,
-		promotion.CompletedAt,
-		promotion.ID,
-	)
+	_, err := r.db.NamedExecContext(ctx, query, promotion)
 	if err != nil {
 		return fmt.Errorf("update email promotion: %w", err)
 	}
@@ -155,25 +133,9 @@ func (r *EmailPromotionRepository) ListByCreatorID(ctx context.Context, creatorI
 		LIMIT ? OFFSET ?
 	`
 
-	rows, err := r.db.QueryxContext(ctx, query, creatorID, size, offset)
-	if err != nil {
-		return nil, 0, fmt.Errorf("query email promotions: %w", err)
-	}
-	defer rows.Close()
-
 	var promotions []models.EmailPromotion
-	for rows.Next() {
-		var promotion models.EmailPromotion
-		err := rows.Scan(
-			&promotion.ID, &promotion.OrderID, &promotion.ProjectID, &promotion.CreatorID,
-			&promotion.MaxRecipients, &promotion.TotalSent, &promotion.Status,
-			&promotion.ErrorMessage, &promotion.StartedAt, &promotion.CompletedAt, &promotion.CreatedAt,
-			&promotion.ProjectName,
-		)
-		if err != nil {
-			return nil, 0, fmt.Errorf("scan email promotion: %w", err)
-		}
-		promotions = append(promotions, promotion)
+	if err := r.db.SelectContext(ctx, &promotions, query, creatorID, size, offset); err != nil {
+		return nil, 0, fmt.Errorf("query email promotions: %w", err)
 	}
 
 	return promotions, total, nil
@@ -191,24 +153,9 @@ func (r *EmailPromotionRepository) ListByProjectID(ctx context.Context, projectI
 		ORDER BY created_at DESC
 	`
 
-	rows, err := r.db.QueryxContext(ctx, query, projectID)
-	if err != nil {
-		return nil, fmt.Errorf("query email promotions by project: %w", err)
-	}
-	defer rows.Close()
-
 	var promotions []models.EmailPromotion
-	for rows.Next() {
-		var promotion models.EmailPromotion
-		err := rows.Scan(
-			&promotion.ID, &promotion.OrderID, &promotion.ProjectID, &promotion.CreatorID,
-			&promotion.MaxRecipients, &promotion.TotalSent, &promotion.Status,
-			&promotion.ErrorMessage, &promotion.StartedAt, &promotion.CompletedAt, &promotion.CreatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("scan email promotion: %w", err)
-		}
-		promotions = append(promotions, promotion)
+	if err := r.db.SelectContext(ctx, &promotions, query, projectID); err != nil {
+		return nil, fmt.Errorf("query email promotions by project: %w", err)
 	}
 
 	return promotions, nil

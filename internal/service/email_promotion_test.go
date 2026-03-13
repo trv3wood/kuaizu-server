@@ -54,14 +54,6 @@ func (m *MockOrderRepo) UpdatePaymentStatusTx(ctx context.Context, tx *sqlx.Tx, 
 	return args.Error(0)
 }
 
-func (m *MockOrderRepo) GetOrderItems(ctx context.Context, orderID int) ([]*models.OrderItem, error) {
-	args := m.Called(ctx, orderID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*models.OrderItem), args.Error(1)
-}
-
 func (m *MockOrderRepo) UpdateStatus(ctx context.Context, id int, status int) error {
 	args := m.Called(ctx, id, status)
 	return args.Error(0)
@@ -354,10 +346,11 @@ func TestTriggerPromotion_NoEmailPromotionProduct(t *testing.T) {
 	mockEmailPromotion := new(MockEmailPromotionRepo)
 
 	order := &models.Order{
-		ID:     100,
-		UserID: 1,
-		Status: 1,
-		Items:  []*models.OrderItem{{ProductID: 10, Quantity: 1}},
+		ID:        100,
+		UserID:    1,
+		ProductID: 10,
+		Quantity:  1,
+		Status:    1,
 	}
 
 	mockOrder.On("GetByID", mock.Anything, 100).Return(order, nil)
@@ -389,22 +382,19 @@ func TestTriggerPromotion_Success(t *testing.T) {
 	mockEmailPromotion := new(MockEmailPromotionRepo)
 
 	order := &models.Order{
-		ID:     100,
-		UserID: 1,
-		Status: 1,
-		Items: []*models.OrderItem{
-			{ProductID: 10, Quantity: 50},
-			{ProductID: 11, Quantity: 30},
-		},
+		ID:        100,
+		UserID:    1,
+		ProductID: 10,
+		Quantity:  50,
+		Status:    1,
 	}
 
 	mockOrder.On("GetByID", mock.Anything, 100).Return(order, nil)
 	mockProject.On("GetByID", mock.Anything, 200).Return(&models.Project{ID: 200, CreatorID: 1}, nil)
 	mockEmailPromotion.On("GetByOrderID", mock.Anything, 100).Return(nil, nil)
 	mockProduct.On("GetByID", mock.Anything, 10).Return(&models.Product{ID: 10, Type: 2}, nil)
-	mockProduct.On("GetByID", mock.Anything, 11).Return(&models.Product{ID: 11, Type: 2}, nil)
 	mockEmailPromotion.On("Create", mock.Anything, mock.MatchedBy(func(p *models.EmailPromotion) bool {
-		return p.OrderID == 100 && p.ProjectID == 200 && p.CreatorID == 1 && p.MaxRecipients == 80
+		return p.OrderID == 100 && p.ProjectID == 200 && p.CreatorID == 1 && p.MaxRecipients == 50
 	})).Run(func(args mock.Arguments) {
 		promotion := args.Get(1).(*models.EmailPromotion)
 		promotion.ID = 1
@@ -424,7 +414,7 @@ func TestTriggerPromotion_Success(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	assert.Equal(t, 80, result.MaxRecipients)
+	assert.Equal(t, 50, result.MaxRecipients)
 	assert.Equal(t, 100, result.Promotion.OrderID)
 	assert.Equal(t, 200, result.Promotion.ProjectID)
 	assert.Equal(t, 1, result.Promotion.CreatorID)
@@ -443,10 +433,11 @@ func TestTriggerPromotion_CreateFails(t *testing.T) {
 	mockEmailPromotion := new(MockEmailPromotionRepo)
 
 	order := &models.Order{
-		ID:     100,
-		UserID: 1,
-		Status: 1,
-		Items:  []*models.OrderItem{{ProductID: 10, Quantity: 50}},
+		ID:        100,
+		UserID:    1,
+		ProductID: 10,
+		Quantity:  50,
+		Status:    1,
 	}
 
 	mockOrder.On("GetByID", mock.Anything, 100).Return(order, nil)
