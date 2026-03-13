@@ -48,7 +48,6 @@ erDiagram
         string project_experience "项目经历"
         string mbti "MBTI性格"
         int status "状态(1上架/0下架)"
-        boolean is_public_contact "是否公开联系方式"
     }
 
     %% ================= 核心业务：项目与组队 =================

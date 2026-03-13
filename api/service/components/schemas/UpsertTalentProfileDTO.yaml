@@ -16,6 +16,3 @@ properties:
     maxLength: 10
   status:
     $ref: ./TalentStatus.yaml
-  isPublicContact:
-    type: boolean
-    description: 是否公开联系方式

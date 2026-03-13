@@ -158,9 +158,9 @@ func (r *ApplicationRepository) List(ctx context.Context, params ApplicationList
 func (r *ApplicationRepository) Create(ctx context.Context, app *models.ProjectApplication) error {
 	query := `
 		INSERT INTO project_application (
-			project_id, user_id, contact, status
+			project_id, user_id, status
 		) VALUES (
-			:project_id, :user_id, :contact, :status
+			:project_id, :user_id, :status
 		)
 	`
 
@@ -182,7 +182,7 @@ func (r *ApplicationRepository) Create(ctx context.Context, app *models.ProjectA
 func (r *ApplicationRepository) GetByID(ctx context.Context, id int) (*models.ProjectApplication, error) {
 	query := `
 		SELECT
-			pa.id, pa.project_id, pa.user_id, pa.contact,
+			pa.id, pa.project_id, pa.user_id,
 			pa.status, pa.applied_at, pa.updated_at
 		FROM project_application pa
 		WHERE pa.id = ?

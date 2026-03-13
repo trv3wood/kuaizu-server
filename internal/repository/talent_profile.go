@@ -286,10 +286,10 @@ func (r *TalentProfileRepository) Upsert(ctx context.Context, p *models.TalentPr
 		query := `
 			INSERT INTO talent_profile (
 				user_id, self_evaluation, skill_summary, project_experience,
-				mbti, status, is_public_contact
+				mbti, status
 			) VALUES (
 				:user_id, :self_evaluation, :skill_summary, :project_experience,
-				:mbti, :status, :is_public_contact
+				:mbti, :status
 			)
 		`
 		result, err := r.db.NamedExecContext(ctx, query, p)
@@ -323,7 +323,7 @@ func (r *TalentProfileRepository) Upsert(ctx context.Context, p *models.TalentPr
 // DeleteByUserID deletes a talent profile by user ID
 func (r *TalentProfileRepository) DeleteByUserID(ctx context.Context, userID int) error {
 	query := `
-		UPDATE talent_profile SET status = 0, is_public_contact = 0 WHERE user_id = ?
+		UPDATE talent_profile SET status = 0 WHERE user_id = ?
 	`
 	_, err := r.db.ExecContext(ctx, query, userID)
 	if err != nil {

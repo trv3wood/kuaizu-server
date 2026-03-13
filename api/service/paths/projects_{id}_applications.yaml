@@ -36,22 +36,6 @@ post:
   summary: 申请加入项目
   description: 触发订阅消息逻辑
   operationId: applyToProject
-  requestBody:
-    required: true
-    content:
-      application/json:
-        schema:
-          type: object
-          properties:
-            applyReason:
-              type: string
-              deprecated: true
-              description: 自我介绍/申请理由(已弃用)
-              example: 我有2年的Java开发经验...
-            contact:
-              type: string
-              description: 联系方式
-              example: "微信: example123"
   responses:
     "200":
       description: 申请成功
