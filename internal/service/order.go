@@ -147,6 +147,10 @@ func (s *OrderService) CancelOrder(ctx context.Context, userID, orderID int) (*m
 		return nil, ErrBadRequest("订单状态不允许取消")
 	}
 
+	if err := IsValidStatus("order.status", 2); err != nil {
+		return nil, err
+	}
+
 	if err := s.repo.Order.UpdateStatus(ctx, orderID, 2); err != nil {
 		return nil, ErrInternal("取消订单失败")
 	}

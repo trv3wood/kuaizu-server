@@ -157,6 +157,10 @@ func (s *OliveBranchService) HandleOliveBranch(ctx context.Context, userID, bran
 		return nil, ErrBadRequest("操作类型无效，必须为ACCEPT或REJECT")
 	}
 
+	if err := IsValidStatus("olive_branch.status", newStatus); err != nil {
+		return nil, err
+	}
+
 	if err := s.repo.OliveBranch.UpdateStatus(ctx, branchID, newStatus); err != nil {
 		return nil, ErrInternal("处理邀请失败")
 	}
