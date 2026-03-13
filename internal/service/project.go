@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
+	"log"
 
-	"github.com/labstack/gommon/log"
 	"github.com/trv3wood/kuaizu-server/api"
 	"github.com/trv3wood/kuaizu-server/internal/models"
 	"github.com/trv3wood/kuaizu-server/internal/repository"
@@ -46,6 +46,7 @@ func (s *ProjectService) ListProjects(ctx context.Context, params repository.Lis
 
 	projects, total, err := s.repo.Project.List(ctx, params)
 	if err != nil {
+		log.Printf("[ProjectService.ListProjects] repository error: %v", err)
 		return nil, ErrInternal("获取项目列表失败")
 	}
 
@@ -66,6 +67,7 @@ func (s *ProjectService) ListMyProjects(ctx context.Context, userID int, params 
 
 	projects, total, err := s.repo.Project.List(ctx, params)
 	if err != nil {
+		log.Printf("[ProjectService.ListMyProjects] repository error: %v", err)
 		return nil, ErrInternal("获取我的项目列表失败")
 	}
 
@@ -83,6 +85,7 @@ func (s *ProjectService) ListMyProjects(ctx context.Context, userID int, params 
 func (s *ProjectService) GetProject(ctx context.Context, id int) (*models.Project, error) {
 	project, err := s.repo.Project.GetByID(ctx, id)
 	if err != nil {
+		log.Printf("[ProjectService.GetProject] repository error: %v", err)
 		return nil, ErrInternal("获取项目详情失败")
 	}
 	if project == nil {
@@ -164,6 +167,7 @@ func (s *ProjectService) CreateProject(ctx context.Context, input CreateProjectI
 	}
 
 	if err := s.repo.Project.Create(ctx, project); err != nil {
+		log.Printf("[ProjectService.CreateProject] repository error: %v", err)
 		return nil, ErrInternal("创建项目失败")
 	}
 
@@ -186,6 +190,7 @@ func (s *ProjectService) UpdateProject(ctx context.Context, id, userID int, inpu
 	// Check ownership
 	isOwner, err := s.repo.Project.IsOwner(ctx, id, userID)
 	if err != nil {
+		log.Printf("[ProjectService.UpdateProject] repository error checking ownership: %v", err)
 		return nil, ErrInternal("检查权限失败")
 	}
 	if !isOwner {
@@ -195,6 +200,7 @@ func (s *ProjectService) UpdateProject(ctx context.Context, id, userID int, inpu
 	// Get existing project
 	project, err := s.repo.Project.GetByID(ctx, id)
 	if err != nil {
+		log.Printf("[ProjectService.UpdateProject] repository error getting project: %v", err)
 		return nil, ErrInternal("获取项目信息失败")
 	}
 	if project == nil {
@@ -251,12 +257,14 @@ func (s *ProjectService) UpdateProject(ctx context.Context, id, userID int, inpu
 	}
 
 	if err := s.repo.Project.Update(ctx, project); err != nil {
+		log.Printf("[ProjectService.UpdateProject] repository error updating: %v", err)
 		return nil, ErrInternal("更新项目失败")
 	}
 
 	// Reload to return fresh data
 	updated, err := s.repo.Project.GetByID(ctx, id)
 	if err != nil {
+		log.Printf("[ProjectService.UpdateProject] repository error reloading: %v", err)
 		return nil, ErrInternal("获取项目信息失败")
 	}
 
@@ -267,6 +275,7 @@ func (s *ProjectService) UpdateProject(ctx context.Context, id, userID int, inpu
 func (s *ProjectService) DeleteProject(ctx context.Context, id, userID int) error {
 	isOwner, err := s.repo.Project.IsOwner(ctx, id, userID)
 	if err != nil {
+		log.Printf("[ProjectService.DeleteProject] repository error checking ownership: %v", err)
 		return ErrInternal("检查权限失败")
 	}
 	if !isOwner {
@@ -274,6 +283,7 @@ func (s *ProjectService) DeleteProject(ctx context.Context, id, userID int) erro
 	}
 
 	if err := s.repo.Project.Delete(ctx, id); err != nil {
+		log.Printf("[ProjectService.DeleteProject] repository error: %v", err)
 		return ErrInternal("删除项目失败")
 	}
 
@@ -296,6 +306,7 @@ func (s *ProjectService) ListProjectApplications(ctx context.Context, projectID,
 	// Only the project owner may view applications
 	isOwner, err := s.repo.Project.IsOwner(ctx, projectID, userID)
 	if err != nil {
+		log.Printf("[ProjectService.ListProjectApplications] repository error checking ownership: %v", err)
 		return nil, ErrInternal("检查权限失败")
 	}
 	if !isOwner {
@@ -306,7 +317,7 @@ func (s *ProjectService) ListProjectApplications(ctx context.Context, projectID,
 
 	applications, total, err := s.repo.Application.List(ctx, params)
 	if err != nil {
-		log.Error(err)
+		log.Printf("[ProjectService.ListProjectApplications] repository error: %v", err)
 		return nil, ErrInternal("获取申请列表失败")
 	}
 
@@ -327,6 +338,7 @@ func (s *ProjectService) ListMyApplications(ctx context.Context, userID int, par
 
 	applications, total, err := s.repo.Application.List(ctx, params)
 	if err != nil {
+		log.Printf("[ProjectService.ListMyApplications] repository error: %v", err)
 		return nil, ErrInternal("获取申请列表失败")
 	}
 
@@ -350,6 +362,7 @@ type ApplyToProjectInput struct {
 func (s *ProjectService) ApplyToProject(ctx context.Context, input ApplyToProjectInput) (*models.ProjectApplication, error) {
 	project, err := s.repo.Project.GetByID(ctx, input.ProjectID)
 	if err != nil {
+		log.Printf("[ProjectService.ApplyToProject] repository error getting project: %v", err)
 		return nil, ErrInternal("获取项目信息失败")
 	}
 	if project == nil {
@@ -366,6 +379,7 @@ func (s *ProjectService) ApplyToProject(ctx context.Context, input ApplyToProjec
 
 	exists, err := s.repo.Application.CheckDuplicate(ctx, input.ProjectID, input.UserID)
 	if err != nil {
+		log.Printf("[ProjectService.ApplyToProject] repository error checking duplicate: %v", err)
 		return nil, ErrInternal("检查申请状态失败")
 	}
 	if exists {
@@ -379,6 +393,7 @@ func (s *ProjectService) ApplyToProject(ctx context.Context, input ApplyToProjec
 	}
 
 	if err := s.repo.Application.Create(ctx, application); err != nil {
+		log.Printf("[ProjectService.ApplyToProject] repository error creating application: %v", err)
 		return nil, ErrInternal("提交申请失败")
 	}
 
@@ -393,6 +408,7 @@ func (s *ProjectService) ReviewApplication(ctx context.Context, applicationID, u
 
 	app, err := s.repo.Application.GetByID(ctx, applicationID)
 	if err != nil {
+		log.Printf("[ProjectService.ReviewApplication] repository error getting application: %v", err)
 		return ErrInternal("获取申请信息失败")
 	}
 	if app == nil {
@@ -401,6 +417,7 @@ func (s *ProjectService) ReviewApplication(ctx context.Context, applicationID, u
 
 	isOwner, err := s.repo.Project.IsOwner(ctx, app.ProjectID, userID)
 	if err != nil {
+		log.Printf("[ProjectService.ReviewApplication] repository error checking ownership: %v", err)
 		return ErrInternal("检查权限失败")
 	}
 	if !isOwner {
@@ -408,6 +425,7 @@ func (s *ProjectService) ReviewApplication(ctx context.Context, applicationID, u
 	}
 
 	if err := s.repo.Application.UpdateStatus(ctx, applicationID, int(status)); err != nil {
+		log.Printf("[ProjectService.ReviewApplication] repository error updating status: %v", err)
 		return ErrInternal("更新申请状态失败")
 	}
 

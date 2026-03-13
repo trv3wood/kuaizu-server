@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/trv3wood/kuaizu-server/internal/models"
@@ -31,6 +32,7 @@ func (s *OliveBranchService) SendOliveBranch(ctx context.Context, userID int, re
 	// Validate receiver exists
 	receiver, err := s.repo.User.GetByID(ctx, req.ReceiverID)
 	if err != nil {
+		log.Printf("[OliveBranchService.SendOliveBranch] repository error getting receiver: %v", err)
 		return nil, ErrInternal("查询用户失败")
 	}
 	if receiver == nil {
@@ -46,6 +48,7 @@ func (s *OliveBranchService) SendOliveBranch(ctx context.Context, userID int, re
 	var projectName *string
 	project, err := s.repo.Project.GetByID(ctx, req.RelatedProjectID)
 	if err != nil {
+		log.Printf("[OliveBranchService.SendOliveBranch] repository error getting project: %v", err)
 		return nil, ErrInternal("查询项目失败")
 	}
 	if project == nil {
@@ -59,6 +62,7 @@ func (s *OliveBranchService) SendOliveBranch(ctx context.Context, userID int, re
 	// Check for duplicate pending olive branch
 	exists, err := s.repo.OliveBranch.ExistsPending(ctx, userID, req.ReceiverID, req.RelatedProjectID)
 	if err != nil {
+		log.Printf("[OliveBranchService.SendOliveBranch] repository error checking duplicate: %v", err)
 		return nil, ErrInternal("查询橄榄枝状态失败")
 	}
 	if exists {
@@ -68,6 +72,7 @@ func (s *OliveBranchService) SendOliveBranch(ctx context.Context, userID int, re
 	// Get sender for quota check
 	sender, err := s.repo.User.GetByID(ctx, userID)
 	if err != nil {
+		log.Printf("[OliveBranchService.SendOliveBranch] repository error getting sender: %v", err)
 		return nil, ErrInternal("获取用户信息失败")
 	}
 
@@ -106,6 +111,7 @@ func (s *OliveBranchService) SendOliveBranch(ctx context.Context, userID int, re
 
 	// Update user quota
 	if err := s.repo.User.UpdateQuota(ctx, sender); err != nil {
+		log.Printf("[OliveBranchService.SendOliveBranch] repository error updating quota: %v", err)
 		return nil, ErrInternal("更新额度失败")
 	}
 
@@ -119,6 +125,7 @@ func (s *OliveBranchService) SendOliveBranch(ctx context.Context, userID int, re
 	}
 
 	if err := s.repo.OliveBranch.Create(ctx, ob); err != nil {
+		log.Printf("[OliveBranchService.SendOliveBranch] repository error creating olive branch: %v", err)
 		return nil, ErrInternal("发送橄榄枝失败")
 	}
 
@@ -133,6 +140,7 @@ func (s *OliveBranchService) SendOliveBranch(ctx context.Context, userID int, re
 func (s *OliveBranchService) HandleOliveBranch(ctx context.Context, userID, branchID int, action string) (*models.OliveBranch, error) {
 	ob, err := s.repo.OliveBranch.GetByID(ctx, branchID)
 	if err != nil {
+		log.Printf("[OliveBranchService.HandleOliveBranch] repository error getting olive branch: %v", err)
 		return nil, ErrInternal("查询橄榄枝失败")
 	}
 	if ob == nil {
@@ -162,6 +170,7 @@ func (s *OliveBranchService) HandleOliveBranch(ctx context.Context, userID, bran
 	}
 
 	if err := s.repo.OliveBranch.UpdateStatus(ctx, branchID, newStatus); err != nil {
+		log.Printf("[OliveBranchService.HandleOliveBranch] repository error updating status: %v", err)
 		return nil, ErrInternal("处理邀请失败")
 	}
 

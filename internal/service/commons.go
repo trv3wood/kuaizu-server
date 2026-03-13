@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 	"mime/multipart"
 	"path/filepath"
 	"strings"
@@ -41,6 +42,7 @@ func (s *CommonsService) UploadFile(file multipart.File, header *multipart.FileH
 	filename := uuid.New().String() + ext
 	result, err := s.ossClient.Upload(file, filename)
 	if err != nil {
+		log.Printf("[CommonsService.UploadFile] OSS upload error: %v", err)
 		return nil, ErrInternal("文件上传失败")
 	}
 	return result, nil
@@ -62,6 +64,7 @@ func (s *CommonsService) SubmitCertification(ctx context.Context, userID int, fi
 	// 1. 查询旧的 auth_img_url
 	certInfo, err := s.userRepo.GetEduCertInfoByID(ctx, userID)
 	if err != nil {
+		log.Printf("[CommonsService.SubmitCertification] repository error getting cert info: %v", err)
 		return nil, ErrInternal("获取旧认证图片失败")
 	}
 	oldKey := certInfo.AuthImgUrl
@@ -79,6 +82,7 @@ func (s *CommonsService) SubmitCertification(ctx context.Context, userID int, fi
 
 	// 4. 更新数据库
 	if err := s.userRepo.UpdateAuthImgUrl(ctx, userID, result.Key); err != nil {
+		log.Printf("[CommonsService.SubmitCertification] repository error updating auth img: %v", err)
 		return nil, ErrInternal("更新认证图片失败")
 	}
 
@@ -91,6 +95,7 @@ func (s *CommonsService) UploadAvatar(ctx context.Context, userID int, file mult
 	// 1. 查询旧头像
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
+		log.Printf("[CommonsService.UploadAvatar] repository error getting user: %v", err)
 		return nil, ErrInternal("获取用户信息失败")
 	}
 
@@ -107,6 +112,7 @@ func (s *CommonsService) UploadAvatar(ctx context.Context, userID int, file mult
 
 	// 4. 更新数据库
 	if err := s.userRepo.UpdateAvatarUrl(ctx, userID, result.Key); err != nil {
+		log.Printf("[CommonsService.UploadAvatar] repository error updating avatar: %v", err)
 		return nil, ErrInternal("更新头像失败")
 	}
 
@@ -119,6 +125,7 @@ func (s *CommonsService) UploadCoverImage(ctx context.Context, userID int, file 
 	// 1. 查询旧封面图
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
+		log.Printf("[CommonsService.UploadCoverImage] repository error getting user: %v", err)
 		return nil, ErrInternal("获取用户信息失败")
 	}
 
@@ -135,6 +142,7 @@ func (s *CommonsService) UploadCoverImage(ctx context.Context, userID int, file 
 
 	// 4. 更新数据库
 	if err := s.userRepo.UpdateCoverImage(ctx, userID, result.Key); err != nil {
+		log.Printf("[CommonsService.UploadCoverImage] repository error updating cover image: %v", err)
 		return nil, ErrInternal("更新封面图失败")
 	}
 
