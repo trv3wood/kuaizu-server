@@ -32,7 +32,7 @@ type ApplicationListParams struct {
 // userWithTalent holds user + talent_profile columns for the second batch query.
 type userWithTalent struct {
 	ID           int     `db:"id"`
-	TalentID     int     `db:"talent_id"`
+	TalentID     *int    `db:"talent_id"`
 	OpenID       string  `db:"openid"`
 	Nickname     *string `db:"nickname"`
 	Phone        *string `db:"phone"`
@@ -135,9 +135,9 @@ func (r *ApplicationRepository) List(ctx context.Context, params ApplicationList
 				AvatarUrl: row.AvatarUrl,
 			},
 		}
-		if row.SkillSummary != nil {
+		if row.SkillSummary != nil && row.TalentID != nil {
 			entry.TalentProfile = &models.TalentProfile{
-				ID:           row.TalentID,
+				ID:           *row.TalentID,
 				UserID:       row.ID,
 				SkillSummary: row.SkillSummary,
 			}
