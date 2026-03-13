@@ -87,13 +87,15 @@ make run       # 启动开发服务器
 
 ## 开发流程
 
-1. 在 `api/service.yaml` 中定义或修改 API 接口
+1. 在 `api/service/openapi.yaml` 中定义或修改 API 接口
 2. 运行 `make generate` 生成服务端代码（`api/api.gen.go`）
-3. 在 `internal/handler/` 中实现对应的请求处理逻辑
-4. 在 `internal/repository/` 中实现数据库操作
+3. 在 `internal/handler/` 中实现对应的请求处理
+4. 在 `internal/service` 实现业务逻辑
+5. 在 `internal/repository/` 中实现数据库操作
+6. 在 `internal/models` 定义数据模型
 
 ## API 文档
 
 API 基础路径：`/api/v2`
 
-详细接口定义见 `api/service.yaml`。
+详细接口定义见 `api/service/openapi.yaml`。
