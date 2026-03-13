@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/trv3wood/kuaizu-server/internal/models"
 	"github.com/trv3wood/kuaizu-server/internal/wechat"
 	"github.com/wechatpay-apiv3/wechatpay-go/services/payments"
 )
@@ -83,7 +84,7 @@ func (s *Server) WechatPayCallback(ctx echo.Context) error {
 		return ctx.JSON(http.StatusOK, successResponse())
 	}
 
-	if order.Status == 1 {
+	if order.Status == models.OrderStatusPaid {
 		return ctx.JSON(http.StatusOK, successResponse())
 	}
 

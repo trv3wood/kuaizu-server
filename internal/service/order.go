@@ -50,7 +50,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int, item CreateO
 		Price:      product.Price,
 		Quantity:   item.Quantity,
 		ActualPaid: actualPaid,
-		Status:     0, // 待支付
+		Status:     models.OrderStatusPending,
 	}
 
 	createdOrder, err := s.repo.Order.Create(ctx, order)
@@ -95,7 +95,7 @@ func (s *OrderService) InitiatePayment(ctx context.Context, userID int, openID s
 	if order.UserID != userID {
 		return nil, ErrForbidden("无权操作此订单")
 	}
-	if order.Status != 0 {
+	if order.Status != models.OrderStatusPending {
 		return nil, ErrBadRequest("订单状态不允许支付")
 	}
 
@@ -147,11 +147,11 @@ func (s *OrderService) CancelOrder(ctx context.Context, userID, orderID int) (*m
 		return nil, ErrBadRequest("订单状态不允许取消")
 	}
 
-	if err := IsValidStatus("order.status", 2); err != nil {
+	if err := IsValidStatus("order.status", models.OrderStatusCancelled); err != nil {
 		return nil, err
 	}
 
-	if err := s.repo.Order.UpdateStatus(ctx, orderID, 2); err != nil {
+	if err := s.repo.Order.UpdateStatus(ctx, orderID, models.OrderStatusCancelled); err != nil {
 		return nil, ErrInternal("取消订单失败")
 	}
 

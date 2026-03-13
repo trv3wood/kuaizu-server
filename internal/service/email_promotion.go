@@ -38,7 +38,7 @@ func (s *EmailPromotionService) TriggerPromotion(ctx context.Context, userID, or
 	if order.UserID != userID {
 		return nil, ErrForbidden("无权操作此订单")
 	}
-	if order.Status != 1 {
+	if order.Status != models.OrderStatusPaid {
 		return nil, ErrBadRequest("订单未支付或状态异常")
 	}
 
@@ -98,7 +98,7 @@ func (s *EmailPromotionService) calculateMaxRecipients(ctx context.Context, orde
 		return 0, ErrBadRequest("无法获取商品信息")
 	}
 
-	if product.Type == 2 { // 服务权益 - 邮件推广
+	if product.Type == models.ProductTypeBenefit { // 服务权益 - 邮件推广
 		return order.Quantity, nil
 	}
 

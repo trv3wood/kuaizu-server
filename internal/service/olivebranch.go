@@ -93,11 +93,11 @@ func (s *OliveBranchService) SendOliveBranch(ctx context.Context, userID int, re
 	}
 
 	if freeBranchUsedToday < dailyFreeQuota {
-		costType = 1 // Free quota
+		costType = models.OliveBranchCostFree // Free quota
 		freeBranchUsedToday++
 		sender.FreeBranchUsedToday = &freeBranchUsedToday
 	} else if oliveBranchCount > 0 {
-		costType = 2 // Paid quota
+		costType = models.OliveBranchCostPaid // Paid quota
 		oliveBranchCount--
 		sender.OliveBranchCount = &oliveBranchCount
 	} else {
@@ -115,7 +115,7 @@ func (s *OliveBranchService) SendOliveBranch(ctx context.Context, userID int, re
 		ReceiverID:       req.ReceiverID,
 		RelatedProjectID: req.RelatedProjectID,
 		CostType:         costType,
-		Status:           0, // 待处理
+		Status:           models.OliveBranchStatusPending,
 	}
 
 	if err := s.repo.OliveBranch.Create(ctx, ob); err != nil {
@@ -143,16 +143,16 @@ func (s *OliveBranchService) HandleOliveBranch(ctx context.Context, userID, bran
 		return nil, ErrForbidden("只有接收者可以处理此邀请")
 	}
 
-	if ob.Status != 0 {
+	if ob.Status != models.OliveBranchStatusPending {
 		return nil, ErrBadRequest("此邀请已被处理")
 	}
 
 	var newStatus int
 	switch action {
 	case "ACCEPT":
-		newStatus = 1
+		newStatus = models.OliveBranchStatusAccepted
 	case "REJECT":
-		newStatus = 2
+		newStatus = models.OliveBranchStatusRejected
 	default:
 		return nil, ErrBadRequest("操作类型无效，必须为ACCEPT或REJECT")
 	}

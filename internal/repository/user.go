@@ -79,11 +79,11 @@ func (r *UserRepository) GetByOpenID(ctx context.Context, openid string) (*model
 // Create creates a new user and returns the created user
 func (r *UserRepository) Create(ctx context.Context, openid string) (*models.User, error) {
 	query := `
-		INSERT INTO ` + "`user`" + ` (openid, olive_branch_count, free_branch_used_today, auth_status)
-		VALUES (?, 0, 0, 0)
+		INSERT INTO ` + "`user`" + ` (openid, olive_branch_count, free_branch_used_today, auth_status, created_at)
+		VALUES (?, 0, 0, ?, NOW())
 	`
 
-	result, err := r.db.ExecContext(ctx, query, openid)
+	result, err := r.db.ExecContext(ctx, query, openid, models.UserAuthStatusNone)
 	if err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
 	}
@@ -99,11 +99,11 @@ func (r *UserRepository) Create(ctx context.Context, openid string) (*models.Use
 // CreateWithPhone creates a new user with phone and returns the created user
 func (r *UserRepository) CreateWithPhone(ctx context.Context, openid string, phone string) (*models.User, error) {
 	query := `
-		INSERT INTO ` + "`user`" + ` (openid, phone, olive_branch_count, free_branch_used_today, auth_status)
-		VALUES (?, ?, 0, 0, 0)
+		INSERT INTO ` + "`user`" + ` (openid, phone, olive_branch_count, free_branch_used_today, auth_status, created_at)
+		VALUES (?, ?, 0, 0, ?, NOW())
 	`
 
-	result, err := r.db.ExecContext(ctx, query, openid, phone)
+	result, err := r.db.ExecContext(ctx, query, openid, phone, models.UserAuthStatusNone)
 	if err != nil {
 		return nil, fmt.Errorf("create user with phone: %w", err)
 	}

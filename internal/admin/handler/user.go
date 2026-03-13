@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	adminvo "github.com/trv3wood/kuaizu-server/internal/admin/vo"
+	"github.com/trv3wood/kuaizu-server/internal/models"
 	"github.com/trv3wood/kuaizu-server/internal/repository"
 	"github.com/trv3wood/kuaizu-server/internal/response"
 )
@@ -32,7 +33,7 @@ func (s *AdminServer) ListUsers(ctx echo.Context) error {
 		}
 		params.AuthStatus = &status
 		if params.AuthStatus != nil && *params.AuthStatus == 3 { // 重新映射
-			*params.AuthStatus = 0
+			*params.AuthStatus = models.UserAuthStatusNone
 			uploaded := true
 			params.AuthImgUploaded = &uploaded
 		}
@@ -102,7 +103,7 @@ func (s *AdminServer) ReviewUserAuth(ctx echo.Context) error {
 		return response.BadRequest(ctx, "invalid request body")
 	}
 
-	if req.AuthStatus != 1 && req.AuthStatus != 2 {
+	if req.AuthStatus != models.UserAuthStatusPassed && req.AuthStatus != models.UserAuthStatusFailed {
 		return response.BadRequest(ctx, "invalid authStatus, must be 1 (approve) or 2 (reject)")
 	}
 

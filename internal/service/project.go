@@ -134,8 +134,8 @@ func (s *ProjectService) CreateProject(ctx context.Context, input CreateProjectI
 		Description:          &input.Description,
 		SchoolID:             input.SchoolID,
 		MemberCount:          &input.MemberCount,
-		Status:               0, // 待审核
-		PromotionStatus:      0,
+		Status:               models.ProjectStatusPending,
+		PromotionStatus:      models.ProjectPromotionNone,
 		ViewCount:            0,
 		IsCrossSchool:        &input.IsCrossSchool,
 		EducationRequirement: input.EducationRequirement,
@@ -156,7 +156,7 @@ func (s *ProjectService) CreateProject(ctx context.Context, input CreateProjectI
 		}
 	}
 
-	if input.IsCrossSchool != 0 && input.IsCrossSchool != 1 {
+	if input.IsCrossSchool != models.ProjectCrossSchoolNo && input.IsCrossSchool != models.ProjectCrossSchoolYes {
 		// Manual check since it's not a pointer in input but we check it in validation.go
 		if err := IsValidStatus("project.is_cross_school", input.IsCrossSchool); err != nil {
 			return nil, err
@@ -360,7 +360,7 @@ func (s *ProjectService) ApplyToProject(ctx context.Context, input ApplyToProjec
 		return nil, ErrBadRequest("不能申请加入自己的项目")
 	}
 
-	if project.Status != 1 {
+	if project.Status != models.ProjectStatusApproved {
 		return nil, ErrBadRequest("该项目当前不接受申请")
 	}
 
@@ -375,7 +375,7 @@ func (s *ProjectService) ApplyToProject(ctx context.Context, input ApplyToProjec
 	application := &models.ProjectApplication{
 		ProjectID: input.ProjectID,
 		UserID:    input.UserID,
-		Status:    0, // 待审核
+		Status:    models.ApplicationStatusPending,
 	}
 
 	if err := s.repo.Application.Create(ctx, application); err != nil {
