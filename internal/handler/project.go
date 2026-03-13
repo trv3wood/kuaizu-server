@@ -264,11 +264,6 @@ func (s *Server) ListMyApplications(ctx echo.Context, params api.ListMyApplicati
 func (s *Server) ApplyToProject(ctx echo.Context, id int) error {
 	userID := GetUserID(ctx)
 
-	var req api.ApplyToProjectJSONBody
-	if err := ctx.Bind(&req); err != nil {
-		return BadRequest(ctx, "请求参数错误")
-	}
-
 	input := service.ApplyToProjectInput{
 		ProjectID: id,
 		UserID:    userID,
