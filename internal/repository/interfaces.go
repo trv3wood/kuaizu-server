@@ -120,6 +120,16 @@ type FeedbackRepo interface {
 	Reply(ctx context.Context, id int, reply string) error
 }
 
+// SubscribeConfigRepo defines the interface for subscribe config repository operations.
+type SubscribeConfigRepo interface {
+	GetByUserIDAndTemplateID(ctx context.Context, userID int, templateID string) (*models.SubscribeConfig, error)
+	ListByUserID(ctx context.Context, userID int) ([]models.SubscribeConfig, error)
+	Upsert(ctx context.Context, config *models.SubscribeConfig) error
+	UpdateStatus(ctx context.Context, userID int, templateID string, status models.SubscribeStatus) error
+	DecrementCount(ctx context.Context, userID int, templateID string) error
+	IncrementCount(ctx context.Context, userID int, templateID string, count int) error
+}
+
 // Compile-time interface satisfaction checks
 var _ OrderRepo = (*OrderRepository)(nil)
 var _ ProjectRepo = (*ProjectRepository)(nil)
@@ -133,3 +143,4 @@ var _ MajorRepo = (*MajorRepository)(nil)
 var _ TalentProfileRepo = (*TalentProfileRepository)(nil)
 var _ AdminUserRepo = (*AdminUserRepository)(nil)
 var _ FeedbackRepo = (*FeedbackRepository)(nil)
+var _ SubscribeConfigRepo = (*SubscribeConfigRepository)(nil)
