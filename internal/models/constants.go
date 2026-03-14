@@ -85,6 +85,7 @@ const (
 const (
 	EducationJuniorCollege = 1 // 大专
 	EducationUndergraduate = 2 // 本科
+	EducationPostgraduate  = 3 // 研究生
 )
 
 // Project Application Status

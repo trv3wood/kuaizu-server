@@ -45,8 +45,8 @@ func IsValidStatus(field string, status int) error {
 			return ErrBadRequest(fmt.Sprintf("无效的跨校设置: %d", status))
 		}
 	case "project.education_requirement":
-		// 学历要求1-大专2-本科
-		if status < models.EducationJuniorCollege || status > models.EducationUndergraduate {
+		// 学历要求1-大专2-本科3-研究生
+		if status < models.EducationJuniorCollege || status > models.EducationPostgraduate {
 			return ErrBadRequest(fmt.Sprintf("无效的学历要求: %d", status))
 		}
 	case "application.status":
