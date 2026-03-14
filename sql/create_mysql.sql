@@ -21,7 +21,7 @@ SET @@SESSION.SQL_LOG_BIN= 0;
 -- GTID state at the beginning of the backup 
 --
 
-SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '09c0ed11-3a14-11f0-9fc2-00163e0c6f4a:1-16257';
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '09c0ed11-3a14-11f0-9fc2-00163e0c6f4a:1-16302';
 
 --
 -- Table structure for table `admin_user`
@@ -70,6 +70,78 @@ CREATE TABLE `email_promotion` (
   CONSTRAINT `email_promotion_order_fk` FOREIGN KEY (`order_id`) REFERENCES `order` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `fk_email_promotion_project` FOREIGN KEY (`project_id`) REFERENCES `project` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='邮件推广记录表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `email_provider_config`
+--
+
+DROP TABLE IF EXISTS `email_provider_config`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `email_provider_config` (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `provider_type` varchar(50) NOT NULL COMMENT '服务商类型：aliyun/smtp/sendgrid',
+  `config_name` varchar(100) NOT NULL COMMENT '配置名称',
+  `config_json` json NOT NULL COMMENT '配置参数JSON',
+  `is_default` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否默认：0-否 1-是',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用：0-禁用 1-启用',
+  `priority` int(11) NOT NULL DEFAULT '0' COMMENT '优先级（数字越小优先级越高）',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_provider_type` (`provider_type`),
+  KEY `idx_is_active` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='邮件服务商配置表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `email_task`
+--
+
+DROP TABLE IF EXISTS `email_task`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `email_task` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `promotion_id` int(11) NOT NULL COMMENT '关联的推广记录ID',
+  `recipient_email` varchar(255) NOT NULL COMMENT '收件人邮箱',
+  `template_code` varchar(50) NOT NULL COMMENT '使用的模板编码',
+  `template_vars` json DEFAULT NULL COMMENT '模板变量JSON',
+  `status` tinyint(1) NOT NULL DEFAULT '0' COMMENT '状态：0-待发送 1-发送中 2-成功 3-失败 4-重试中',
+  `retry_count` int(11) NOT NULL DEFAULT '0' COMMENT '重试次数',
+  `error_msg` varchar(500) DEFAULT NULL COMMENT '错误信息',
+  `send_time` timestamp NULL DEFAULT NULL COMMENT '实际发送时间',
+  `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_promotion_id` (`promotion_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='邮件发送任务表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `email_template`
+--
+
+DROP TABLE IF EXISTS `email_template`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `email_template` (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `template_code` varchar(50) NOT NULL COMMENT '模板编码（唯一）',
+  `template_name` varchar(100) NOT NULL COMMENT '模板名称',
+  `subject` varchar(200) NOT NULL COMMENT '邮件主题',
+  `html_content` text COMMENT 'HTML模板内容',
+  `text_content` text COMMENT '纯文本模板内容（备用）',
+  `description` varchar(500) DEFAULT NULL COMMENT '模板描述',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用：0-禁用 1-启用',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_template_code` (`template_code`),
+  KEY `idx_is_active` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='邮件模板表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -185,7 +257,7 @@ CREATE TABLE `order` (
   KEY `fk_order_merged_product` (`product_id`),
   CONSTRAINT `fk_order_merged_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_order_merged_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='订单总表(合并主表与详情)';
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='订单总表(合并主表与详情)';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -201,7 +273,7 @@ CREATE TABLE `product` (
   `type` int(11) NOT NULL COMMENT '类型:1-虚拟币,2-服务权益',
   `description` text COMMENT '商品描述',
   `price` decimal(10,2) NOT NULL COMMENT '商品价格',
-  `config_json` text COMMENT '配置参数(如增加多少个橄榄枝)',
+  `config_json` json DEFAULT NULL COMMENT '配置参数(如增加多少个橄榄枝)',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`)
@@ -298,15 +370,13 @@ DROP TABLE IF EXISTS `subscribe_config`;
 CREATE TABLE `subscribe_config` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'ID',
   `user_id` int(11) NOT NULL COMMENT '用户ID',
-  `target_type` varchar(50) NOT NULL COMMENT '订阅类型(新项目/审核结果/投递进度)',
-  `filter_json` text COMMENT '过滤条件(如:只看某学校项目)',
-  `email` varchar(100) DEFAULT NULL COMMENT '接收邮箱',
-  `is_active` tinyint(1) DEFAULT '1' COMMENT '是否开启',
+  `template_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '订阅消息模板ID',
+  `subscribe_count` int(11) DEFAULT NULL COMMENT '剩余可发送次数(估计)',
+  `status` tinyint(4) DEFAULT '1' COMMENT '状态（0-允许/1-拒绝/2-总是保持）',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   KEY `idx_subscribe_user` (`user_id`),
-  KEY `idx_subscribe_active` (`is_active`),
   CONSTRAINT `fk_sub_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='消息订阅配置表';
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -387,4 +457,4 @@ SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-03-12 23:59:36
+-- Dump completed on 2026-03-14 11:40:30
