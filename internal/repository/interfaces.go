@@ -130,6 +130,11 @@ type SubscribeConfigRepo interface {
 	IncrementCount(ctx context.Context, userID int, templateID string, count int) error
 }
 
+// MsgTemplateConfigRepo defines the interface for fetching message template configurations.
+type MsgTemplateConfigRepo interface {
+	GetByBizKey(ctx context.Context, bizKey string) (*models.MsgTemplateConfig, error)
+}
+
 // Compile-time interface satisfaction checks
 var _ OrderRepo = (*OrderRepository)(nil)
 var _ ProjectRepo = (*ProjectRepository)(nil)
@@ -144,3 +149,4 @@ var _ TalentProfileRepo = (*TalentProfileRepository)(nil)
 var _ AdminUserRepo = (*AdminUserRepository)(nil)
 var _ FeedbackRepo = (*FeedbackRepository)(nil)
 var _ SubscribeConfigRepo = (*SubscribeConfigRepository)(nil)
+var _ MsgTemplateConfigRepo = (*MsgTemplateConfigRepository)(nil)

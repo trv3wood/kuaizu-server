@@ -79,3 +79,25 @@ func (c *Client) SendSubscribeMessage(req *SubscribeMessageRequest) error {
 
 	return nil
 }
+
+// SendByConfig sends a subscription message using a JSON mapping for fields.
+// contentJSON is a map of business_key -> template_key (e.g. {"sender": "thing1"})
+func (c *Client) SendByConfig(toUser string, templateID string, contentJSON string, businessData map[string]string) error {
+	var fieldMap map[string]string
+	if err := json.Unmarshal([]byte(contentJSON), &fieldMap); err != nil {
+		return fmt.Errorf("unmarshal field map: %w", err)
+	}
+
+	data := make(map[string]SubscribeMessageData)
+	for bizKey, templateKey := range fieldMap {
+		if val, ok := businessData[bizKey]; ok {
+			data[templateKey] = SubscribeMessageData{Value: val}
+		}
+	}
+
+	return c.SendSubscribeMessage(&SubscribeMessageRequest{
+		ToUser:     toUser,
+		TemplateID: templateID,
+		Data:       data,
+	})
+}

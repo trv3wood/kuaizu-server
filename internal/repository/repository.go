@@ -19,6 +19,7 @@ type Repository struct {
 	EmailPromotion EmailPromotionRepo
 	AdminUser      AdminUserRepo
 	Feedback       FeedbackRepo
+	MsgTemplate    MsgTemplateConfigRepo
 }
 
 // DB returns the underlying database connection for transaction support
@@ -42,5 +43,6 @@ func New(db *sqlx.DB) *Repository {
 		EmailPromotion: NewEmailPromotionRepository(db),
 		AdminUser:      NewAdminUserRepository(db),
 		Feedback:       NewFeedbackRepository(db),
+		MsgTemplate:    NewMsgTemplateConfigRepository(db),
 	}
 }
