@@ -134,6 +134,7 @@ type SubscribeConfigRepo interface {
 // MsgTemplateConfigRepo defines the interface for fetching message template configurations.
 type MsgTemplateConfigRepo interface {
 	GetByBizKey(ctx context.Context, bizKey string) (*models.MsgTemplateConfig, error)
+	GetByBizKeys(ctx context.Context, bizKeys []string) ([]models.MsgTemplateConfig, error)
 }
 
 // Compile-time interface satisfaction checks

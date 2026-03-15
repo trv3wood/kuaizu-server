@@ -76,6 +76,16 @@ func (s *MessageService) SendSubscribeMsgByBizKey(ctx context.Context, userID in
 	return nil
 }
 
+// GetMsgTemplatesByBizKeys retrieves multiple message template configurations by their business keys
+func (s *MessageService) GetMsgTemplatesByBizKeys(ctx context.Context, bizKeys []string) ([]models.MsgTemplateConfig, error) {
+	configs, err := s.repo.MsgTemplate.GetByBizKeys(ctx, bizKeys)
+	if err != nil {
+		log.Printf("[MessageService.GetMsgTemplatesByBizKeys] error: %v", err)
+		return nil, fmt.Errorf("get msg templates by biz_keys: %w", err)
+	}
+	return configs, nil
+}
+
 // SyncSubscribeStatus syncs user subscription status from frontend
 type TemplateSyncResult struct {
 	BizKey string
