@@ -11,6 +11,13 @@ get:
   summary: 查看人才详情
   description: 需数据脱敏，除非已建立联系
   operationId: getTalentProfile
+  parameters:
+    - name: userId
+      in: query
+      required: false
+      schema:
+        type: integer
+      description: 可选用户ID，当人才档案不存在时回退查找用户基本信息
   responses:
     '200':
       description: 成功
