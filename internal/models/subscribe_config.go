@@ -15,6 +15,7 @@ const (
 type SubscribeConfig struct {
 	ID             int             `db:"id"`
 	UserID         int             `db:"user_id"`
+	BizKey         string          `db:"biz_key"`
 	TemplateID     string          `db:"template_id"`
 	SubscribeCount *int            `db:"subscribe_count"`
 	Status         SubscribeStatus `db:"status"`

@@ -361,13 +361,13 @@ CREATE TABLE `school` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `subscribe_config`
+-- Table structure for table `subscribe`
 --
 
-DROP TABLE IF EXISTS `subscribe_config`;
+DROP TABLE IF EXISTS `subscribe`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `subscribe_config` (
+CREATE TABLE `subscribe` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'ID',
   `user_id` int(11) NOT NULL COMMENT '用户ID',
   `template_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '订阅消息模板ID',
@@ -377,6 +377,7 @@ CREATE TABLE `subscribe_config` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_biz` (`user_id`, `biz_key`),
   KEY `idx_subscribe_user` (`user_id`),
   CONSTRAINT `fk_sub_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='消息订阅配置表';

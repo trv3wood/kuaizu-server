@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/trv3wood/kuaizu-server/internal/models"
 	"github.com/trv3wood/kuaizu-server/internal/repository"
 	"github.com/trv3wood/kuaizu-server/internal/wechat"
 )
@@ -47,5 +48,45 @@ func (s *MessageService) SendSubscribeMsgByBizKey(ctx context.Context, userID in
 		return fmt.Errorf("send message: %w", err)
 	}
 
+	return nil
+}
+
+// SyncSubscribeStatus syncs user subscription status from frontend
+type TemplateSyncResult struct {
+	BizKey string
+	Result string // accept, reject, ban
+}
+
+func (s *MessageService) SyncSubscribeStatus(ctx context.Context, userID int, syncResults []TemplateSyncResult) error {
+	for _, res := range syncResults {
+		// 1. Get template_id by biz_key
+		config, err := s.repo.MsgTemplate.GetByBizKey(ctx, res.BizKey)
+		if err != nil {
+			log.Printf("[MessageService.SyncSubscribeStatus] config not found for %s: %v", res.BizKey, err)
+			continue
+		}
+
+		// 2. Map result to status
+		var status models.SubscribeStatus
+		switch res.Result {
+		case "accept":
+			status = models.SubscribeStatusAccept
+		case "reject":
+			status = models.SubscribeStatusReject
+		default:
+			status = models.SubscribeStatusReject // treat ban or other as reject
+		}
+
+		// 3. Upsert
+		err = s.repo.SubscribeConfig.Upsert(ctx, &models.SubscribeConfig{
+			UserID:     userID,
+			BizKey:     res.BizKey,
+			TemplateID: config.TemplateID,
+			Status:     status,
+		})
+		if err != nil {
+			log.Printf("[MessageService.SyncSubscribeStatus] upsert failed for %s: %v", res.BizKey, err)
+		}
+	}
 	return nil
 }
