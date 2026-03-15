@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -41,9 +42,33 @@ func (s *MessageService) SendSubscribeMsgByBizKey(ctx context.Context, userID in
 		return fmt.Errorf("get template config: %w", err)
 	}
 
-	// 3. Send using client helper
+	// 3. Check local subscription status (Mirror)
+	localSub, err := s.repo.SubscribeConfig.GetByUserIDAndBizKey(ctx, userID, bizKey)
+	if err != nil {
+		log.Printf("[MessageService.SendSubscribeMsgByBizKey] check local sub error: %v", err)
+	}
+	if localSub != nil && localSub.Status == models.SubscribeStatusReject {
+		log.Printf("[MessageService.SendSubscribeMsgByBizKey] user %d rejected %s, skipping", userID, bizKey)
+		return nil
+	}
+
+	// 4. Send using client helper
 	err = s.wxClient.SendByConfig(user.OpenID, config.TemplateID, config.ContentJSON, businessData)
 	if err != nil {
+		// 5. Sync state if user rejected on WeChat side
+		var wxErr wechat.SubscribeMessageResponse
+		if errors.As(err, &wxErr) {
+			if wxErr.ErrCode == 43101 { // User refuse to accept
+				log.Printf("[MessageService.SendSubscribeMsgByBizKey] user %d rejected on WeChat, syncing local state", userID)
+				_ = s.repo.SubscribeConfig.Upsert(ctx, &models.SubscribeConfig{
+					UserID:     userID,
+					BizKey:     bizKey,
+					TemplateID: config.TemplateID,
+					Status:     models.SubscribeStatusReject,
+				})
+			}
+		}
+
 		log.Printf("[MessageService.SendSubscribeMsgByBizKey] error sending message: %v", err)
 		return fmt.Errorf("send message: %w", err)
 	}

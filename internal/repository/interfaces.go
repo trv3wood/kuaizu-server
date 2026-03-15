@@ -123,6 +123,7 @@ type FeedbackRepo interface {
 // SubscribeConfigRepo defines the interface for subscribe config repository operations.
 type SubscribeConfigRepo interface {
 	GetByUserIDAndTemplateID(ctx context.Context, userID int, templateID string) (*models.SubscribeConfig, error)
+	GetByUserIDAndBizKey(ctx context.Context, userID int, bizKey string) (*models.SubscribeConfig, error)
 	ListByUserID(ctx context.Context, userID int) ([]models.SubscribeConfig, error)
 	Upsert(ctx context.Context, config *models.SubscribeConfig) error
 	UpdateStatus(ctx context.Context, userID int, templateID string, status models.SubscribeStatus) error

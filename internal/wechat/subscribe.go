@@ -26,7 +26,10 @@ type SubscribeMessageRequest struct {
 type SubscribeMessageResponse struct {
 	ErrCode int    `json:"errcode"`
 	ErrMsg  string `json:"errmsg"`
-	error
+}
+
+func (r SubscribeMessageResponse) Error() string {
+	return fmt.Sprintf("wechat api error: %d - %s", r.ErrCode, r.ErrMsg)
 }
 
 // SendSubscribeMessage 发送订阅消息

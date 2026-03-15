@@ -38,6 +38,25 @@ func (r *SubscribeConfigRepository) GetByUserIDAndTemplateID(ctx context.Context
 	return &config, nil
 }
 
+// GetByUserIDAndBizKey retrieves a subscribe config by user_id and biz_key
+func (r *SubscribeConfigRepository) GetByUserIDAndBizKey(ctx context.Context, userID int, bizKey string) (*models.SubscribeConfig, error) {
+	query := `
+		SELECT id, user_id, biz_key, template_id, subscribe_count, status, created_at, updated_at
+		FROM subscribe
+		WHERE user_id = ? AND biz_key = ?
+	`
+
+	var config models.SubscribeConfig
+	if err := r.db.QueryRowxContext(ctx, query, userID, bizKey).StructScan(&config); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("query subscribe config by biz_key: %w", err)
+	}
+
+	return &config, nil
+}
+
 // ListByUserID retrieves all subscribe configs for a user
 func (r *SubscribeConfigRepository) ListByUserID(ctx context.Context, userID int) ([]models.SubscribeConfig, error) {
 	query := `
