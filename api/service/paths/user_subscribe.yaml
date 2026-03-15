@@ -1,0 +1,50 @@
+post:
+  tags:
+    - 订阅消息
+  summary: 同步用户订阅授权状态
+  description: 当用户在小程序触发 wx.requestSubscribeMessage 回调后，前端应调用此接口将结果同步至后端。
+  operationId: syncUserSubscription
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/SubscribeSyncRequest.yaml
+  responses:
+    '200':
+      description: 同步成功
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/BaseResponse.yaml
+components:
+  schemas:
+    SubscribeSyncRequest:
+      type: object
+      required:
+        - templates
+      properties:
+        templates:
+          type: array
+          description: 模板授权结果列表
+          minItems: 1
+          items:
+            $ref: ../components/schemas/TemplateStatus.yaml
+    TemplateStatus:
+      type: object
+      required:
+        - biz_key
+        - result
+      properties:
+        biz_key:
+          type: string
+          description: 后端定义的业务唯一标识 Key
+          example: MSG_AUDIT_RESULT_PROJ
+        result:
+          type: string
+          description: 微信返回的授权结果
+          enum:
+            - accept
+            - reject
+            - ban
+          example: accept

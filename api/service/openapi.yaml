@@ -18,6 +18,8 @@ servers:
     description: 生产环境
   - url: https://dev.darker233.top/api/v2
     description: 开发环境
+security:
+  - bearerAuth: []
 tags:
   - name: Auth
     description: 认证相关接口
@@ -41,8 +43,6 @@ tags:
     description: 通用接口
   - name: EmailPromotions
     description: 邮件推广服务接口
-security:
-  - bearerAuth: []
 paths:
   /auth/login/wechat:
     $ref: paths/auth_login_wechat.yaml
@@ -56,6 +56,8 @@ paths:
     $ref: paths/users_me_olive-branches.yaml
   /users/me/sent-olive-branches:
     $ref: paths/users_me_sent-olive-branches.yaml
+  /user/subscribe:
+    $ref: paths/user_subscribe.yaml
   /projects:
     $ref: paths/projects.yaml
   /projects/{id}:

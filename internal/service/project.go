@@ -13,11 +13,12 @@ import (
 type ProjectService struct {
 	repo         *repository.Repository
 	contentAudit *ContentAuditService
+	message      *MessageService
 }
 
 // NewProjectService creates a new ProjectService.
-func NewProjectService(repo *repository.Repository, contentAudit *ContentAuditService) *ProjectService {
-	return &ProjectService{repo: repo, contentAudit: contentAudit}
+func NewProjectService(repo *repository.Repository, contentAudit *ContentAuditService, message *MessageService) *ProjectService {
+	return &ProjectService{repo: repo, contentAudit: contentAudit, message: message}
 }
 
 // ProjectListResult holds a page of projects with pagination info.
@@ -397,6 +398,33 @@ func (s *ProjectService) ApplyToProject(ctx context.Context, input ApplyToProjec
 		return nil, ErrInternal("提交申请失败")
 	}
 
+	// 向项目所有者发送收到名片订阅消息
+	go func() {
+		// 1. 获取申请人信息
+		applicant, err := s.repo.User.GetByID(ctx, input.UserID)
+		if err != nil {
+			log.Printf("[ProjectService.ApplyToProject] error getting applicant: %v", err)
+			return
+		}
+
+		senderName := "匿名用户"
+		if applicant.Nickname != nil {
+			senderName = *applicant.Nickname
+		}
+
+		// 2. 发送订阅消息
+		data := map[string]string{
+			"sender":       senderName,
+			"project_name": project.Name,
+			"remark":       "您收到了新的名片投递，请及时处理。",
+		}
+
+		err = s.message.SendSubscribeMsgByBizKey(ctx, project.CreatorID, models.MsgBizKeyCardReceived, data)
+		if err != nil {
+			log.Printf("[ProjectService.ApplyToProject] notification error: %v", err)
+		}
+	}()
+
 	return application, nil
 }
 
@@ -429,7 +457,35 @@ func (s *ProjectService) ReviewApplication(ctx context.Context, applicationID, u
 		return ErrInternal("更新申请状态失败")
 	}
 
-	// TODO: Send notification to applicant
+	// 向申请人发送名片投递结果通知
+	go func() {
+		// 1. 获取项目信息以拿到名称
+		project, err := s.repo.Project.GetByID(ctx, app.ProjectID)
+		if err != nil {
+			log.Printf("[ProjectService.ReviewApplication] error getting project: %v", err)
+			return
+		}
+
+		// 2. 准备通知数据
+		resultStr := "已通过"
+		remark := "恭喜！您已成功加入项目，请主动联系队长。"
+		if status == models.ApplicationStatusRejected {
+			resultStr = "已拒绝"
+			remark = "很抱歉，您的申请未通过。您可以尝试申请其他感兴趣的项目。"
+		}
+
+		data := map[string]string{
+			"project_name":    project.Name,
+			"delivery_result": resultStr,
+			"remark":          remark,
+		}
+
+		// 3. 发送消息给申请人 (app.UserID)
+		err = s.message.SendSubscribeMsgByBizKey(ctx, app.UserID, models.MsgBizKeyCardDeliveryResult, data)
+		if err != nil {
+			log.Printf("[ProjectService.ReviewApplication] notification error: %v", err)
+		}
+	}()
 
 	return nil
 }

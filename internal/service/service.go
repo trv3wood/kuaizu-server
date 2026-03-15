@@ -16,11 +16,13 @@ type Services struct {
 	Commons          *CommonsService
 	ContentAudit     *ContentAuditService
 	Project          *ProjectService
+	Message          *MessageService
 }
 
 // New creates a new Services instance with all sub-services.
 func New(repo *repository.Repository, ossClient *oss.Client) *Services {
 	contentAudit := NewContentAuditService()
+	message := NewMessageService(repo)
 	return &Services{
 		Auth:             NewAuthService(repo),
 		EmailPromotion:   NewEmailPromotionService(repo),
@@ -30,6 +32,7 @@ func New(repo *repository.Repository, ossClient *oss.Client) *Services {
 		OliveBranch:      NewOliveBranchService(repo),
 		Commons:          NewCommonsService(ossClient, repo.User),
 		ContentAudit:     contentAudit,
-		Project:          NewProjectService(repo, contentAudit),
+		Project:          NewProjectService(repo, contentAudit, message),
+		Message:          message,
 	}
 }

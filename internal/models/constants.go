@@ -107,3 +107,14 @@ const (
 	UserAuthStatusPassed = 1 // 已认证
 	UserAuthStatusFailed = 2 // 认证失败
 )
+
+// Message Business Keys (Subscription Messages)
+const (
+	MsgBizKeyCardReceived       = "MSG_CARD_RECEIVED"        // 收到名片通知
+	MsgBizKeyCardDeliveryResult = "MSG_CARD_DELIVERY_RESULT" // 名片投递结果通知
+	MsgBizKeyAuditResultProj    = "MSG_AUDIT_RESULT_PROJ"    // 审核结果通知(项目)
+	MsgBizKeyUserReply          = "MSG_USER_REPLY"           // 用户回复结果通知
+	MsgBizKeyInviteJoin         = "MSG_INVITE_JOIN"          // 邀请加入项目通知
+	MsgBizKeyAuditResultUser    = "MSG_AUDIT_RESULT_USER"    // 审核结果通知(个人)
+	MsgBizKeyIdentityAuth       = "MSG_IDENTITY_AUTH"        // 身份认证通知
+)

@@ -19,7 +19,7 @@ get:
       schema:
         $ref: ../components/schemas/ApplicationStatus.yaml
   responses:
-    "200":
+    '200':
       description: 成功
       content:
         application/json:
@@ -37,7 +37,7 @@ post:
   description: 触发订阅消息逻辑
   operationId: applyToProject
   responses:
-    "200":
+    '200':
       description: 申请成功
       content:
         application/json:
