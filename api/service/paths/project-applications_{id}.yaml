@@ -27,7 +27,7 @@ patch:
               deprecated: true
               description: 队长回复(已弃用)
   responses:
-    "200":
+    '200':
       description: 操作成功
       content:
         application/json:

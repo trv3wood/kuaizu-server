@@ -32,10 +32,9 @@ post:
                 - avatar: 用户头像
                 - background: 背景图片
   responses:
-    "200":
+    '200':
       description: 上传成功
       content:
         application/json:
           schema:
             $ref: ../components/schemas/BaseResponse.yaml
-             

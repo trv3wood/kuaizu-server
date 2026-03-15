@@ -1,7 +1,7 @@
 type: object
 properties:
   status:
-    $ref: "./AuthStatus.yaml"
+    $ref: ./AuthStatus.yaml
   authImgUrl:
     type: string
     description: 认证图片URL
