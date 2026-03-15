@@ -94,9 +94,9 @@ func (s *ProjectService) GetProject(ctx context.Context, id int) (*models.Projec
 	}
 
 	// Increment view count (fire and forget)
-	go func() {
-		_ = s.repo.Project.IncrementViewCount(ctx, id)
-	}()
+	go func(asyncCtx context.Context) {
+		_ = s.repo.Project.IncrementViewCount(asyncCtx, id)
+	}(context.WithoutCancel(ctx))
 
 	return project, nil
 }
@@ -399,9 +399,9 @@ func (s *ProjectService) ApplyToProject(ctx context.Context, input ApplyToProjec
 	}
 
 	// 向项目所有者发送收到名片订阅消息
-	go func() {
+	go func(asyncCtx context.Context) {
 		// 1. 获取申请人信息
-		applicant, err := s.repo.User.GetByID(ctx, input.UserID)
+		applicant, err := s.repo.User.GetByID(asyncCtx, input.UserID)
 		if err != nil {
 			log.Printf("[ProjectService.ApplyToProject] error getting applicant: %v", err)
 			return
@@ -419,11 +419,11 @@ func (s *ProjectService) ApplyToProject(ctx context.Context, input ApplyToProjec
 			"remark":       "您收到了新的名片投递，请及时处理。",
 		}
 
-		err = s.message.SendSubscribeMsgByBizKey(ctx, project.CreatorID, models.MsgBizKeyCardReceived, data)
+		err = s.message.SendSubscribeMsgByBizKey(asyncCtx, project.CreatorID, models.MsgBizKeyCardReceived, data)
 		if err != nil {
 			log.Printf("[ProjectService.ApplyToProject] notification error: %v", err)
 		}
-	}()
+	}(context.WithoutCancel(ctx))
 
 	return application, nil
 }
@@ -458,9 +458,9 @@ func (s *ProjectService) ReviewApplication(ctx context.Context, applicationID, u
 	}
 
 	// 向申请人发送名片投递结果通知
-	go func() {
+	go func(asyncCtx context.Context) {
 		// 1. 获取项目信息以拿到名称
-		project, err := s.repo.Project.GetByID(ctx, app.ProjectID)
+		project, err := s.repo.Project.GetByID(asyncCtx, app.ProjectID)
 		if err != nil {
 			log.Printf("[ProjectService.ReviewApplication] error getting project: %v", err)
 			return
@@ -481,11 +481,11 @@ func (s *ProjectService) ReviewApplication(ctx context.Context, applicationID, u
 		}
 
 		// 3. 发送消息给申请人 (app.UserID)
-		err = s.message.SendSubscribeMsgByBizKey(ctx, app.UserID, models.MsgBizKeyCardDeliveryResult, data)
+		err = s.message.SendSubscribeMsgByBizKey(asyncCtx, app.UserID, models.MsgBizKeyCardDeliveryResult, data)
 		if err != nil {
 			log.Printf("[ProjectService.ReviewApplication] notification error: %v", err)
 		}
-	}()
+	}(context.WithoutCancel(ctx))
 
 	return nil
 }
