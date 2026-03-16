@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"strings"
+
 	"github.com/labstack/echo/v4"
 	"github.com/trv3wood/kuaizu-server/api"
 	"github.com/trv3wood/kuaizu-server/internal/service"
@@ -32,7 +34,8 @@ func (s *Server) SyncUserSubscription(ctx echo.Context) error {
 
 // GetMsgTemplates handles GET /user/subscribe
 func (s *Server) GetMsgTemplates(ctx echo.Context, params api.GetMsgTemplatesParams) error {
-	configs, err := s.svc.Message.GetMsgTemplatesByBizKeys(ctx.Request().Context(), params.BizKeys)
+	bizKeys := strings.Split(params.BizKeys, ",")
+	configs, err := s.svc.Message.GetMsgTemplatesByBizKeys(ctx.Request().Context(), bizKeys)
 	if err != nil {
 		return InternalError(ctx, "获取模板失败")
 	}

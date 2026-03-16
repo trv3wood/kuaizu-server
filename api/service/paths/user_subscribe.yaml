@@ -9,12 +9,8 @@ get:
       in: query
       required: true
       schema:
-        type: array
-        items:
-          type: string
-      style: form
-      explode: true
-      description: 业务 key 数组
+        type: string
+      description: 业务 key，多个用逗号分隔
   responses:
     '200':
       description: 获取成功
