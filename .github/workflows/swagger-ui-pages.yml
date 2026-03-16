@@ -31,7 +31,7 @@ jobs:
         with:
           node-version: "20"
       - name: Lint OpenAPI specs
-        run: npx @redocly/cli lint
+        run: npx @redocly/cli lint api/admin/openapi.yaml api/service/openapi.yaml
 
   build:
     needs: lint
