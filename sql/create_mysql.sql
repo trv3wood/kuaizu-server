@@ -370,7 +370,6 @@ DROP TABLE IF EXISTS `subscribe`;
 CREATE TABLE `subscribe` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'ID',
   `user_id` int(11) NOT NULL COMMENT '用户ID',
-  `template_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '订阅消息模板ID',
   `subscribe_count` int(11) DEFAULT NULL COMMENT '剩余可发送次数(估计)',
   `status` tinyint(4) DEFAULT '1' COMMENT '状态（0-允许/1-拒绝/2-总是保持）',
   `biz_key` varchar(100) NOT NULL COMMENT '业务标识',

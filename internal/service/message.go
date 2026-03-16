@@ -61,10 +61,9 @@ func (s *MessageService) SendSubscribeMsgByBizKey(ctx context.Context, userID in
 			if wxErr.ErrCode == 43101 { // User refuse to accept
 				log.Printf("[MessageService.SendSubscribeMsgByBizKey] user %d rejected on WeChat, syncing local state", userID)
 				_ = s.repo.SubscribeConfig.Upsert(ctx, &models.SubscribeConfig{
-					UserID:     userID,
-					BizKey:     bizKey,
-					TemplateID: config.TemplateID,
-					Status:     models.SubscribeStatusReject,
+					UserID: userID,
+					BizKey: bizKey,
+					Status: models.SubscribeStatusReject,
 				})
 			}
 		}
@@ -94,14 +93,7 @@ type TemplateSyncResult struct {
 
 func (s *MessageService) SyncSubscribeStatus(ctx context.Context, userID int, syncResults []TemplateSyncResult) error {
 	for _, res := range syncResults {
-		// 1. Get template_id by biz_key
-		config, err := s.repo.MsgTemplate.GetByBizKey(ctx, res.BizKey)
-		if err != nil {
-			log.Printf("[MessageService.SyncSubscribeStatus] config not found for %s: %v", res.BizKey, err)
-			continue
-		}
-
-		// 2. Map result to status
+		// 1. Map result to status
 		var status models.SubscribeStatus
 		switch res.Result {
 		case "accept":
@@ -112,12 +104,11 @@ func (s *MessageService) SyncSubscribeStatus(ctx context.Context, userID int, sy
 			status = models.SubscribeStatusReject // treat ban or other as reject
 		}
 
-		// 3. Upsert
-		err = s.repo.SubscribeConfig.Upsert(ctx, &models.SubscribeConfig{
-			UserID:     userID,
-			BizKey:     res.BizKey,
-			TemplateID: config.TemplateID,
-			Status:     status,
+		// 2. Upsert
+		err := s.repo.SubscribeConfig.Upsert(ctx, &models.SubscribeConfig{
+			UserID: userID,
+			BizKey: res.BizKey,
+			Status: status,
 		})
 		if err != nil {
 			log.Printf("[MessageService.SyncSubscribeStatus] upsert failed for %s: %v", res.BizKey, err)

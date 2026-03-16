@@ -19,29 +19,10 @@ func NewSubscribeConfigRepository(db *sqlx.DB) *SubscribeConfigRepository {
 	return &SubscribeConfigRepository{db: db}
 }
 
-// GetByUserIDAndTemplateID retrieves a subscribe config by user_id and template_id
-func (r *SubscribeConfigRepository) GetByUserIDAndTemplateID(ctx context.Context, userID int, templateID string) (*models.SubscribeConfig, error) {
-	query := `
-		SELECT id, user_id, biz_key, template_id, subscribe_count, status, created_at, updated_at
-		FROM subscribe
-		WHERE user_id = ? AND template_id = ?
-	`
-
-	var config models.SubscribeConfig
-	if err := r.db.QueryRowxContext(ctx, query, userID, templateID).StructScan(&config); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("query subscribe config: %w", err)
-	}
-
-	return &config, nil
-}
-
 // GetByUserIDAndBizKey retrieves a subscribe config by user_id and biz_key
 func (r *SubscribeConfigRepository) GetByUserIDAndBizKey(ctx context.Context, userID int, bizKey string) (*models.SubscribeConfig, error) {
 	query := `
-		SELECT id, user_id, biz_key, template_id, subscribe_count, status, created_at, updated_at
+		SELECT id, user_id, biz_key, subscribe_count, status, created_at, updated_at
 		FROM subscribe
 		WHERE user_id = ? AND biz_key = ?
 	`
@@ -60,7 +41,7 @@ func (r *SubscribeConfigRepository) GetByUserIDAndBizKey(ctx context.Context, us
 // ListByUserID retrieves all subscribe configs for a user
 func (r *SubscribeConfigRepository) ListByUserID(ctx context.Context, userID int) ([]models.SubscribeConfig, error) {
 	query := `
-		SELECT id, user_id, biz_key, template_id, subscribe_count, status, created_at, updated_at
+		SELECT id, user_id, biz_key, subscribe_count, status, created_at, updated_at
 		FROM subscribe
 		WHERE user_id = ?
 		ORDER BY created_at DESC
@@ -77,8 +58,8 @@ func (r *SubscribeConfigRepository) ListByUserID(ctx context.Context, userID int
 // Upsert creates or updates a subscribe config
 func (r *SubscribeConfigRepository) Upsert(ctx context.Context, config *models.SubscribeConfig) error {
 	query := `
-		INSERT INTO subscribe (user_id, biz_key, template_id, subscribe_count, status)
-		VALUES (:user_id, :biz_key, :template_id, :subscribe_count, :status)
+		INSERT INTO subscribe (user_id, biz_key, subscribe_count, status)
+		VALUES (:user_id, :biz_key, :subscribe_count, :status)
 		ON DUPLICATE KEY UPDATE
 			subscribe_count = VALUES(subscribe_count),
 			status = VALUES(status),
@@ -94,14 +75,14 @@ func (r *SubscribeConfigRepository) Upsert(ctx context.Context, config *models.S
 }
 
 // UpdateStatus updates the status of a subscribe config
-func (r *SubscribeConfigRepository) UpdateStatus(ctx context.Context, userID int, templateID string, status models.SubscribeStatus) error {
+func (r *SubscribeConfigRepository) UpdateStatus(ctx context.Context, userID int, bizKey string, status models.SubscribeStatus) error {
 	query := `
 		UPDATE subscribe
 		SET status = ?, updated_at = CURRENT_TIMESTAMP
-		WHERE user_id = ? AND template_id = ?
+		WHERE user_id = ? AND biz_key = ?
 	`
 
-	_, err := r.db.ExecContext(ctx, query, status, userID, templateID)
+	_, err := r.db.ExecContext(ctx, query, status, userID, bizKey)
 	if err != nil {
 		return fmt.Errorf("update subscribe config status: %w", err)
 	}
@@ -110,15 +91,15 @@ func (r *SubscribeConfigRepository) UpdateStatus(ctx context.Context, userID int
 }
 
 // DecrementCount decrements the subscribe_count by 1
-func (r *SubscribeConfigRepository) DecrementCount(ctx context.Context, userID int, templateID string) error {
+func (r *SubscribeConfigRepository) DecrementCount(ctx context.Context, userID int, bizKey string) error {
 	query := `
 		UPDATE subscribe
 		SET subscribe_count = GREATEST(0, subscribe_count - 1),
 		    updated_at = CURRENT_TIMESTAMP
-		WHERE user_id = ? AND template_id = ? AND subscribe_count > 0
+		WHERE user_id = ? AND biz_key = ? AND subscribe_count > 0
 	`
 
-	_, err := r.db.ExecContext(ctx, query, userID, templateID)
+	_, err := r.db.ExecContext(ctx, query, userID, bizKey)
 	if err != nil {
 		return fmt.Errorf("decrement subscribe count: %w", err)
 	}
@@ -127,15 +108,15 @@ func (r *SubscribeConfigRepository) DecrementCount(ctx context.Context, userID i
 }
 
 // IncrementCount increments the subscribe_count by specified amount
-func (r *SubscribeConfigRepository) IncrementCount(ctx context.Context, userID int, templateID string, count int) error {
+func (r *SubscribeConfigRepository) IncrementCount(ctx context.Context, userID int, bizKey string, count int) error {
 	query := `
 		UPDATE subscribe
 		SET subscribe_count = subscribe_count + ?,
 		    updated_at = CURRENT_TIMESTAMP
-		WHERE user_id = ? AND template_id = ?
+		WHERE user_id = ? AND biz_key = ?
 	`
 
-	_, err := r.db.ExecContext(ctx, query, count, userID, templateID)
+	_, err := r.db.ExecContext(ctx, query, count, userID, bizKey)
 	if err != nil {
 		return fmt.Errorf("increment subscribe count: %w", err)
 	}
