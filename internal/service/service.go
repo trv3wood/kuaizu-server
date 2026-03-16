@@ -17,6 +17,8 @@ type Services struct {
 	ContentAudit     *ContentAuditService
 	Project          *ProjectService
 	Message          *MessageService
+	User             *UserService
+	Feedback         *FeedbackService
 }
 
 // New creates a new Services instance with all sub-services.
@@ -34,5 +36,18 @@ func New(repo *repository.Repository, ossClient *oss.Client) *Services {
 		ContentAudit:     contentAudit,
 		Project:          NewProjectService(repo, contentAudit, message),
 		Message:          message,
+		User:             NewUserService(repo, message),
+		Feedback:         NewFeedbackService(repo, message),
 	}
+}
+
+// normalizePageParams enforces sane defaults for page/size.
+func normalizePageParams(page, size int) (int, int) {
+	if page < 1 {
+		page = 1
+	}
+	if size < 1 || size > 100 {
+		size = 10
+	}
+	return page, size
 }

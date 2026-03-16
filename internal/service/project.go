@@ -30,17 +30,6 @@ type ProjectListResult struct {
 	Size       int
 }
 
-// normalizePageParams enforces sane defaults for page/size.
-func normalizePageParams(page, size int) (int, int) {
-	if page < 1 {
-		page = 1
-	}
-	if size < 1 || size > 100 {
-		size = 10
-	}
-	return page, size
-}
-
 // ListProjects returns a paginated list of projects with optional filters.
 func (s *ProjectService) ListProjects(ctx context.Context, params repository.ListParams) (*ProjectListResult, error) {
 	params.Page, params.Size = normalizePageParams(params.Page, params.Size)

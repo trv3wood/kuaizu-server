@@ -14,12 +14,6 @@ import (
 func (s *AdminServer) ListUsers(ctx echo.Context) error {
 	page, _ := strconv.Atoi(ctx.QueryParam("page"))
 	size, _ := strconv.Atoi(ctx.QueryParam("size"))
-	if page <= 0 {
-		page = 1
-	}
-	if size <= 0 {
-		size = 20
-	}
 
 	params := repository.UserListParams{
 		Page: page,
@@ -51,21 +45,21 @@ func (s *AdminServer) ListUsers(ctx echo.Context) error {
 		params.Keyword = &v
 	}
 
-	users, total, err := s.repo.User.ListUsers(ctx.Request().Context(), params)
+	result, err := s.svc.User.ListUsers(ctx.Request().Context(), params)
 	if err != nil {
-		return response.InternalError(ctx, "failed to list users")
+		return mapServiceError(ctx, err)
 	}
 
-	list := make([]adminvo.AdminUserVO, len(users))
-	for i := range users {
-		list[i] = *adminvo.NewAdminUserVO(&users[i])
+	list := make([]adminvo.AdminUserVO, len(result.List))
+	for i := range result.List {
+		list[i] = *adminvo.NewAdminUserVO(&result.List[i])
 	}
 
 	return response.Success(ctx, map[string]interface{}{
 		"list":  list,
-		"total": total,
-		"page":  page,
-		"size":  size,
+		"total": result.Total,
+		"page":  result.Page,
+		"size":  result.Size,
 	})
 }
 
@@ -76,12 +70,9 @@ func (s *AdminServer) GetUser(ctx echo.Context) error {
 		return response.BadRequest(ctx, "invalid user id")
 	}
 
-	user, err := s.repo.User.GetByID(ctx.Request().Context(), id)
+	user, err := s.svc.User.GetUser(ctx.Request().Context(), id)
 	if err != nil {
-		return response.InternalError(ctx, "failed to get user")
-	}
-	if user == nil {
-		return response.NotFound(ctx, "user not found")
+		return mapServiceError(ctx, err)
 	}
 
 	return response.Success(ctx, adminvo.NewAdminUserVO(user))
@@ -107,8 +98,8 @@ func (s *AdminServer) ReviewUserAuth(ctx echo.Context) error {
 		return response.BadRequest(ctx, "invalid authStatus, must be 1 (approve) or 2 (reject)")
 	}
 
-	if err := s.repo.User.UpdateAuthStatus(ctx.Request().Context(), id, req.AuthStatus); err != nil {
-		return response.InternalError(ctx, "failed to update auth status")
+	if err := s.svc.User.ReviewUserAuth(ctx.Request().Context(), id, req.AuthStatus); err != nil {
+		return mapServiceError(ctx, err)
 	}
 
 	return response.SuccessMessage(ctx, "操作成功")

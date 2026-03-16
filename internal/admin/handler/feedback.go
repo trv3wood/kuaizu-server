@@ -13,12 +13,6 @@ import (
 func (s *AdminServer) ListFeedbacks(ctx echo.Context) error {
 	page, _ := strconv.Atoi(ctx.QueryParam("page"))
 	size, _ := strconv.Atoi(ctx.QueryParam("size"))
-	if page <= 0 {
-		page = 1
-	}
-	if size <= 0 {
-		size = 20
-	}
 
 	params := repository.FeedbackListParams{
 		Page: page,
@@ -33,21 +27,21 @@ func (s *AdminServer) ListFeedbacks(ctx echo.Context) error {
 		params.Status = &status
 	}
 
-	feedbacks, total, err := s.repo.Feedback.List(ctx.Request().Context(), params)
+	result, err := s.svc.Feedback.ListFeedbacks(ctx.Request().Context(), params)
 	if err != nil {
-		return response.InternalError(ctx, "failed to list feedbacks")
+		return mapServiceError(ctx, err)
 	}
 
-	list := make([]adminvo.AdminFeedbackVO, len(feedbacks))
-	for i := range feedbacks {
-		list[i] = *adminvo.NewAdminFeedbackVO(&feedbacks[i])
+	list := make([]adminvo.AdminFeedbackVO, len(result.List))
+	for i := range result.List {
+		list[i] = *adminvo.NewAdminFeedbackVO(&result.List[i])
 	}
 
 	return response.Success(ctx, map[string]interface{}{
 		"list":  list,
-		"total": total,
-		"page":  page,
-		"size":  size,
+		"total": result.Total,
+		"page":  result.Page,
+		"size":  result.Size,
 	})
 }
 
@@ -58,12 +52,9 @@ func (s *AdminServer) GetFeedback(ctx echo.Context) error {
 		return response.BadRequest(ctx, "invalid feedback id")
 	}
 
-	feedback, err := s.repo.Feedback.GetByID(ctx.Request().Context(), id)
+	feedback, err := s.svc.Feedback.GetFeedback(ctx.Request().Context(), id)
 	if err != nil {
-		return response.InternalError(ctx, "failed to get feedback")
-	}
-	if feedback == nil {
-		return response.NotFound(ctx, "feedback not found")
+		return mapServiceError(ctx, err)
 	}
 
 	return response.Success(ctx, adminvo.NewAdminFeedbackVO(feedback))
@@ -89,8 +80,8 @@ func (s *AdminServer) ReplyFeedback(ctx echo.Context) error {
 		return response.BadRequest(ctx, "adminReply is required")
 	}
 
-	if err := s.repo.Feedback.Reply(ctx.Request().Context(), id, req.AdminReply); err != nil {
-		return response.InternalError(ctx, "failed to reply feedback")
+	if err := s.svc.Feedback.ReplyFeedback(ctx.Request().Context(), id, req.AdminReply); err != nil {
+		return mapServiceError(ctx, err)
 	}
 
 	return response.SuccessMessage(ctx, "操作成功")
