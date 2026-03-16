@@ -14,7 +14,9 @@ import (
 	adminhandler "github.com/trv3wood/kuaizu-server/internal/admin/handler"
 	adminmw "github.com/trv3wood/kuaizu-server/internal/admin/middleware"
 	"github.com/trv3wood/kuaizu-server/internal/db"
+	"github.com/trv3wood/kuaizu-server/internal/oss"
 	"github.com/trv3wood/kuaizu-server/internal/repository"
+	"github.com/trv3wood/kuaizu-server/internal/service"
 )
 
 var (
@@ -46,8 +48,15 @@ func main() {
 	defer pool.Close()
 	log.Println("Connected to database")
 
+	// OSS
+	ossClient, err := oss.NewClient()
+	if err != nil {
+		log.Fatalf("Failed to initialize OSS client: %v", err)
+	}
+
 	repo := repository.New(pool)
-	server := adminhandler.NewAdminServer(repo)
+	svc := service.New(repo, ossClient)
+	server := adminhandler.NewAdminServer(repo, svc)
 
 	// Public routes
 	e.POST("/admin/auth/login", server.Login)

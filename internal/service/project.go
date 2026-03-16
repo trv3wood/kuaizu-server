@@ -489,3 +489,44 @@ func (s *ProjectService) ReviewApplication(ctx context.Context, applicationID, u
 
 	return nil
 }
+
+// ReviewProject (admin only) updates project status and notifies creator.
+func (s *ProjectService) ReviewProject(ctx context.Context, id, status int) error {
+	project, err := s.repo.Project.GetByID(ctx, id)
+	if err != nil {
+		log.Printf("[ProjectService.ReviewProject] repository error: %v", err)
+		return ErrInternal("获取项目失败")
+	}
+	if project == nil {
+		return ErrNotFound("项目不存在")
+	}
+
+	if err := s.repo.Project.UpdateStatus(ctx, id, status); err != nil {
+		log.Printf("[ProjectService.ReviewProject] repository error updating status: %v", err)
+		return ErrInternal("审核失败")
+	}
+
+	// 向项目负责人发送审核结果通知
+	go func(asyncCtx context.Context) {
+		statusStr := "已通过"
+		remark := "恭喜！您的项目已通过审核，现在对其他用户可见。"
+		if status == models.ProjectStatusRejected {
+			statusStr = "已驳回"
+			remark = "很抱歉，您的项目未通过审核，请检查内容是否合规。"
+		}
+
+		data := map[string]string{
+			"project_name": project.Name,
+			"status":       statusStr,
+			"apply_time":   project.UpdatedAt.Format("2006-01-02 15:04:05"),
+			"remark":       remark,
+		}
+
+		err = s.message.SendSubscribeMsgByBizKey(asyncCtx, project.CreatorID, models.MsgBizKeyAuditResultProj, data)
+		if err != nil {
+			log.Printf("[ProjectService.ReviewProject] notification error: %v", err)
+		}
+	}(context.WithoutCancel(ctx))
+
+	return nil
+}

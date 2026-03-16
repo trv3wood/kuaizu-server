@@ -1,15 +1,39 @@
 package handler
 
 import (
+	"errors"
+
+	"github.com/labstack/echo/v4"
 	"github.com/trv3wood/kuaizu-server/internal/repository"
+	"github.com/trv3wood/kuaizu-server/internal/response"
+	"github.com/trv3wood/kuaizu-server/internal/service"
 )
 
 // AdminServer handles admin API requests
 type AdminServer struct {
 	repo *repository.Repository
+	svc  *service.Services
 }
 
 // NewAdminServer creates a new AdminServer instance
-func NewAdminServer(repo *repository.Repository) *AdminServer {
-	return &AdminServer{repo: repo}
+func NewAdminServer(repo *repository.Repository, svc *service.Services) *AdminServer {
+	return &AdminServer{repo: repo, svc: svc}
+}
+
+// mapServiceError maps a service.ServiceError to the appropriate HTTP error response.
+func mapServiceError(ctx echo.Context, err error) error {
+	var svcErr *service.ServiceError
+	if errors.As(err, &svcErr) {
+		switch svcErr.Code {
+		case service.ErrCodeBadRequest:
+			return response.BadRequest(ctx, svcErr.Message)
+		case service.ErrCodeNotFound:
+			return response.NotFound(ctx, svcErr.Message)
+		case service.ErrCodeForbidden:
+			return response.Forbidden(ctx, svcErr.Message)
+		default:
+			return response.Error(ctx, int(svcErr.Code), svcErr.Message)
+		}
+	}
+	return response.InternalError(ctx, err.Error())
 }
