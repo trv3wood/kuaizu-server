@@ -30,6 +30,10 @@ func (s *Server) ListProjects(ctx echo.Context, params api.ListProjectsParams) e
 		direction := int(*params.Direction)
 		listParams.Direction = &direction
 	}
+	if params.IsCrossSchool != nil {
+		isCrossSchool := int(*params.IsCrossSchool)
+		listParams.IsCrossSchool = &isCrossSchool
+	}
 
 	result, err := s.svc.Project.ListProjects(ctx.Request().Context(), listParams)
 	if err != nil {
