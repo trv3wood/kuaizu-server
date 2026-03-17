@@ -1,0 +1,58 @@
+name: Deploy to Server
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.SSH_PORT || 22 }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create .env.docker on server
+        run: |
+          ssh -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            cd ~/kuaizu-server || mkdir -p ~/kuaizu-server
+            cat > .env.docker << 'ENVEOF'
+          ${{ secrets.ENV_DOCKER }}
+          ENVEOF
+          EOF
+
+      - name: Deploy to server
+        run: |
+          rsync -avz --delete \
+            -e "ssh -p ${{ secrets.SSH_PORT || 22 }}" \
+            --exclude='.git' \
+            --exclude='.env' \
+            --exclude='.env.docker' \
+            --exclude='bin' \
+            --exclude='tmp' \
+            ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/kuaizu-server/
+
+      - name: Build and restart services
+        run: |
+          ssh -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            cd ~/kuaizu-server
+            docker-compose down
+            docker-compose build --no-cache
+            docker-compose up -d
+            docker-compose ps
+          EOF
+
+      - name: Cleanup old images
+        run: |
+          ssh -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            docker image prune -f
+          EOF
