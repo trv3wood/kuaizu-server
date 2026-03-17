@@ -16,11 +16,14 @@ COPY . .
 # Generate code
 RUN make generate
 
+ARG VERSION=dev
+ARG COMMIT=none
+
 # Build main server
-RUN go build -o /app/bin/kuaizu-server cmd/server/main.go
+RUN go build -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=$(date +%F_%T)" -o /app/bin/kuaizu-server cmd/server/main.go
 
 # Build admin server
-RUN go build -o /app/bin/kuaizu-admin cmd/admin/main.go
+RUN go build -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=$(date +%F_%T)" -o /app/bin/kuaizu-admin cmd/admin/main.go
 
 # Run stage
 FROM alpine:latest

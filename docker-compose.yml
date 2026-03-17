@@ -1,9 +1,13 @@
 services:
-  server:
+  kuaizu-api:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: kuaizu-server
+      args:
+        VERSION: ${VERSION:-latest}
+        COMMIT: ${COMMIT:-none}
+    image: kuaizu-server:${VERSION:-latest}
+    container_name: kuaizu-api
     restart: always
     env_file:
       - .env.docker
@@ -11,14 +15,14 @@ services:
       - "8080:8080"
     command: ["./kuaizu-server"]
 
-  admin:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: kuaizu-admin
+  kuaizu-console:
+    image: kuaizu-server:${VERSION:-latest}
+    container_name: kuaizu-console
     restart: always
     env_file:
       - .env.docker
     ports:
       - "8081:8081"
     command: ["./kuaizu-admin"]
+    depends_on:
+      - kuaizu-api

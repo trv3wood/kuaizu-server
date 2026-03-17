@@ -45,6 +45,10 @@ jobs:
         run: |
           ssh -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
             cd ~/kuaizu-server
+            # 使用环境变量传递版本信息
+            export VERSION=${{ github.ref_name }}
+            export COMMIT=${{ github.sha }}
+            
             docker-compose down
             docker-compose build --no-cache
             docker-compose up -d
