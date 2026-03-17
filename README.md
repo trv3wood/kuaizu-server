@@ -76,6 +76,28 @@ make generate  # 生成代码
 make run       # 启动开发服务器
 ```
 
+### 5. 使用 Docker 运行
+
+项目已经实现了容器化，可以使用 Docker Compose 快速部署服务。由于使用远程数据库，请确保已正确配置环境变量：
+
+```bash
+# 1. 复制 Docker 专用环境变量文件
+cp .env.docker .env.docker.local
+
+# 2. 编辑 .env.docker.local，填写远程数据库信息和其他必要配置
+# DATABASE_URL=username:password@tcp(remote_host:3306)/dbname?parseTime=true
+
+# 3. 启动服务 (可能需要 sudo)
+docker-compose up --build -d
+```
+
+> [!TIP]
+> 如果遇到权限错误 (permission denied)，请在命令前加上 `sudo`。如果 `docker-compose` 命令不存在，请尝试使用 `docker compose`。
+
+启动后：
+- 小程序 API 服务：`http://localhost:8080/api/v2`
+- 管理员后台 API：`http://localhost:8081/admin`
+
 ## 常用命令
 
 | 命令 | 说明 |

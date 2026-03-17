@@ -1,0 +1,46 @@
+get:
+  tags:
+    - 订阅消息
+  summary: 批量获取订阅消息模板 ID
+  description: 根据业务 key 批量获取对应的微信订阅消息模板 ID。
+  operationId: getMsgTemplates
+  parameters:
+    - name: bizKeys
+      in: query
+      required: true
+      schema:
+        type: string
+      description: 业务 key，多个用逗号分隔
+  responses:
+    '200':
+      description: 获取成功
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: ../components/schemas/BaseResponse.yaml
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: ../components/schemas/MsgTemplateVO.yaml
+post:
+  tags:
+    - 订阅消息
+  summary: 同步用户订阅授权状态
+  description: 当用户在小程序触发 wx.requestSubscribeMessage 回调后，前端应调用此接口将结果同步至后端。
+  operationId: syncUserSubscription
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/SubscribeSyncRequest.yaml
+  responses:
+    '200':
+      description: 同步成功
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/BaseResponse.yaml

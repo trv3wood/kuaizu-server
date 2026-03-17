@@ -2,11 +2,11 @@ package auth
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/labstack/gommon/log"
 )
 
 // AdminClaims represents the admin JWT claims
@@ -27,7 +27,7 @@ type AdminConfig struct {
 func DefaultAdminConfig() *AdminConfig {
 	secret := os.Getenv("ADMIN_JWT_SECRET")
 	if secret == "" {
-		log.Warn("using default admin secret. change in production.")
+		log.Println("using default admin secret. change in production.")
 		secret = "kuaizu-admin-default-secret-change-in-production"
 	}
 

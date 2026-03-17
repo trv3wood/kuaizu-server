@@ -15,12 +15,6 @@ import (
 func (s *AdminServer) ListProjects(ctx echo.Context) error {
 	page, _ := strconv.Atoi(ctx.QueryParam("page"))
 	size, _ := strconv.Atoi(ctx.QueryParam("size"))
-	if page <= 0 {
-		page = 1
-	}
-	if size <= 0 {
-		size = 20
-	}
 
 	params := repository.ListParams{
 		Page: page,
@@ -39,21 +33,21 @@ func (s *AdminServer) ListProjects(ctx echo.Context) error {
 		params.Keyword = &v
 	}
 
-	projects, total, err := s.repo.Project.List(ctx.Request().Context(), params)
+	result, err := s.svc.Project.ListProjects(ctx.Request().Context(), params)
 	if err != nil {
-		return response.InternalError(ctx, "failed to list projects")
+		return mapServiceError(ctx, err)
 	}
 
-	list := make([]adminvo.AdminProjectVO, len(projects))
-	for i := range projects {
-		list[i] = *adminvo.NewAdminProjectVO(&projects[i])
+	list := make([]adminvo.AdminProjectVO, len(result.List))
+	for i := range result.List {
+		list[i] = *adminvo.NewAdminProjectVO(&result.List[i])
 	}
 
 	return response.Success(ctx, map[string]interface{}{
 		"list":  list,
-		"total": total,
-		"page":  page,
-		"size":  size,
+		"total": result.Total,
+		"page":  result.Page,
+		"size":  result.Size,
 	})
 }
 
@@ -64,12 +58,9 @@ func (s *AdminServer) GetProject(ctx echo.Context) error {
 		return response.BadRequest(ctx, "invalid project id")
 	}
 
-	project, err := s.repo.Project.GetByID(ctx.Request().Context(), id)
+	project, err := s.svc.Project.GetProject(ctx.Request().Context(), id)
 	if err != nil {
-		return response.InternalError(ctx, "failed to get project")
-	}
-	if project == nil {
-		return response.NotFound(ctx, "project not found")
+		return mapServiceError(ctx, err)
 	}
 
 	return response.Success(ctx, adminvo.NewAdminProjectVO(project))
@@ -95,8 +86,8 @@ func (s *AdminServer) ReviewProject(ctx echo.Context) error {
 		return response.BadRequest(ctx, fmt.Sprintf("invalid status %d, must be %d (approve) or %d (reject)", req.Status, models.ProjectStatusApproved, models.ProjectStatusRejected))
 	}
 
-	if err := s.repo.Project.UpdateStatus(ctx.Request().Context(), id, req.Status); err != nil {
-		return response.InternalError(ctx, "failed to update project status")
+	if err := s.svc.Project.ReviewProject(ctx.Request().Context(), id, req.Status); err != nil {
+		return mapServiceError(ctx, err)
 	}
 
 	return response.SuccessMessage(ctx, "操作成功")

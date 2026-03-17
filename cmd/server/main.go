@@ -27,6 +27,7 @@ var (
 
 func main() {
 	fmt.Printf("Starting Kuaizu Server %s (Commit: %s, Built at: %s)\n", version, commit, date)
+	log.SetFlags(log.Ldate | log.Ltime | log.Llongfile)
 	// Load environment variables
 	if err := godotenv.Load(); err != nil {
 		log.Printf("Warning: .env file not found, using environment variables\n")

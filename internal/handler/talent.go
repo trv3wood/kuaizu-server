@@ -117,11 +117,33 @@ func (s *Server) UpsertTalentProfile(ctx echo.Context) error {
 }
 
 // GetTalentProfile handles GET /talent-profiles/{id}
-func (s *Server) GetTalentProfile(ctx echo.Context, id int) error {
+func (s *Server) GetTalentProfile(ctx echo.Context, id int, params api.GetTalentProfileParams) error {
 	profile, err := s.repo.TalentProfile.GetByID(ctx.Request().Context(), id)
 	if err != nil {
 		return InternalError(ctx, "获取人才档案失败")
 	}
+
+	// 如果人才档案不存在且提供了 userId，回退查找用户基本信息
+	if profile == nil && params.UserId != nil {
+		user, err := s.repo.User.GetByID(ctx.Request().Context(), *params.UserId)
+		if err != nil {
+			return InternalError(ctx, "获取用户信息失败")
+		}
+		if user == nil {
+			return NotFound(ctx, "用户不存在")
+		}
+
+		talentProfile := models.TalentProfile{
+			UserID:     user.ID,
+			Nickname:   user.Nickname,
+			AvatarUrl:  user.AvatarUrl,
+			MajorName:  user.MajorName,
+			SchoolName: user.SchoolName,
+		}
+		// 返回仅包含用户基本信息的响应
+		return Success(ctx, talentProfile.ToDetailVO())
+	}
+
 	if profile == nil {
 		return NotFound(ctx, "人才档案不存在")
 	}

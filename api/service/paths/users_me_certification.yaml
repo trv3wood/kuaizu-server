@@ -22,7 +22,7 @@ post:
               format: binary
               description: 学生证照片（JPEG/PNG，≤5MB）
   responses:
-    "200":
+    '200':
       description: 提交成功
       content:
         application/json:
@@ -34,7 +34,7 @@ get:
   summary: 获取当前用户认证状态
   operationId: getCertificationStatus
   responses:
-    "200":
+    '200':
       description: 成功获取当前用户认证状态
       content:
         application/json:

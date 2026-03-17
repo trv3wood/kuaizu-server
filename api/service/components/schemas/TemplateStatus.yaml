@@ -1,0 +1,17 @@
+type: object
+required:
+  - biz_key
+  - result
+properties:
+  biz_key:
+    type: string
+    description: 后端定义的业务唯一标识 Key
+    example: MSG_AUDIT_RESULT_PROJ
+  result:
+    type: string
+    description: 微信返回的授权结果
+    enum:
+      - accept
+      - reject
+      - ban
+    example: accept

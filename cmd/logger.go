@@ -67,8 +67,50 @@ func NewRequestLogger() echo.MiddlewareFunc {
 				gray, v.Latency, reset,
 			)
 
-			if v.Error != nil {
-				fmt.Printf("%sError: %v%s\n", red, v.Error, reset)
+			// Print detailed error information for error responses
+			if v.Status >= 400 {
+				// Print request details
+				fmt.Printf("%s[ERROR DETAILS]%s\n", red, reset)
+				fmt.Printf("  %sRequest:%s %s %s\n", yellow, reset, v.Method, v.URI)
+
+				// Print request headers (excluding sensitive ones)
+				if c.Request() != nil {
+					fmt.Printf("  %sHeaders:%s\n", yellow, reset)
+					for key, values := range c.Request().Header {
+						// Skip sensitive headers
+						if key == "Authorization" || key == "Cookie" {
+							fmt.Printf("    %s: %s[REDACTED]%s\n", key, gray, reset)
+							continue
+						}
+						for _, value := range values {
+							fmt.Printf("    %s: %s\n", key, value)
+						}
+					}
+				}
+
+				// Print user info if available
+				if userID := c.Get("userID"); userID != nil {
+					fmt.Printf("  %sUser ID:%s %v\n", yellow, reset, userID)
+				}
+				if openID := c.Get("openID"); openID != nil {
+					fmt.Printf("  %sOpen ID:%s %v\n", yellow, reset, openID)
+				}
+
+				// Print error from multiple sources
+				// 1. Error from RequestLoggerValues
+				if v.Error != nil {
+					fmt.Printf("  %sError:%s %v\n", red, reset, v.Error)
+				}
+
+				// 2. Error stored in context by handler/middleware
+				if handlerErr := c.Get("handlerError"); handlerErr != nil {
+					fmt.Printf("  %sHandler Error:%s %v\n", red, reset, handlerErr)
+				}
+
+				// 3. For 500 errors, also check response body if available
+				if v.Status >= 500 && v.Error == nil && c.Get("handlerError") == nil {
+					fmt.Printf("  %sNote:%s Internal server error occurred but error details not captured\n", yellow, reset)
+				}
 			}
 
 			return nil

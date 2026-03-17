@@ -23,13 +23,14 @@ func NewProjectRepository(db *sqlx.DB) *ProjectRepository {
 
 // ListParams contains parameters for listing projects
 type ListParams struct {
-	Page      int
-	Size      int
-	Keyword   *string
-	SchoolID  *int
-	Status    *int
-	Direction *int
-	CreatorID *int
+	Page          int
+	Size          int
+	Keyword       *string
+	SchoolID      *int
+	Status        *int
+	Direction     *int
+	CreatorID     *int
+	IsCrossSchool *int
 }
 
 // List retrieves paginated projects with optional filters
@@ -56,6 +57,10 @@ func (r *ProjectRepository) List(ctx context.Context, params ListParams) ([]mode
 	if params.CreatorID != nil {
 		conditions = append(conditions, "p.creator_id = ?")
 		args = append(args, *params.CreatorID)
+	}
+	if params.IsCrossSchool != nil {
+		conditions = append(conditions, "p.is_cross_school = ?")
+		args = append(args, *params.IsCrossSchool)
 	}
 
 	whereClause := strings.Join(conditions, " AND ")

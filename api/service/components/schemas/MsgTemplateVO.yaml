@@ -1,0 +1,13 @@
+type: object
+required:
+  - bizKey
+  - templateId
+properties:
+  bizKey:
+    type: string
+    description: 业务唯一标识 Key
+    example: MSG_AUDIT_RESULT_PROJ
+  templateId:
+    type: string
+    description: 微信订阅消息模板 ID
+    example: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

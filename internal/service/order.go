@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/trv3wood/kuaizu-server/internal/models"
 	"github.com/trv3wood/kuaizu-server/internal/repository"
@@ -36,6 +37,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int, item CreateO
 
 	product, err := s.repo.Product.GetByID(ctx, item.ProductID)
 	if err != nil {
+		log.Printf("[OrderService.CreateOrder] repository error getting product: %v", err)
 		return nil, ErrInternal("获取商品信息失败")
 	}
 	if product == nil {
@@ -55,6 +57,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int, item CreateO
 
 	createdOrder, err := s.repo.Order.Create(ctx, order)
 	if err != nil {
+		log.Printf("[OrderService.CreateOrder] repository error creating order: %v", err)
 		return nil, ErrInternal("创建订单失败")
 	}
 
@@ -65,6 +68,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int, item CreateO
 func (s *OrderService) GetOrder(ctx context.Context, userID, orderID int) (*models.Order, error) {
 	order, err := s.repo.Order.GetByID(ctx, orderID)
 	if err != nil {
+		log.Printf("[OrderService.GetOrder] repository error: %v", err)
 		return nil, ErrInternal("获取订单详情失败")
 	}
 	if order == nil {
@@ -87,6 +91,7 @@ func (s *OrderService) InitiatePayment(ctx context.Context, userID int, openID s
 
 	order, err := s.repo.Order.GetByID(ctx, orderID)
 	if err != nil {
+		log.Printf("[OrderService.InitiatePayment] repository error getting order: %v", err)
 		return nil, ErrInternal("获取订单详情失败")
 	}
 	if order == nil {
@@ -101,11 +106,13 @@ func (s *OrderService) InitiatePayment(ctx context.Context, userID int, openID s
 
 	payConfig, err := wechat.DefaultPayConfig()
 	if err != nil {
+		log.Printf("[OrderService.InitiatePayment] wechat config error: %v", err)
 		return nil, ErrInternal("支付配置错误: " + err.Error())
 	}
 
 	payClient, err := wechat.NewPayClient(payConfig)
 	if err != nil {
+		log.Printf("[OrderService.InitiatePayment] wechat client error: %v", err)
 		return nil, ErrInternal("初始化支付客户端失败: " + err.Error())
 	}
 
@@ -125,6 +132,7 @@ func (s *OrderService) InitiatePayment(ctx context.Context, userID int, openID s
 		amountCents,
 	)
 	if err != nil {
+		log.Printf("[OrderService.InitiatePayment] wechat API error: %v", err)
 		return nil, ErrInternal("创建支付订单失败: " + err.Error())
 	}
 
@@ -135,6 +143,7 @@ func (s *OrderService) InitiatePayment(ctx context.Context, userID int, openID s
 func (s *OrderService) CancelOrder(ctx context.Context, userID, orderID int) (*models.Order, error) {
 	order, err := s.repo.Order.GetByID(ctx, orderID)
 	if err != nil {
+		log.Printf("[OrderService.CancelOrder] repository error getting order: %v", err)
 		return nil, ErrInternal("获取订单详情失败")
 	}
 	if order == nil {
@@ -152,12 +161,14 @@ func (s *OrderService) CancelOrder(ctx context.Context, userID, orderID int) (*m
 	}
 
 	if err := s.repo.Order.UpdateStatus(ctx, orderID, models.OrderStatusCancelled); err != nil {
+		log.Printf("[OrderService.CancelOrder] repository error updating status: %v", err)
 		return nil, ErrInternal("取消订单失败")
 	}
 
 	// Re-fetch to return updated order
 	updated, err := s.repo.Order.GetByID(ctx, orderID)
 	if err != nil {
+		log.Printf("[OrderService.CancelOrder] repository error getting updated order: %v", err)
 		return nil, ErrInternal("获取更新后的订单失败")
 	}
 

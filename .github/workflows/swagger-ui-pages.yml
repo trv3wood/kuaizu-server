@@ -21,7 +21,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Lint OpenAPI specs
+        run: npx @redocly/cli lint --config .redocly.yaml main admin
+
   build:
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -36,8 +49,8 @@ jobs:
           npm install --save-dev swagger-ui-dist @redocly/cli
       - name: Bundle OpenAPI specs
         run: |
-          npx @redocly/cli bundle api/admin/openapi.yaml -o admin-bundled.yaml
-          npx @redocly/cli bundle api/service/openapi.yaml -o service-bundled.yaml
+          npx @redocly/cli bundle --config .redocly.yaml admin -o admin-bundled.yaml
+          npx @redocly/cli bundle --config .redocly.yaml main -o service-bundled.yaml
       - name: Build site
         run: |
           set -euo pipefail

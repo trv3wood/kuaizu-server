@@ -2,11 +2,11 @@ package auth
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/labstack/gommon/log"
 )
 
 // Claims represents the JWT claims
@@ -33,7 +33,7 @@ type Config struct {
 func DefaultConfig() *Config {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		log.Warn("using defalt secret. change in production.")
+		log.Println("using defalt secret. change in production.")
 		secret = "kuaizu-default-secret-change-in-production"
 	}
 
@@ -51,7 +51,7 @@ func RegisterConfig() *Config {
 		if base := os.Getenv("JWT_SECRET"); base != "" {
 			secret = base + "-register"
 		} else {
-			log.Warn("using default register secret. change in production.")
+			log.Println("using default register secret. change in production.")
 			secret = "kuaizu-register-secret-change-in-production"
 		}
 	}

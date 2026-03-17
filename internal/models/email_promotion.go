@@ -5,7 +5,6 @@ import "time"
 // EmailPromotionStatus 邮件推广状态
 type EmailPromotionStatus int
 
-
 // EmailPromotion 邮件推广记录
 type EmailPromotion struct {
 	ID            int                  `db:"id"`

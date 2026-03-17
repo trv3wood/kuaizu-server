@@ -1,0 +1,11 @@
+apis:
+  main:
+    root: ./api/service/openapi.yaml
+  admin:
+    root: ./api/admin/openapi.yaml
+
+rules:
+  no-server-example.com: warn
+  info-license: off
+  operation-4xx-response: warn
+  no-undefined-server-variable: error

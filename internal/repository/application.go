@@ -29,15 +29,26 @@ type ApplicationListParams struct {
 	Status    *int
 }
 
-// userWithTalent holds user + talent_profile columns for the second batch query.
-type userWithTalent struct {
+// userWithSchoolMajor holds user + school + major columns for the second batch query.
+type userWithSchoolMajor struct {
+	ID         int     `db:"id"`
+	OpenID     string  `db:"openid"`
+	Nickname   *string `db:"nickname"`
+	Phone      *string `db:"phone"`
+	Email      *string `db:"email"`
+	AvatarUrl  *string `db:"avatar_url"`
+	SchoolID   *int    `db:"school_id"`
+	MajorID    *int    `db:"major_id"`
+	SchoolName *string `db:"school_name"`
+	SchoolCode *string `db:"school_code"`
+	MajorName  *string `db:"major_name"`
+	ClassID    *int    `db:"class_id"`
+}
+
+// talentProfileRow holds talent_profile columns for the third batch query.
+type talentProfileRow struct {
 	ID           int     `db:"id"`
-	TalentID     int     `db:"talent_id"`
-	OpenID       string  `db:"openid"`
-	Nickname     *string `db:"nickname"`
-	Phone        *string `db:"phone"`
-	Email        *string `db:"email"`
-	AvatarUrl    *string `db:"avatar_url"`
+	UserID       int     `db:"user_id"`
 	SkillSummary *string `db:"skill_summary"`
 }
 
@@ -95,59 +106,84 @@ func (r *ApplicationRepository) List(ctx context.Context, params ApplicationList
 		return applications, total, nil
 	}
 
-	// 2nd query: user + talent_profile (2 tables), batch by user_id
+	// 2nd query: user + school + major (3 tables), batch by user_id
 	userIDs := make([]int, 0, len(applications))
 	for _, a := range applications {
 		userIDs = append(userIDs, a.UserID)
 	}
-	utQuery, utArgs, err := sqlx.In(`
+	userQuery, userArgs, err := sqlx.In(`
 		SELECT
 			u.id, u.openid, u.nickname, u.phone, u.email, u.avatar_url,
-			tp.skill_summary, tp.id AS talent_id
+			u.school_id, u.major_id,
+			s.school_name, s.school_code,
+			m.major_name, m.class_id
 		FROM `+"`user`"+` u
-		LEFT JOIN talent_profile tp ON u.id = tp.user_id AND tp.status = 1
+		LEFT JOIN school s ON u.school_id = s.id
+		LEFT JOIN major m ON u.major_id = m.id
 		WHERE u.id IN (?)
 	`, userIDs)
 	if err != nil {
-		return nil, 0, fmt.Errorf("build user+talent IN query: %w", err)
+		return nil, 0, fmt.Errorf("build user+school+major IN query: %w", err)
 	}
-	utQuery = r.db.Rebind(utQuery)
+	userQuery = r.db.Rebind(userQuery)
 
-	var utRows []userWithTalent
-	if err := r.db.SelectContext(ctx, &utRows, utQuery, utArgs...); err != nil {
-		return nil, 0, fmt.Errorf("batch query user+talent: %w", err)
+	var userRows []userWithSchoolMajor
+	if err := r.db.SelectContext(ctx, &userRows, userQuery, userArgs...); err != nil {
+		return nil, 0, fmt.Errorf("batch query user+school+major: %w", err)
 	}
 
-	// Build lookup map and fill back in one pass
-	type userAndTP struct {
-		User          *models.User
-		TalentProfile *models.TalentProfile
-	}
-	utMap := make(map[int]userAndTP, len(utRows))
-	for _, row := range utRows {
-		entry := userAndTP{
-			User: &models.User{
-				ID:        row.ID,
-				OpenID:    row.OpenID,
-				Nickname:  row.Nickname,
-				Phone:     row.Phone,
-				Email:     row.Email,
-				AvatarUrl: row.AvatarUrl,
-			},
+	// Build user lookup map
+	userMap := make(map[int]*models.User, len(userRows))
+	for _, row := range userRows {
+		userMap[row.ID] = &models.User{
+			ID:         row.ID,
+			OpenID:     row.OpenID,
+			Nickname:   row.Nickname,
+			Phone:      row.Phone,
+			Email:      row.Email,
+			AvatarUrl:  row.AvatarUrl,
+			SchoolID:   row.SchoolID,
+			MajorID:    row.MajorID,
+			SchoolName: row.SchoolName,
+			SchoolCode: row.SchoolCode,
+			MajorName:  row.MajorName,
+			ClassID:    row.ClassID,
 		}
-		if row.SkillSummary != nil {
-			entry.TalentProfile = &models.TalentProfile{
-				ID:           row.TalentID,
-				UserID:       row.ID,
-				SkillSummary: row.SkillSummary,
-			}
-		}
-		utMap[row.ID] = entry
 	}
+
+	// 3rd query: talent_profile (1 table), batch by user_id
+	tpQuery, tpArgs, err := sqlx.In(`
+		SELECT id, user_id, skill_summary
+		FROM talent_profile
+		WHERE user_id IN (?)
+	`, userIDs)
+	if err != nil {
+		return nil, 0, fmt.Errorf("build talent_profile IN query: %w", err)
+	}
+	tpQuery = r.db.Rebind(tpQuery)
+
+	var tpRows []talentProfileRow
+	if err := r.db.SelectContext(ctx, &tpRows, tpQuery, tpArgs...); err != nil {
+		return nil, 0, fmt.Errorf("batch query talent_profile: %w", err)
+	}
+
+	// Build talent_profile lookup map
+	tpMap := make(map[int]*models.TalentProfile, len(tpRows))
+	for _, row := range tpRows {
+		tpMap[row.UserID] = &models.TalentProfile{
+			ID:           row.ID,
+			UserID:       row.UserID,
+			SkillSummary: row.SkillSummary,
+		}
+	}
+
+	// Fill back applicant and talent_profile
 	for i := range applications {
-		if entry, ok := utMap[applications[i].UserID]; ok {
-			applications[i].Applicant = entry.User
-			applications[i].TalentProfile = entry.TalentProfile
+		if user, ok := userMap[applications[i].UserID]; ok {
+			applications[i].Applicant = user
+		}
+		if tp, ok := tpMap[applications[i].UserID]; ok {
+			applications[i].TalentProfile = tp
 		}
 	}
 
@@ -158,9 +194,9 @@ func (r *ApplicationRepository) List(ctx context.Context, params ApplicationList
 func (r *ApplicationRepository) Create(ctx context.Context, app *models.ProjectApplication) error {
 	query := `
 		INSERT INTO project_application (
-			project_id, user_id, contact, status
+			project_id, user_id, status
 		) VALUES (
-			:project_id, :user_id, :contact, :status
+			:project_id, :user_id, :status
 		)
 	`
 
@@ -182,7 +218,7 @@ func (r *ApplicationRepository) Create(ctx context.Context, app *models.ProjectA
 func (r *ApplicationRepository) GetByID(ctx context.Context, id int) (*models.ProjectApplication, error) {
 	query := `
 		SELECT
-			pa.id, pa.project_id, pa.user_id, pa.contact,
+			pa.id, pa.project_id, pa.user_id,
 			pa.status, pa.applied_at, pa.updated_at
 		FROM project_application pa
 		WHERE pa.id = ?

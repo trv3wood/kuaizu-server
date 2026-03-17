@@ -54,11 +54,19 @@ func JWTAuth(config *JWTConfig) echo.MiddlewareFunc {
 				return echo.NewHTTPError(401, "invalid or expired token")
 			}
 
-			// Set user info in context
+			// Set user info in context BEFORE calling next
+			// This ensures the logger middleware can access these values
 			c.Set("userID", claims.UserID)
 			c.Set("openID", claims.OpenID)
 
-			return next(c)
+			// Call next handler and preserve any error
+			if err := next(c); err != nil {
+				// Store error in context for logger to access
+				c.Set("handlerError", err)
+				return err
+			}
+
+			return nil
 		}
 	}
 }

@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/labstack/gommon/log"
 	"github.com/trv3wood/kuaizu-server/internal/models"
 )
 
@@ -196,13 +196,13 @@ func (r *TalentProfileRepository) List(ctx context.Context, params TalentProfile
 
 	var profiles []models.TalentProfile
 	if err := r.db.SelectContext(ctx, &profiles, query, args...); err != nil {
-		log.Error("query talent profiles: ", err)
+		log.Printf("query talent profiles: %v", err)
 		return nil, 0, fmt.Errorf("query talent profiles: %w", err)
 	}
 
 	// Enrich school_name / major_name via batch follow-up queries (single-table each)
 	if err := r.enrichSchoolMajorBatch(ctx, profiles); err != nil {
-		log.Error("enrich school major batch: ", err)
+		log.Printf("enrich school major batch: %v", err)
 		return nil, 0, err
 	}
 
@@ -260,13 +260,13 @@ func (r *TalentProfileRepository) GetByUserID(ctx context.Context, userID int) (
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		log.Error("query talent profile by user id: ", err)
+		log.Printf("query talent profile by user id: %v", err)
 		return nil, fmt.Errorf("query talent profile by user id: %w", err)
 	}
 
 	// Follow-up: school and major (single-table each)
 	if err := r.enrichSchoolMajor(ctx, &p); err != nil {
-		log.Error("enrich school major: ", err)
+		log.Printf("enrich school major: %v", err)
 		return nil, err
 	}
 
@@ -286,10 +286,10 @@ func (r *TalentProfileRepository) Upsert(ctx context.Context, p *models.TalentPr
 		query := `
 			INSERT INTO talent_profile (
 				user_id, self_evaluation, skill_summary, project_experience,
-				mbti, status, is_public_contact
+				mbti, status
 			) VALUES (
 				:user_id, :self_evaluation, :skill_summary, :project_experience,
-				:mbti, :status, :is_public_contact
+				:mbti, :status
 			)
 		`
 		result, err := r.db.NamedExecContext(ctx, query, p)
@@ -323,7 +323,7 @@ func (r *TalentProfileRepository) Upsert(ctx context.Context, p *models.TalentPr
 // DeleteByUserID deletes a talent profile by user ID
 func (r *TalentProfileRepository) DeleteByUserID(ctx context.Context, userID int) error {
 	query := `
-		UPDATE talent_profile SET status = 0, is_public_contact = 0 WHERE user_id = ?
+		UPDATE talent_profile SET status = 0 WHERE user_id = ?
 	`
 	_, err := r.db.ExecContext(ctx, query, userID)
 	if err != nil {

@@ -30,6 +30,10 @@ func (s *Server) ListProjects(ctx echo.Context, params api.ListProjectsParams) e
 		direction := int(*params.Direction)
 		listParams.Direction = &direction
 	}
+	if params.IsCrossSchool != nil {
+		isCrossSchool := int(*params.IsCrossSchool)
+		listParams.IsCrossSchool = &isCrossSchool
+	}
 
 	result, err := s.svc.Project.ListProjects(ctx.Request().Context(), listParams)
 	if err != nil {
@@ -263,11 +267,6 @@ func (s *Server) ListMyApplications(ctx echo.Context, params api.ListMyApplicati
 // ApplyToProject handles POST /projects/{id}/applications
 func (s *Server) ApplyToProject(ctx echo.Context, id int) error {
 	userID := GetUserID(ctx)
-
-	var req api.ApplyToProjectJSONBody
-	if err := ctx.Bind(&req); err != nil {
-		return BadRequest(ctx, "请求参数错误")
-	}
 
 	input := service.ApplyToProjectInput{
 		ProjectID: id,
